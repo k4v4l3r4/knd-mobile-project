@@ -1,0 +1,5 @@
+*
+!mobile-warga/
+!mobile-warga/**
+!.gitignore
+!.easignore
