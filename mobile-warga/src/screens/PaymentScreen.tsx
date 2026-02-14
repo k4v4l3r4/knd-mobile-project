@@ -225,8 +225,8 @@ export default function PaymentScreen({ initialData, onSuccess }: { initialData?
         return (
           <View style={styles.infoCard}>
             <View style={styles.qrisContainer}>
-              <Image 
-                source={require('../../assets/qris.png')}
+              <Image
+                source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/8/8a/Qr-Example.png' }}
                 style={styles.qrisImage}
                 resizeMode="contain"
               />

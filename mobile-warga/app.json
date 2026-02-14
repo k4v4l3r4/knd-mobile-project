@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Kawasan Nyaman Digital",
+    "name": "KND",
     "slug": "knd-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -10,6 +10,7 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "icon": "./assets/knd-icon-192-padding.png",
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -19,6 +20,10 @@
     },
     "android": {
       "package": "com.knd.mobile",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/knd-icon-192-padding.png",
+        "backgroundColor": "#ffffff"
+      },
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
@@ -28,7 +33,7 @@
       ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/android-chrome-512x512.png"
     },
     "plugins": [
       "@react-native-community/datetimepicker"
