@@ -1,8 +1,11 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
+const rawBase = process.env.NEXT_PUBLIC_API_URL || '';
+const baseURL = rawBase.endsWith('/api') ? rawBase : `${rawBase.replace(/\/$/, '')}/api`;
+
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  baseURL,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
