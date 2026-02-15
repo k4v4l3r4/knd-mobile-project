@@ -16,6 +16,7 @@ import Cookies from 'js-cookie';
 import Swal from 'sweetalert2';
 import { formatRole } from '@/lib/utils';
 import { DemoLabel } from '@/components/TenantStatusComponents';
+import { useTenant } from '@/context/TenantContext';
 
 const menus = [
   { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
@@ -52,31 +53,55 @@ export default function Sidebar({ isOpen, setIsOpen }: { isOpen?: boolean, setIs
   const [rtName, setRtName] = useState('RT Online');
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const router = useRouter();
+  const { isDemo, status } = useTenant();
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!status) return;
     fetchUserProfile();
     fetchAppSettings();
-  }, []);
+  }, [status]);
 
   const fetchUserProfile = async () => {
     try {
+      const token = Cookies.get('admin_token');
+      if (isDemo || !token) {
+        setUser({
+          name: 'Demo Admin',
+          role: 'ADMIN',
+          rt: { rt_name: 'RT Online', logo_url: null }
+        });
+        return;
+      }
       const response = await axios.get('/me');
-      setUser(response.data.data); // Adjust based on actual API response structure
+      setUser(response.data.data);
     } catch (error) {
-      console.error('Failed to fetch user profile:', error);
+      if (!isDemo) {
+        console.error('Failed to fetch user profile:', error);
+      }
     }
   };
 
   const fetchAppSettings = async () => {
     try {
+      const token = Cookies.get('admin_token');
+      if (isDemo || !token) {
+        setLogoUrl(null);
+        setRtName('RT Online');
+        return;
+      }
       const response = await axios.get('/app-settings');
       if (response.data.success) {
         setLogoUrl(response.data.data.logo_url);
         setRtName(response.data.data.rt_name || 'RT Online');
       }
     } catch (error) {
-      console.error('Failed to fetch settings:', error);
+      if (!isDemo) {
+        console.error('Failed to fetch settings:', error);
+      }
     }
   };
 
@@ -105,30 +130,16 @@ export default function Sidebar({ isOpen, setIsOpen }: { isOpen?: boolean, setIs
     const toastId = toast.loading('Sedang keluar...');
 
     try {
-      // 2. Call Logout API
-      await axios.post('/logout');
-      
-      // 3. Clear Cookies (Correct storage based on axios.ts)
-      Cookies.remove('admin_token');
-      Cookies.remove('admin_token', { path: '/' });
-      
-      // 4. Also clear localStorage just in case legacy code uses it
-      localStorage.removeItem('token');
-
-      toast.success('Berhasil logout', { id: toastId });
-      
-      // 5. Redirect
-      router.push('/login');
+      if (!isDemo) {
+        await axios.post('/logout');
+      }
     } catch (error) {
-      console.error('Logout error:', error);
-      toast.error('Gagal logout', { id: toastId });
-      
-      // Force logout anyway
+    } finally {
       Cookies.remove('admin_token');
       Cookies.remove('admin_token', { path: '/' });
       localStorage.removeItem('token');
+      toast.success('Berhasil logout', { id: toastId });
       router.push('/login');
-    } finally {
       setIsLoggingOut(false);
     }
   };

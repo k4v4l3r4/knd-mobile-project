@@ -35,9 +35,10 @@ import ProductCard from '@/components/ProductCard';
 import { Product, Store, UserData } from '@/types/umkm';
 import { useTenant } from '@/context/TenantContext';
 import { DemoLabel } from '@/components/TenantStatusComponents';
+import Cookies from 'js-cookie';
 
 export default function UmkmPage() {
-  const { isDemo, isExpired } = useTenant();
+  const { isDemo, isExpired, status } = useTenant();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -123,9 +124,10 @@ export default function UmkmPage() {
   };
 
   useEffect(() => {
+    if (!status) return;
     fetchCurrentUser();
     fetchProducts();
-  }, []);
+  }, [status]);
 
   useEffect(() => {
     if (currentUser) {
@@ -138,28 +140,77 @@ export default function UmkmPage() {
 
   const fetchCurrentUser = async () => {
     try {
+      const adminToken = Cookies.get('admin_token');
+      if (isDemo || !adminToken) {
+        const demoUser: UserData = {
+          id: 1,
+          name: 'Budi Santoso',
+          email: 'budi.santoso@example.com',
+          phone: '081234567801',
+          role: 'ADMIN_RT',
+          photo_url: null
+        };
+        setCurrentUser(demoUser);
+        return;
+      }
       const response = await api.get('/me');
       setCurrentUser(response.data.data);
     } catch (error) {
-      console.error('Error fetching user:', error);
+      if (!isDemo) {
+        console.error('Error fetching user:', error);
+      }
     }
   };
 
   const fetchMyStore = async () => {
     try {
+      if (isDemo) {
+        const demoStore: Store = {
+          id: 1,
+          user_id: 1,
+          name: 'Warung Sembako RT 01',
+          description: 'Warung kebutuhan sehari-hari warga RT 01.',
+          address: 'Jl. Melati No. 10, RT 01',
+          whatsapp: '081234567801',
+          status: 'verified',
+          logo_url: null
+        };
+        setMyStore(demoStore);
+        return;
+      }
       const response = await api.get('/stores/my');
       setMyStore(response.data.data);
     } catch (error) {
-      console.error('Error fetching my store:', error);
+      if (!isDemo) {
+        console.error('Error fetching my store:', error);
+      }
     }
   };
 
   const fetchPendingStores = async () => {
     try {
+      if (isDemo) {
+        const demoPending: Store[] = [
+          {
+            id: 2,
+            user_id: 2,
+            name: 'Katering Bu Siti',
+            description: 'Katering rumahan untuk acara keluarga dan kantor.',
+            address: 'Jl. Mawar No. 5, RT 01',
+            whatsapp: '081234567802',
+            status: 'pending',
+            logo_url: null
+          }
+        ];
+        setPendingStores(demoPending);
+        return;
+      }
       const response = await api.get('/admin/stores?status=pending');
       setPendingStores(response.data.data);
     } catch (error) {
-      console.error('Error fetching pending stores:', error);
+      if (!isDemo) {
+        console.error('Error fetching pending stores:', error);
+      }
     }
   };
 
@@ -179,13 +230,80 @@ export default function UmkmPage() {
   const fetchProducts = async () => {
     setLoading(true);
     try {
+      const adminToken = Cookies.get('admin_token');
+      if (isDemo || !adminToken) {
+        const demoProducts: Product[] = [
+          {
+            id: 1,
+            user_id: 1,
+            store_id: 1,
+            name: 'Nasi Kotak Komplit',
+            description: 'Nasi kotak dengan lauk ayam goreng, sayur, sambal, dan buah.',
+            price: '25000',
+            category: 'FOOD',
+            photo_url: null,
+            whatsapp: '081234567801',
+            store: {
+              id: 1,
+              user_id: 1,
+              name: 'Warung Sembako RT 01',
+              description: 'Warung kebutuhan sehari-hari warga RT 01.',
+              address: 'Jl. Melati No. 10, RT 01',
+              whatsapp: '081234567801',
+              status: 'verified',
+              logo_url: null
+            },
+            user: {
+              id: 1,
+              name: 'Budi Santoso',
+              email: 'budi.santoso@example.com',
+              phone: '081234567801',
+              role: 'ADMIN_RT',
+              photo_url: null
+            }
+          },
+          {
+            id: 2,
+            user_id: 2,
+            store_id: 2,
+            name: 'Jasa Cuci Motor',
+            description: 'Cuci motor higienis dan cepat, bisa dipanggil ke rumah.',
+            price: '15000',
+            category: 'SERVICE',
+            photo_url: null,
+            whatsapp: '081234567802',
+            store: {
+              id: 2,
+              user_id: 2,
+              name: 'Cuci Motor Pak Andi',
+              description: 'Layanan cuci motor panggilan di lingkungan RT.',
+              address: 'Jl. Kenanga No. 3, RT 01',
+              whatsapp: '081234567802',
+              status: 'verified',
+              logo_url: null
+            },
+            user: {
+              id: 2,
+              name: 'Andi Wijaya',
+              email: 'andi.wijaya@example.com',
+              phone: '081234567802',
+              role: 'WARGA',
+              photo_url: null
+            }
+          }
+        ];
+        setProducts(demoProducts);
+        return;
+      }
       const response = await api.get('/products');
       if (response.data.data) {
         setProducts(response.data.data);
       }
     } catch (error) {
-      console.error('Error fetching products:', error);
-      toast.error('Gagal mengambil data produk');
+      if (!isDemo) {
+        console.error('Error fetching products:', error);
+        toast.error('Gagal mengambil data produk');
+      }
     } finally {
       setLoading(false);
     }

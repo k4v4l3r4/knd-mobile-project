@@ -19,6 +19,7 @@ import {
 import { toast, Toaster } from 'react-hot-toast';
 import { useTenant } from '@/context/TenantContext';
 import { DemoLabel } from '@/components/TenantStatusComponents';
+import Cookies from 'js-cookie';
 
 interface Guest {
   id: number;
@@ -37,7 +38,7 @@ interface Guest {
 }
 
 export default function GuestBookPage() {
-  const { isDemo, isExpired } = useTenant();
+  const { isDemo, isExpired, status } = useTenant();
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -49,16 +50,74 @@ export default function GuestBookPage() {
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
+    if (!status) return;
     fetchGuests();
-  }, []);
+  }, [status]);
 
   const fetchGuests = async () => {
     try {
+      const token = Cookies.get('admin_token');
+      if (isDemo || !token) {
+        const now = new Date();
+        const isoToday = now.toISOString();
+        const demoGuests: Guest[] = [
+          {
+            id: 1,
+            guest_name: 'Rudi Hartono',
+            guest_nik: '3276010101010001',
+            relation: 'KELUARGA',
+            visit_date: isoToday,
+            duration_days: 2,
+            photo_url: '',
+            status: 'REPORTED',
+            created_at: isoToday,
+            host: {
+              id: 101,
+              name: 'Budi Santoso'
+            }
+          },
+          {
+            id: 2,
+            guest_name: 'Siti Lestari',
+            guest_nik: '3276010202020002',
+            relation: 'SAUDARA',
+            visit_date: isoToday,
+            duration_days: 1,
+            photo_url: '',
+            status: 'CHECKED',
+            created_at: isoToday,
+            host: {
+              id: 102,
+              name: 'Ani Wijaya'
+            }
+          },
+          {
+            id: 3,
+            guest_name: 'Andi Pratama',
+            guest_nik: '3276010303030003',
+            relation: 'TEMAN',
+            visit_date: isoToday,
+            duration_days: 3,
+            photo_url: '',
+            status: 'CHECK_IN',
+            created_at: isoToday,
+            host: {
+              id: 103,
+              name: 'Dewi Kusuma'
+            }
+          }
+        ];
+        setGuests(demoGuests);
+        setLoading(false);
+        return;
+      }
       const response = await api.get('/guest-books');
       setGuests(response.data.data);
     } catch (error) {
-      console.error('Error fetching guests:', error);
-      toast.error('Gagal memuat data buku tamu');
+      if (!isDemo) {
+        console.error('Error fetching guests:', error);
+        toast.error('Gagal memuat data buku tamu');
+      }
     } finally {
       setLoading(false);
     }

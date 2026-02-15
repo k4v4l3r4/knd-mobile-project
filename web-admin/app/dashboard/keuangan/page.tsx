@@ -31,10 +31,11 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "react-hot-toast";
 import { useTenant } from "@/context/TenantContext";
+import Cookies from "js-cookie";
 
 export default function KeuanganPage() {
   const router = useRouter();
-  const { isDemo, isTrial, isExpired } = useTenant();
+  const { isDemo, isTrial, isExpired, status } = useTenant();
   const [summary, setSummary] = useState({
     total_in: 0,
     total_out: 0,
@@ -62,47 +63,134 @@ export default function KeuanganPage() {
   const [isCustomCategory, setIsCustomCategory] = useState(false);
 
   useEffect(() => {
+    if (!status) return;
     fetchData();
     fetchAccounts();
     fetchCategories();
-  }, []);
+  }, [status]);
 
   const fetchCategories = async () => {
     try {
+      const token = Cookies.get("admin_token");
+      if (isDemo || !token) {
+        const demoFees = [
+          { id: 1, name: "Iuran Rutin Bulanan" },
+          { id: 2, name: "Iuran Kebersihan" },
+          { id: 3, name: "Iuran Keamanan" }
+        ];
+        const demoActivities = [
+          { id: 1, name: "Kegiatan 17 Agustus" },
+          { id: 2, name: "Rapat Rutin RT" },
+          { id: 3, name: "Perbaikan Fasilitas Umum" }
+        ];
+        setFees(demoFees);
+        setActivities(demoActivities);
+        return;
+      }
       const [feesRes, activitiesRes] = await Promise.all([
-        api.get('/fees'),
-        api.get('/settings/activities')
+        api.get("/fees"),
+        api.get("/settings/activities")
       ]);
       if (feesRes.data) setFees(feesRes.data.data || feesRes.data);
       if (activitiesRes.data) setActivities(activitiesRes.data);
     } catch (error) {
-      console.error("Failed to fetch categories:", error);
+      if (!isDemo) {
+        console.error("Failed to fetch categories:", error);
+      }
     }
   };
 
   const fetchAccounts = async () => {
     try {
-      const response = await api.get('/rt/finance-accounts');
+      const token = Cookies.get("admin_token");
+      if (isDemo || !token) {
+        const demoAccounts = [
+          { id: 1, name: "Kas Tunai", balance: 1500000 },
+          { id: 2, name: "Rekening Bank RT", balance: 3500000 }
+        ];
+        setAccounts(demoAccounts);
+        return;
+      }
+      const response = await api.get("/rt/finance-accounts");
       if (response.data.success) {
         setAccounts(response.data.data);
       }
     } catch (error) {
-      console.error("Failed to fetch accounts:", error);
+      if (!isDemo) {
+        console.error("Failed to fetch accounts:", error);
+      }
     }
   };
 
   const fetchData = async () => {
     setLoading(true);
     try {
+      const token = Cookies.get("admin_token");
+      if (isDemo || !token) {
+        const demoSummary = {
+          total_in: 7500000,
+          total_out: 2500000,
+          balance: 5000000,
+          breakdown: {
+            IURAN: 5000000,
+            DENDA: 500000,
+            LAINNYA: 2000000
+          }
+        };
+        const now = new Date();
+        const demoTransactions = [
+          {
+            id: 1,
+            origin: "demo",
+            created_at: now.toISOString(),
+            source_type: "IURAN",
+            description: "Iuran rutin bulan ini",
+            direction: "IN",
+            amount: 3000000
+          },
+          {
+            id: 2,
+            origin: "demo",
+            created_at: now.toISOString(),
+            source_type: "DENDA",
+            description: "Denda keterlambatan iuran",
+            direction: "IN",
+            amount: 500000
+          },
+          {
+            id: 3,
+            origin: "demo",
+            created_at: now.toISOString(),
+            source_type: "OPERASIONAL",
+            description: "Pembelian peralatan kebersihan",
+            direction: "OUT",
+            amount: 750000
+          },
+          {
+            id: 4,
+            origin: "demo",
+            created_at: now.toISOString(),
+            source_type: "KEGIATAN",
+            description: "Konsumsi rapat warga",
+            direction: "OUT",
+            amount: 1250000
+          }
+        ];
+        setSummary(demoSummary);
+        setTransactions(demoTransactions);
+        return;
+      }
       const [summaryRes, transactionsRes] = await Promise.all([
-        api.get('/rt/kas/summary'),
-        api.get('/rt/kas/transactions')
+        api.get("/rt/kas/summary"),
+        api.get("/rt/kas/transactions")
       ]);
       setSummary(summaryRes.data.data);
       setTransactions(transactionsRes.data.data.data);
     } catch (error) {
-      console.error("Failed to fetch finance data:", error);
-      toast.error("Gagal memuat data keuangan");
+      if (!isDemo) {
+        console.error("Failed to fetch finance data:", error);
+        toast.error("Gagal memuat data keuangan");
+      }
     } finally {
       setLoading(false);
     }

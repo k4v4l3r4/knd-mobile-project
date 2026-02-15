@@ -7,6 +7,7 @@ import { Users, Calendar, Edit, Save, X, Moon, Check, Copy, Trash2, MapPin, Sett
 import Link from 'next/link';
 import { useTenant } from '@/context/TenantContext';
 import { DemoLabel } from '@/components/TenantStatusComponents';
+import Cookies from 'js-cookie';
 
 interface User {
   id: number;
@@ -37,7 +38,7 @@ interface RondaSchedule {
 }
 
 export default function JadwalRondaPage() {
-  const { isDemo, isExpired } = useTenant();
+  const { isDemo, isExpired, status } = useTenant();
   const [schedule, setSchedule] = useState<RondaSchedule | null>(null);
   const [schedules, setSchedules] = useState<RondaSchedule[]>([]);
   const [wargaList, setWargaList] = useState<User[]>([]);
@@ -76,12 +77,80 @@ export default function JadwalRondaPage() {
   );
 
   useEffect(() => {
+    if (!status) return;
     fetchData();
-  }, []);
+  }, [status]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
+      const token = Cookies.get('admin_token');
+      if (isDemo || !token) {
+        const demoWarga: User[] = [
+          { id: 1, name: 'Budi Santoso', phone: '081234567801' },
+          { id: 2, name: 'Siti Aminah', phone: '081234567802' },
+          { id: 3, name: 'Andi Wijaya', phone: '081234567803' },
+          { id: 4, name: 'Rina Putri', phone: '081234567804' }
+        ];
+        const today = new Date();
+        const startDate = today.toISOString().split('T')[0];
+        const end = new Date(today);
+        end.setDate(end.getDate() + 6);
+        const endDate = end.toISOString().split('T')[0];
+        const demoSchedule: RondaSchedule = {
+          id: 1,
+          schedule_type: 'WEEKLY',
+          start_date: startDate,
+          end_date: endDate,
+          start_time: '22:00',
+          end_time: '04:00',
+          shift_name: 'Group A',
+          status: 'ACTIVE',
+          participants: [
+            {
+              id: 1,
+              user: demoWarga[0],
+              status: 'PRESENT',
+              attendance_at: new Date().toISOString(),
+              is_fined: false,
+              fine_amount: 0,
+              notes: null
+            },
+            {
+              id: 2,
+              user: demoWarga[1],
+              status: 'PENDING',
+              attendance_at: null,
+              is_fined: false,
+              fine_amount: 0,
+              notes: null
+            },
+            {
+              id: 3,
+              user: demoWarga[2],
+              status: 'ABSENT',
+              attendance_at: null,
+              is_fined: true,
+              fine_amount: 50000,
+              notes: 'Tidak hadir tanpa konfirmasi'
+            },
+            {
+              id: 4,
+              user: demoWarga[3],
+              status: 'EXCUSED',
+              attendance_at: null,
+              is_fined: false,
+              fine_amount: 0,
+              notes: 'Izin karena dinas luar kota'
+            }
+          ]
+        };
+        setSchedule(demoSchedule);
+        setSchedules([demoSchedule]);
+        setWargaList(demoWarga);
+        setLoading(false);
+        return;
+      }
       const [schedRes, wargaRes] = await Promise.all([
         api.get('/ronda-schedules'),
         api.get('/warga', { params: { all: true } })
@@ -95,8 +164,10 @@ export default function JadwalRondaPage() {
         setWargaList(wargaRes.data.data);
       }
     } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Gagal memuat jadwal ronda');
+      if (!isDemo) {
+        console.error('Error fetching data:', error);
+        toast.error('Gagal memuat jadwal ronda');
+      }
     } finally {
       setLoading(false);
     }

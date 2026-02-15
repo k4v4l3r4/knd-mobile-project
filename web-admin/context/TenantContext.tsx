@@ -42,7 +42,16 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const refreshStatus = async () => {
     try {
       const token = Cookies.get('admin_token');
-      if (!token) return;
+      if (!token) {
+        setStatus({
+          tenant_type: 'DEMO',
+          tenant_status: 'DEMO',
+          is_trial: false,
+          remaining_trial_days: 0,
+          action_required: null,
+        });
+        return;
+      }
 
       // Avoid setting loading to true on background refreshes to prevent UI flicker
       // setLoading(true); 
@@ -52,7 +61,13 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setStatus(response.data.data);
       }
     } catch (error) {
-      console.error('Failed to fetch tenant status:', error);
+      setStatus({
+        tenant_type: 'DEMO',
+        tenant_status: 'DEMO',
+        is_trial: false,
+        remaining_trial_days: 0,
+        action_required: null,
+      });
     } finally {
       setLoading(false);
     }

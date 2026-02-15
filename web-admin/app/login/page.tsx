@@ -21,12 +21,33 @@ import api from '@/lib/api';
 function LoginForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const testimonials = [
+        {
+            initial: 'B',
+            quote: 'Sejak pakai sistem ini, kas RT jauh lebih tertib dan warga jadi lebih percaya karena laporan keuangan selalu transparan.',
+            name: 'Bendahara RT 05',
+            meta: '150 Warga'
+        },
+        {
+            initial: 'K',
+            quote: 'Laporan iuran otomatis setiap bulan membantu kami menghemat banyak waktu dan mengurangi salah hitung.',
+            name: 'Ketua RT 01',
+            meta: '96 Warga'
+        },
+        {
+            initial: 'S',
+            quote: 'Warga jadi lebih mudah lapor dan memantau status pengajuan surat tanpa harus datang ke pos.',
+            name: 'Sekretaris RW 03',
+            meta: '220 Warga'
+        }
+    ];
     const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [isDemoLoading, setIsDemoLoading] = useState(false);
     const [errors, setErrors] = useState<{ phone?: string; password?: string; general?: string }>({});
+    const [testimonialIndex, setTestimonialIndex] = useState(0);
 
     useEffect(() => {
         if (searchParams.get('expired') === '1') {
@@ -38,6 +59,21 @@ function LoginForm() {
             router.replace('/login');
         }
     }, [searchParams, router]);
+
+    useEffect(() => {
+        if (testimonials.length <= 1) return;
+        const interval = setInterval(() => {
+            setTestimonialIndex((prev) => (prev + 1) % testimonials.length);
+        }, 8000);
+        return () => clearInterval(interval);
+    }, [testimonials.length]);
+
+    const handleForgotPassword = (e: React.MouseEvent) => {
+        e.preventDefault();
+        toast.error(
+            'Fitur lupa sandi mandiri belum tersedia. Silakan hubungi Admin RT/RW atau tim dukungan RT Online untuk bantuan reset sandi.'
+        );
+    };
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -96,26 +132,11 @@ function LoginForm() {
 
     const handleDemoLogin = async () => {
         setIsDemoLoading(true);
-        
         try {
-            const response = await api.post('/auth/register-demo', {
-                demo_role: 'ADMIN_RT'
-            });
-
-            if (response.data.token) {
-                const { token } = response.data;
-                Cookies.set('admin_token', token, { expires: 1, path: '/' });
-                toast.success('Masuk ke Mode Demo...');
-                router.push('/dashboard');
-            } else {
-                toast.error('Gagal masuk mode demo.');
-                setIsDemoLoading(false);
-            }
-        } catch (error: any) {
-            console.error('Demo login error:', error);
-            const message = error.response?.data?.message || 'Gagal terhubung ke server.';
-            toast.error(message);
+            window.location.href = '/api/auth/demo-login';
+        } catch (error) {
             setIsDemoLoading(false);
+            toast.error('Gagal membuka mode demo.');
         }
     };
 
@@ -181,16 +202,20 @@ function LoginForm() {
                     <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 relative">
                         <div className="flex gap-4">
                             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-white font-bold text-lg shadow-lg">
-                                B
+                                {testimonials[testimonialIndex].initial}
                             </div>
                             <div>
                                 <p className="text-slate-200 italic mb-2 text-sm leading-relaxed">
-                                    "Sejak pakai sistem ini, kas RT jauh lebih tertib dan warga jadi lebih percaya karena laporan keuangan selalu transparan."
+                                    "{testimonials[testimonialIndex].quote}"
                                 </p>
                                 <div className="flex items-center gap-2">
-                                    <span className="font-bold text-white text-sm">Bendahara RT 05</span>
+                                    <span className="font-bold text-white text-sm">
+                                        {testimonials[testimonialIndex].name}
+                                    </span>
                                     <span className="text-slate-500 text-xs">•</span>
-                                    <span className="text-emerald-400 text-xs font-medium">150 Warga</span>
+                                    <span className="text-emerald-400 text-xs font-medium">
+                                        {testimonials[testimonialIndex].meta}
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -273,9 +298,13 @@ function LoginForm() {
                                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                                         Kata Sandi
                                     </label>
-                                    <a href="#" className="text-xs font-medium text-emerald-600 hover:text-emerald-700">
+                                    <button
+                                        type="button"
+                                        onClick={handleForgotPassword}
+                                        className="text-xs font-medium text-emerald-600 hover:text-emerald-700"
+                                    >
                                         Lupa sandi?
-                                    </a>
+                                    </button>
                                 </div>
                                 <div className="relative group">
                                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">

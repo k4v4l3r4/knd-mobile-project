@@ -25,7 +25,7 @@ import { useTenant } from '@/context/TenantContext';
 import { DemoLabel } from '@/components/TenantStatusComponents';
 
 export default function KostPage() {
-  const { isDemo, isExpired } = useTenant();
+  const { isDemo, isExpired, status } = useTenant();
   const [activeTab, setActiveTab] = useState('kost');
   const [boardingHouses, setBoardingHouses] = useState<any[]>([]);
   const [allTenants, setAllTenants] = useState<any[]>([]);
@@ -57,11 +57,94 @@ export default function KostPage() {
     ktp_image: null as File | null
   });
 
-  // Fetch Data
   const fetchData = async () => {
     try {
       setLoading(true);
       const token = Cookies.get('admin_token');
+      if (isDemo || !token) {
+        const demoHouses = [
+          {
+            id: 1,
+            name: 'Kost Melati Indah',
+            address: 'Jl. Melati No. 10, RT 01/02',
+            total_rooms: 10,
+            owner: { name: 'Ibu Sari' },
+            tenants: [
+              {
+                id: 1,
+                status: 'ACTIVE',
+                room_number: 'A1',
+                start_date: new Date().toISOString().split('T')[0],
+                user: {
+                  id: 1,
+                  name: 'Andi Pratama',
+                  nik: '320101199001010001',
+                  phone: '081234567890',
+                  occupation: 'Karyawan Swasta',
+                  photo_url: null,
+                  avatar: null
+                }
+              },
+              {
+                id: 2,
+                status: 'ACTIVE',
+                room_number: 'A2',
+                start_date: new Date().toISOString().split('T')[0],
+                user: {
+                  id: 2,
+                  name: 'Siti Lestari',
+                  nik: '320101199502020002',
+                  phone: '081234567891',
+                  occupation: 'Mahasiswi',
+                  photo_url: null,
+                  avatar: null
+                }
+              }
+            ]
+          },
+          {
+            id: 2,
+            name: 'Kost Flamboyan',
+            address: 'Jl. Flamboyan No. 5, RT 02/03',
+            total_rooms: 8,
+            owner: { name: 'Bapak Budi' },
+            tenants: [
+              {
+                id: 3,
+                status: 'ACTIVE',
+                room_number: 'B1',
+                start_date: new Date().toISOString().split('T')[0],
+                user: {
+                  id: 3,
+                  name: 'Rina Kurnia',
+                  nik: '320101199803030003',
+                  phone: '081234567892',
+                  occupation: 'Barista',
+                  photo_url: null,
+                  avatar: null
+                }
+              }
+            ]
+          }
+        ];
+        setBoardingHouses(demoHouses);
+        const tenants: any[] = [];
+        demoHouses.forEach((house: any) => {
+          house.tenants.forEach((tenant: any) => {
+            if (tenant.status === 'ACTIVE') {
+              tenants.push({
+                ...tenant,
+                boarding_house_name: house.name,
+                owner_name: house.owner.name,
+                boarding_house_id: house.id
+              });
+            }
+          });
+        });
+        setAllTenants(tenants);
+        setLoading(false);
+        return;
+      }
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/boarding-houses`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -95,8 +178,9 @@ export default function KostPage() {
   };
 
   useEffect(() => {
+    if (!status) return;
     fetchData();
-  }, []);
+  }, [status]);
 
   // Handlers for Kost Form
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {

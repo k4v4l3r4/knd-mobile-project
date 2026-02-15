@@ -28,9 +28,10 @@ import { toast } from 'react-hot-toast';
 import Image from 'next/image';
 import { useTenant } from '@/context/TenantContext';
 import { DemoLabel } from '@/components/TenantStatusComponents';
+import Cookies from 'js-cookie';
 
 export default function BansosPage() {
-  const { isDemo, isExpired } = useTenant();
+  const { isDemo, isExpired, status } = useTenant();
   const [activeTab, setActiveTab] = useState('dtks');
   const [isLoading, setIsLoading] = useState(false);
   const [recipients, setRecipients] = useState<any[]>([]);
@@ -62,19 +63,53 @@ export default function BansosPage() {
   const [editingRecipient, setEditingRecipient] = useState<any>(null);
 
   useEffect(() => {
+    if (!status) return;
     fetchRecipients();
     if (activeTab === 'riwayat') fetchHistories();
     if (activeTab === 'dtks') fetchWargaList();
-  }, [activeTab]);
+  }, [status, activeTab]);
 
   const fetchRecipients = async () => {
     setIsLoading(true);
     try {
+      const token = Cookies.get('admin_token');
+      if (isDemo || !token) {
+        const demoRecipients = [
+          {
+            id: 1,
+            user: { id: 1, name: 'Budi Santoso' },
+            no_kk: '3201010101010001',
+            status: 'LAYAK',
+            score: 9,
+            notes: 'Keluarga prasejahtera dengan tanggungan 3 anak'
+          },
+          {
+            id: 2,
+            user: { id: 2, name: 'Siti Aminah' },
+            no_kk: '3201010101010002',
+            status: 'PENDING',
+            score: 7,
+            notes: 'Proses verifikasi lapangan'
+          },
+          {
+            id: 3,
+            user: { id: 3, name: 'Andi Wijaya' },
+            no_kk: '3201010101010003',
+            status: 'TIDAK_LAYAK',
+            score: 4,
+            notes: 'Pendapatan di atas batas penerima bansos'
+          }
+        ];
+        setRecipients(demoRecipients);
+        return;
+      }
       const response = await api.get('/bansos-recipients');
       setRecipients(response.data.data.data);
     } catch (error) {
-      console.error('Failed to fetch recipients', error);
-      toast.error('Gagal memuat data penerima');
+      if (!isDemo) {
+        console.error('Failed to fetch recipients', error);
+        toast.error('Gagal memuat data penerima');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -83,11 +118,42 @@ export default function BansosPage() {
   const fetchHistories = async () => {
     setIsLoading(true);
     try {
+      const token = Cookies.get('admin_token');
+      if (isDemo || !token) {
+        const demoHistories = [
+          {
+            id: 1,
+            date_received: new Date().toISOString(),
+            recipient: {
+              id: 1,
+              user: { id: 1, name: 'Budi Santoso' }
+            },
+            program_name: 'Sembako Januari 2026',
+            amount: '300000',
+            evidence_photo: null
+          },
+          {
+            id: 2,
+            date_received: new Date().toISOString(),
+            recipient: {
+              id: 2,
+              user: { id: 2, name: 'Siti Aminah' }
+            },
+            program_name: 'BLT Desa',
+            amount: '500000',
+            evidence_photo: null
+          }
+        ];
+        setHistories(demoHistories);
+        return;
+      }
       const response = await api.get('/bansos-histories');
       setHistories(response.data.data.data);
     } catch (error) {
-      console.error('Failed to fetch histories', error);
-      toast.error('Gagal memuat riwayat');
+      if (!isDemo) {
+        console.error('Failed to fetch histories', error);
+        toast.error('Gagal memuat riwayat');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -95,10 +161,22 @@ export default function BansosPage() {
 
   const fetchWargaList = async () => {
     try {
+      const token = Cookies.get('admin_token');
+      if (isDemo || !token) {
+        const warga = [
+          { id: 1, name: 'Budi Santoso' },
+          { id: 2, name: 'Siti Aminah' },
+          { id: 3, name: 'Andi Wijaya' }
+        ];
+        setWargaList(warga);
+        return;
+      }
       const response = await api.get('/warga');
       setWargaList(response.data.data.data);
     } catch (error) {
-      console.error('Failed to fetch warga list', error);
+      if (!isDemo) {
+        console.error('Failed to fetch warga list', error);
+      }
     }
   };
 

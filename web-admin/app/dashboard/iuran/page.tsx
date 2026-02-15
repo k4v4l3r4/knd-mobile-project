@@ -47,7 +47,7 @@ interface IuranResponse {
 }
 
 export default function LaporanIuranPage() {
-  const { isDemo, isExpired } = useTenant();
+  const { isDemo, isExpired, status } = useTenant();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<IuranResponse | null>(null);
   const [year, setYear] = useState(new Date().getFullYear());
@@ -58,12 +58,151 @@ export default function LaporanIuranPage() {
   const [hoveredCell, setHoveredCell] = useState<{userId: number, month: string} | null>(null);
 
   useEffect(() => {
+    if (!status) return;
     fetchData();
-  }, [year]);
+  }, [status, year]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
+      const token = Cookies.get('admin_token');
+      if (isDemo || !token) {
+        const demoUsers: UserIuran[] = [
+          {
+            id: 1,
+            name: 'Budi Santoso',
+            block: 'A',
+            photo_url: null,
+            role: 'WARGA',
+            months: {
+              '01': {
+                paid: 100000,
+                status: 'PAID',
+                details: [
+                  {
+                    date: `${year}-01-05`,
+                    amount: 100000,
+                    category: 'Iuran Rutin',
+                    desc: 'Iuran bulan Januari'
+                  }
+                ]
+              },
+              '02': {
+                paid: 100000,
+                status: 'PAID',
+                details: [
+                  {
+                    date: `${year}-02-06`,
+                    amount: 100000,
+                    category: 'Iuran Rutin',
+                    desc: 'Iuran bulan Februari'
+                  }
+                ]
+              },
+              '03': {
+                paid: 50000,
+                status: 'PARTIAL',
+                details: [
+                  {
+                    date: `${year}-03-10`,
+                    amount: 50000,
+                    category: 'Iuran Rutin',
+                    desc: 'Cicilan iuran Maret'
+                  }
+                ]
+              }
+            },
+            total_year: 250000
+          },
+          {
+            id: 2,
+            name: 'Siti Aminah',
+            block: 'A',
+            photo_url: null,
+            role: 'WARGA',
+            months: {
+              '01': {
+                paid: 0,
+                status: 'UNPAID',
+                details: []
+              },
+              '02': {
+                paid: 100000,
+                status: 'PAID',
+                details: [
+                  {
+                    date: `${year}-02-15`,
+                    amount: 100000,
+                    category: 'Iuran Rutin',
+                    desc: 'Iuran Februari'
+                  }
+                ]
+              }
+            },
+            total_year: 100000
+          },
+          {
+            id: 3,
+            name: 'Andi Wijaya',
+            block: 'B',
+            photo_url: null,
+            role: 'WARGA',
+            months: {
+              '01': {
+                paid: 100000,
+                status: 'PAID',
+                details: [
+                  {
+                    date: `${year}-01-03`,
+                    amount: 100000,
+                    category: 'Iuran Rutin',
+                    desc: 'Iuran Januari'
+                  }
+                ]
+              },
+              '02': {
+                paid: 100000,
+                status: 'PAID',
+                details: [
+                  {
+                    date: `${year}-02-04`,
+                    amount: 100000,
+                    category: 'Iuran Rutin',
+                    desc: 'Iuran Februari'
+                  }
+                ]
+              },
+              '03': {
+                paid: 100000,
+                status: 'PAID',
+                details: [
+                  {
+                    date: `${year}-03-07`,
+                    amount: 100000,
+                    category: 'Iuran Rutin',
+                    desc: 'Iuran Maret'
+                  }
+                ]
+              }
+            },
+            total_year: 300000
+          }
+        ];
+
+        const demoBlocks: Record<string, number> = demoUsers.reduce((acc, user) => {
+          acc[user.block] = (acc[user.block] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+
+        const demoData: IuranResponse = {
+          users: demoUsers,
+          blocks: demoBlocks,
+          standard_fee: 100000
+        };
+
+        setData(demoData);
+        return;
+      }
       const response = await axios.get('/reports/dues', {
         params: { year }
       });
@@ -71,8 +210,10 @@ export default function LaporanIuranPage() {
         setData(response.data.data);
       }
     } catch (error) {
-      console.error('Error fetching dues:', error);
-      toast.error('Gagal mengambil data iuran');
+      if (!isDemo) {
+        console.error('Error fetching dues:', error);
+        toast.error('Gagal mengambil data iuran');
+      }
     } finally {
       setLoading(false);
     }
@@ -262,9 +403,12 @@ export default function LaporanIuranPage() {
                       </div>
                     </td>
 
-                    {/* Monthly Columns */}
                     {months.map((m) => {
-                      const mData = user.months[m.key];
+                      const mData: MonthData = user.months[m.key] || {
+                        paid: 0,
+                        status: 'UNPAID',
+                        details: []
+                      };
                       const isPaid = mData.status === 'PAID';
                       const isPartial = mData.status === 'PARTIAL';
                       const isUnpaid = mData.status === 'UNPAID';

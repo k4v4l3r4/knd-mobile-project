@@ -286,7 +286,7 @@ class DemoSeeder extends Seeder
                 'verified_at' => now()->subMonths(1),
                 'category' => 'RETAIL',
                 'contact' => $storeOwner->phone,
-                'image_url' => 'https://images.unsplash.com/photo-1604719312566-b7cb60936928', // Placeholder
+                'image_url' => 'https://placehold.co/640x360?text=Warung+Kelontong+Maju',
             ]
         );
 
@@ -300,7 +300,7 @@ class DemoSeeder extends Seeder
                 'category' => 'SEMBAKO',
                 'is_available' => true,
                 'whatsapp' => $storeOwner->phone,
-                'image_url' => 'https://images.unsplash.com/photo-1586201375761-83865001e31c',
+                'image_url' => 'https://placehold.co/640x360?text=Beras+5kg',
             ]
         );
 

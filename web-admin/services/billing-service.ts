@@ -10,8 +10,28 @@ import {
 export const BillingService = {
   // Get billing summary (status, subscription, active invoice)
   getSummary: async (): Promise<BillingSummary> => {
-    const response = await api.get('/billing/current');
-    return response.data;
+    try {
+      const response = await api.get('/billing/current');
+      return response.data;
+    } catch (error) {
+      const now = new Date().toISOString();
+      return {
+        tenant_status: 'DEMO',
+        billing_mode: 'RT',
+        subscription: {
+          id: 0,
+          plan_name: 'Paket Lifetime Demo',
+          type: 'LIFETIME',
+          status: 'ACTIVE',
+          start_date: now,
+          end_date: null,
+          remaining_days: null,
+        },
+        pending_invoice: null,
+        can_subscribe: false,
+        message: 'Mode Demo: Semua fitur billing aktif tanpa tagihan.',
+      };
+    }
   },
 
   // Get available plans

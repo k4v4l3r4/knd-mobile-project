@@ -8,6 +8,7 @@ import { id } from "date-fns/locale";
 import { Loader2, CheckCircle, XCircle, DollarSign } from "lucide-react";
 import { useTenant } from '@/context/TenantContext';
 import { DemoLabel } from '@/components/TenantStatusComponents';
+import Cookies from "js-cookie";
 
 interface Fine {
   id: number;
@@ -27,19 +28,70 @@ interface Fine {
 }
 
 export default function LaporanDendaPage() {
-  const { isDemo, isExpired } = useTenant();
+  const { isDemo, isExpired, status } = useTenant();
   const [fines, setFines] = useState<Fine[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<number | null>(null);
   const [filterStatus, setFilterStatus] = useState("ALL");
 
   useEffect(() => {
+    if (!status) return;
     fetchFines();
-  }, [filterStatus]);
+  }, [status, filterStatus]);
 
   const fetchFines = async () => {
     setLoading(true);
     try {
+      const adminToken = Cookies.get("admin_token");
+      if (isDemo || !adminToken) {
+        const now = new Date();
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        const demoFines: Fine[] = [
+          {
+            id: 1,
+            user: {
+              name: "Budi Santoso",
+              email: "budi.santoso@example.com",
+            },
+            schedule: {
+              start_date: yesterday.toISOString(),
+              shift_name: "Shift Malam 1",
+            },
+            fine_type: "TIDAK_HADIR",
+            amount: 50000,
+            status: "UNPAID",
+            generated_at: yesterday.toISOString(),
+          },
+          {
+            id: 2,
+            user: {
+              name: "Siti Aminah",
+              email: "siti.aminah@example.com",
+            },
+            schedule: {
+              start_date: now.toISOString(),
+              shift_name: "Shift Malam 2",
+            },
+            fine_type: "TELAT",
+            amount: 10000,
+            status: "PAID",
+            generated_at: now.toISOString(),
+            paid_at: now.toISOString(),
+          },
+        ];
+
+        const filtered =
+          filterStatus === "ALL"
+            ? demoFines
+            : demoFines.filter((f) => f.status === filterStatus);
+
+        setFines(filtered);
+        setLoading(false);
+        return;
+      }
+
       const params: any = {};
       if (filterStatus !== "ALL") params.status = filterStatus;
       
@@ -47,8 +99,10 @@ export default function LaporanDendaPage() {
       // Access nested data structure from pagination
       setFines(response.data.data.data || []);
     } catch (error) {
-      console.error("Failed to fetch fines:", error);
-      toast.error("Gagal memuat data denda");
+      if (!isDemo) {
+        console.error("Failed to fetch fines:", error);
+        toast.error("Gagal memuat data denda");
+      }
     } finally {
       setLoading(false);
     }

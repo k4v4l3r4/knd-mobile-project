@@ -12,6 +12,7 @@ import Cookies from 'js-cookie';
 import Swal from 'sweetalert2';
 import { toast } from 'react-hot-toast';
 import { formatRole } from '@/lib/utils';
+import { useTenant } from '@/context/TenantContext';
 
 interface Notification {
   id: number;
@@ -44,14 +45,17 @@ export default function HeaderSection() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const profileDropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const { isDemo, status } = useTenant();
   
   const currentDate = format(new Date(), 'EEEE, d MMMM yyyy', { locale: id });
 
   useEffect(() => {
+    if (!status) return;
     fetchUnreadCount();
     fetchUser();
+  }, [status]);
 
-    // Close dropdowns when clicking outside
+  useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
@@ -66,29 +70,50 @@ export default function HeaderSection() {
 
   const fetchUser = async () => {
     try {
+      const token = Cookies.get('admin_token');
+      if (isDemo || !token) {
+        setUser({ id: 1, name: 'Demo Admin', role: 'ADMIN', avatar: null, photo_url: null });
+        return;
+      }
       const res = await api.get('/profile');
       setUser(res.data.data);
     } catch (error) {
-      console.error('Failed to fetch user:', error);
+      if (!isDemo) {
+        console.error('Failed to fetch user:', error);
+      }
     }
   };
 
   const fetchUnreadCount = async () => {
     try {
+      const token = Cookies.get('admin_token');
+      if (isDemo || !token) {
+        setUnreadCount(0);
+        return;
+      }
       const res = await api.get('/notifications/unread-count');
       setUnreadCount(res.data.count);
     } catch (error) {
-      console.error('Failed to fetch unread count:', error);
+      if (!isDemo) {
+        console.error('Failed to fetch unread count:', error);
+      }
     }
   };
 
   const fetchNotifications = async () => {
     setIsLoading(true);
     try {
+      const token = Cookies.get('admin_token');
+      if (isDemo || !token) {
+        setNotifications([]);
+        return;
+      }
       const res = await api.get('/notifications');
       setNotifications(res.data.data || res.data); // Handle pagination or plain array
     } catch (error) {
-      console.error('Failed to fetch notifications:', error);
+      if (!isDemo) {
+        console.error('Failed to fetch notifications:', error);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -110,13 +135,18 @@ export default function HeaderSection() {
   const handleNotificationClick = async (notification: Notification) => {
     if (!notification.is_read) {
       try {
-        await api.post(`/notifications/${notification.id}/read`);
+        const token = Cookies.get('admin_token');
+        if (!(isDemo || !token)) {
+          await api.post(`/notifications/${notification.id}/read`);
+        }
         setUnreadCount((prev) => Math.max(0, prev - 1));
         setNotifications((prev) =>
           prev.map((n) => (n.id === notification.id ? { ...n, is_read: true } : n))
         );
       } catch (error) {
-        console.error('Failed to mark as read:', error);
+        if (!isDemo) {
+          console.error('Failed to mark as read:', error);
+        }
       }
     }
 
@@ -128,11 +158,19 @@ export default function HeaderSection() {
 
   const markAllAsRead = async () => {
     try {
+      const token = Cookies.get('admin_token');
+      if (isDemo || !token) {
+        setUnreadCount(0);
+        setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+        return;
+      }
       await api.post('/notifications/read-all');
       setUnreadCount(0);
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
     } catch (error) {
-      console.error('Failed to mark all as read:', error);
+      if (!isDemo) {
+        console.error('Failed to mark all as read:', error);
+      }
     }
   };
 

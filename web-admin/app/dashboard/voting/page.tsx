@@ -30,6 +30,7 @@ import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { useTenant } from '@/context/TenantContext';
 import { DemoLabel } from '@/components/TenantStatusComponents';
+import Cookies from 'js-cookie';
 
 ChartJS.register(
   CategoryScale,
@@ -62,7 +63,7 @@ interface Poll {
 }
 
 export default function VotingPage() {
-  const { isDemo, isExpired } = useTenant();
+  const { isDemo, isExpired, status } = useTenant();
   const [polls, setPolls] = useState<Poll[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
@@ -87,16 +88,99 @@ export default function VotingPage() {
   ]);
 
   useEffect(() => {
+    if (!status) return;
     fetchPolls();
-  }, []);
+  }, [status]);
 
   const fetchPolls = async () => {
     try {
+      const token = Cookies.get('admin_token');
+      if (isDemo || !token) {
+        const now = new Date();
+        const dayMs = 24 * 60 * 60 * 1000;
+        const demoPolls: Poll[] = [
+          {
+            id: 1,
+            title: 'Pemilihan Ketua RT 01',
+            description: 'Pemungutan suara untuk memilih Ketua RT 01 periode 2024-2027.',
+            start_date: new Date(now.getTime() - dayMs).toISOString(),
+            end_date: new Date(now.getTime() + dayMs * 2).toISOString(),
+            status: 'OPEN',
+            total_votes: 42,
+            options: [
+              {
+                id: 1,
+                name: 'Budi Santoso',
+                description: 'Ketua RT petahana, berpengalaman mengelola kegiatan warga.',
+                image_url: '',
+                vote_count: 24,
+                percentage: 57
+              },
+              {
+                id: 2,
+                name: 'Siti Aminah',
+                description: 'Aktif di kegiatan PKK dan karang taruna.',
+                image_url: '',
+                vote_count: 14,
+                percentage: 33
+              },
+              {
+                id: 3,
+                name: 'Andi Wijaya',
+                description: 'Perwakilan pemuda, fokus ke digitalisasi pelayanan RT.',
+                image_url: '',
+                vote_count: 4,
+                percentage: 10
+              }
+            ]
+          },
+          {
+            id: 2,
+            title: 'Penentuan Jadwal Kerja Bakti Bulanan',
+            description: 'Pilih jadwal kerja bakti bulanan yang paling cocok untuk mayoritas warga.',
+            start_date: new Date(now.getTime() - dayMs * 10).toISOString(),
+            end_date: new Date(now.getTime() - dayMs * 5).toISOString(),
+            status: 'CLOSED',
+            total_votes: 60,
+            options: [
+              {
+                id: 4,
+                name: 'Sabtu Pagi',
+                description: 'Jam 07.00 - 09.00',
+                image_url: '',
+                vote_count: 35,
+                percentage: 58
+              },
+              {
+                id: 5,
+                name: 'Minggu Pagi',
+                description: 'Jam 07.00 - 09.00',
+                image_url: '',
+                vote_count: 20,
+                percentage: 33
+              },
+              {
+                id: 6,
+                name: 'Minggu Sore',
+                description: 'Jam 16.00 - 18.00',
+                image_url: '',
+                vote_count: 5,
+                percentage: 9
+              }
+            ]
+          }
+        ];
+        setPolls(demoPolls);
+        setLoading(false);
+        return;
+      }
       const response = await api.get('/polls');
       setPolls(response.data.data);
     } catch (error) {
-      console.error('Error fetching polls:', error);
-      toast.error('Gagal memuat data voting');
+      if (!isDemo) {
+        console.error('Error fetching polls:', error);
+        toast.error('Gagal memuat data voting');
+      }
     } finally {
       setLoading(false);
     }

@@ -21,6 +21,7 @@ import { toast } from 'react-hot-toast';
 import api from '@/lib/api';
 import { useTenant } from '@/context/TenantContext';
 import { DemoLabel } from '@/components/TenantStatusComponents';
+import Cookies from 'js-cookie';
 
 interface Alert {
   id: number;
@@ -45,7 +46,7 @@ interface Contact {
 }
 
 export default function EmergencyPage() {
-  const { isDemo, isExpired } = useTenant();
+  const { isDemo, isExpired, status } = useTenant();
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,14 +64,58 @@ export default function EmergencyPage() {
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
+    if (!status) return;
     fetchData();
-    // Real-time polling could be added here
-    const interval = setInterval(fetchData, 10000); // Poll every 10s
+    const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [status]);
 
   const fetchData = async () => {
     try {
+      const token = Cookies.get('admin_token');
+      if (isDemo || !token) {
+        const now = new Date();
+        const isoNow = now.toISOString();
+        const demoAlerts: Alert[] = [
+          {
+            id: 1,
+            user_id: 1,
+            type: 'PANIC_BUTTON',
+            status: 'OPEN',
+            latitude: -6.200000,
+            longitude: 106.816666,
+            created_at: isoNow,
+            user: {
+              id: 1,
+              name: 'Budi Santoso',
+              phone: '081234567801'
+            }
+          },
+          {
+            id: 2,
+            user_id: 2,
+            type: 'KEBAKARAN',
+            status: 'RESOLVED',
+            latitude: -6.2005,
+            longitude: 106.817,
+            created_at: isoNow,
+            user: {
+              id: 2,
+              name: 'Siti Aminah',
+              phone: '081234567802'
+            }
+          }
+        ];
+        const demoContacts: Contact[] = [
+          { id: 1, name: 'Ketua RT 01', number: '081234567800', type: 'PENGURUS' },
+          { id: 2, name: 'Satpam Kompleks', number: '081234567899', type: 'SATPAM' },
+          { id: 3, name: 'Polsek Setempat', number: '110', type: 'POLISI' }
+        ];
+        setAlerts(demoAlerts);
+        setContacts(demoContacts);
+        setLoading(false);
+        return;
+      }
       const [alertsRes, contactsRes] = await Promise.all([
         api.get('/emergency-alerts'),
         api.get('/emergency-contacts')
@@ -78,8 +123,10 @@ export default function EmergencyPage() {
       setAlerts(alertsRes.data.data);
       setContacts(contactsRes.data.data);
     } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Gagal memuat data darurat');
+      if (!isDemo) {
+        console.error('Error fetching data:', error);
+        toast.error('Gagal memuat data darurat');
+      }
     } finally {
       setLoading(false);
     }

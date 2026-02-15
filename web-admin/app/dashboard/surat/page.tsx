@@ -24,6 +24,7 @@ import {
 import { toast } from 'react-hot-toast';
 import { useTenant } from '@/context/TenantContext';
 import { DemoLabel } from '@/components/TenantStatusComponents';
+import Cookies from 'js-cookie';
 
 // Interfaces
 interface UserData {
@@ -72,7 +73,7 @@ const TABS = [
 ];
 
 export default function SuratPage() {
-  const { isDemo, isExpired } = useTenant();
+  const { isDemo, isExpired, status } = useTenant();
   const [letters, setLetters] = useState<Letter[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('');
@@ -100,37 +101,64 @@ export default function SuratPage() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
+    if (!status) return;
     fetchLetters();
     fetchWargas();
     fetchLetterTypes();
-  }, [activeTab]);
+  }, [status, activeTab]);
 
   const fetchWargas = async () => {
     try {
-      const response = await api.get('/warga'); 
+      const token = Cookies.get('admin_token');
+      if (isDemo || !token) {
+        const demoWargas: UserData[] = [
+          { id: 1, name: 'Budi Santoso', phone: '081234567801' },
+          { id: 2, name: 'Siti Aminah', phone: '081234567802' },
+          { id: 3, name: 'Andi Wijaya', phone: '081234567803' }
+        ];
+        setWargas(demoWargas);
+        return;
+      }
+      const response = await api.get('/warga');
       if (response.data.success) {
-        setWargas(response.data.data.data || response.data.data); 
+        setWargas(response.data.data.data || response.data.data);
       }
     } catch (error) {
-      console.error('Error fetching wargas:', error);
-      toast.error('Gagal memuat data warga');
+      if (!isDemo) {
+        console.error('Error fetching wargas:', error);
+        toast.error('Gagal memuat data warga');
+      }
     }
   };
 
   const fetchLetterTypes = async () => {
     try {
+      const token = Cookies.get('admin_token');
+      if (isDemo || !token) {
+        const types: LetterType[] = [
+          { id: 1, name: 'Surat Pengantar RT', code: 'SURAT_PENGANTAR_RT' },
+          { id: 2, name: 'Surat Domisili', code: 'SURAT_DOMISILI' },
+          { id: 3, name: 'Surat Keterangan Usaha', code: 'SURAT_KETERANGAN_USAHA' }
+        ];
+        setLetterTypes(types);
+        if (types.length > 0 && !createForm.type) {
+          setCreateForm(prev => ({ ...prev, type: types[0].code }));
+        }
+        return;
+      }
       const response = await api.get('/letter-types');
       if (response.data.success) {
         const types = response.data.data;
         setLetterTypes(types);
-        // Set default type if available and not set
         if (types.length > 0 && !createForm.type) {
           setCreateForm(prev => ({ ...prev, type: types[0].code }));
         }
       }
     } catch (error) {
-      console.error('Error fetching letter types:', error);
-      toast.error('Gagal memuat jenis surat');
+      if (!isDemo) {
+        console.error('Error fetching letter types:', error);
+        toast.error('Gagal memuat jenis surat');
+      }
     }
   };
 
@@ -174,14 +202,64 @@ export default function SuratPage() {
   const fetchLetters = async () => {
     setLoading(true);
     try {
+      const token = Cookies.get('admin_token');
+      if (isDemo || !token) {
+        const now = new Date().toISOString();
+        const demoLetters: Letter[] = [
+          {
+            id: 1,
+            user_id: 1,
+            user: { id: 1, name: 'Budi Santoso', phone: '081234567801' },
+            type: 'SURAT_PENGANTAR_RT',
+            purpose: 'Pengantar pembuatan KTP di kelurahan.',
+            status: 'PENDING',
+            admin_note: null,
+            file_url: null,
+            letter_number: null,
+            created_at: now,
+            updated_at: now
+          },
+          {
+            id: 2,
+            user_id: 2,
+            user: { id: 2, name: 'Siti Aminah', phone: '081234567802' },
+            type: 'SURAT_DOMISILI',
+            purpose: 'Keperluan administrasi sekolah anak.',
+            status: 'APPROVED',
+            admin_note: 'Silakan ambil surat di pos ronda.',
+            file_url: null,
+            letter_number: '001/RT/DEM/2024',
+            created_at: now,
+            updated_at: now
+          },
+          {
+            id: 3,
+            user_id: 3,
+            user: { id: 3, name: 'Andi Wijaya', phone: '081234567803' },
+            type: 'SURAT_KETERANGAN_USAHA',
+            purpose: 'Pengajuan kredit usaha kecil.',
+            status: 'REJECTED',
+            admin_note: 'Mohon lengkapi data usaha terlebih dahulu.',
+            file_url: null,
+            letter_number: null,
+            created_at: now,
+            updated_at: now
+          }
+        ];
+        const filtered = activeTab ? demoLetters.filter(l => l.status === activeTab) : demoLetters;
+        setLetters(filtered);
+        return;
+      }
       const params = activeTab ? { status: activeTab } : {};
       const response = await api.get('/letters', { params });
       if (response.data.success) {
         setLetters(response.data.data);
       }
     } catch (error) {
-      console.error('Error fetching letters:', error);
-      toast.error('Gagal mengambil data surat');
+      if (!isDemo) {
+        console.error('Error fetching letters:', error);
+        toast.error('Gagal mengambil data surat');
+      }
     } finally {
       setLoading(false);
     }

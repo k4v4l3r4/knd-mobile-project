@@ -23,9 +23,10 @@ import { Asset, AssetLoan } from '@/types/asset';
 import { toast } from 'react-hot-toast';
 import { useTenant } from '@/context/TenantContext';
 import { DemoLabel } from '@/components/TenantStatusComponents';
+import Cookies from 'js-cookie';
 
 export default function InventarisPage() {
-  const { isDemo, isExpired } = useTenant();
+  const { isDemo, isExpired, status } = useTenant();
   const [activeTab, setActiveTab] = useState<'assets' | 'loans'>('assets');
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loans, setLoans] = useState<AssetLoan[]>([]);
@@ -45,21 +46,58 @@ export default function InventarisPage() {
   });
 
   useEffect(() => {
+    if (!status) return;
     if (activeTab === 'assets') {
       fetchAssets();
     } else {
       fetchLoans();
     }
-  }, [activeTab]);
+  }, [status, activeTab]);
 
   const fetchAssets = async () => {
     setLoading(true);
     try {
+      const token = Cookies.get('admin_token');
+      if (isDemo || !token) {
+        const demoAssets: Asset[] = [
+          {
+            id: 1,
+            name: 'Kursi Plastik',
+            description: 'Kursi plastik untuk acara warga',
+            total_quantity: 50,
+            available_quantity: 35,
+            condition: 'BAIK',
+            image_url: null
+          } as Asset,
+          {
+            id: 2,
+            name: 'Sound System',
+            description: 'Sound system untuk rapat dan acara 17 Agustus',
+            total_quantity: 2,
+            available_quantity: 1,
+            condition: 'BAIK',
+            image_url: null
+          } as Asset,
+          {
+            id: 3,
+            name: 'Tenda Lipat',
+            description: 'Tenda lipat untuk kegiatan outdoor',
+            total_quantity: 3,
+            available_quantity: 2,
+            condition: 'RUSAK',
+            image_url: null
+          } as Asset
+        ];
+        setAssets(demoAssets);
+        return;
+      }
       const res = await api.get('/assets', { params: { search } });
       if (res.data.data) setAssets(res.data.data);
     } catch (error) {
-      console.error(error);
-      toast.error('Gagal memuat data aset');
+      if (!isDemo) {
+        console.error(error);
+        toast.error('Gagal memuat data aset');
+      }
     } finally {
       setLoading(false);
     }
@@ -68,11 +106,54 @@ export default function InventarisPage() {
   const fetchLoans = async () => {
     setLoading(true);
     try {
+      const token = Cookies.get('admin_token');
+      if (isDemo || !token) {
+        const demoLoans: AssetLoan[] = [
+          {
+            id: 1,
+            user: { id: 1, name: 'Budi Santoso', phone: '081234567801' } as any,
+            asset: {
+              id: 2,
+              name: 'Sound System',
+              description: 'Sound system untuk rapat warga',
+              total_quantity: 2,
+              available_quantity: 1,
+              condition: 'BAIK',
+              image_url: null
+            } as any,
+            quantity: 1,
+            status: 'PENDING',
+            loan_date: new Date().toISOString(),
+            admin_note: null
+          } as any,
+          {
+            id: 2,
+            user: { id: 2, name: 'Siti Aminah', phone: '081234567802' } as any,
+            asset: {
+              id: 1,
+              name: 'Kursi Plastik',
+              description: 'Kursi plastik untuk acara arisan',
+              total_quantity: 50,
+              available_quantity: 40,
+              condition: 'BAIK',
+              image_url: null
+            } as any,
+            quantity: 10,
+            status: 'APPROVED',
+            loan_date: new Date().toISOString(),
+            admin_note: 'Dipinjam untuk arisan RT'
+          } as any
+        ];
+        setLoans(demoLoans);
+        return;
+      }
       const res = await api.get('/assets/loans/requests');
       if (res.data.data) setLoans(res.data.data);
     } catch (error) {
-      console.error(error);
-      toast.error('Gagal memuat data peminjaman');
+      if (!isDemo) {
+        console.error(error);
+        toast.error('Gagal memuat data peminjaman');
+      }
     } finally {
       setLoading(false);
     }

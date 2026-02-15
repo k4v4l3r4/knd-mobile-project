@@ -1,7 +1,7 @@
+'use client';
 import React from 'react';
 import dynamic from 'next/dynamic';
 
-// Dynamically import Lottie to avoid SSR issues with canvas/window
 const Lottie = dynamic(() => import('react-lottie-player'), { ssr: false });
 
 type AiGuideProps = {

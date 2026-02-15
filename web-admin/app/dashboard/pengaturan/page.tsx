@@ -30,6 +30,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { toast } from 'react-hot-toast';
 import { useTenant } from '@/context/TenantContext';
 import { DemoLabel } from '@/components/TenantStatusComponents';
+import Cookies from 'js-cookie';
 
 // --- Types ---
 interface LetterTypeData {
@@ -202,12 +203,31 @@ export default function SettingsPage() {
   // Fetch Functions
   const fetchProfile = async () => {
     try {
+      const adminToken = Cookies.get('admin_token');
+      if (isDemo || !adminToken) {
+        const demoProfile: ProfileData = {
+          rt_name: 'RT 001 RW 001',
+          address: 'Jl. Melati No. 10, Kel. Kayuringin Jaya',
+          province: 'Jawa Barat',
+          city: 'Kota Bekasi',
+          district: 'Bekasi Selatan',
+          subdistrict: 'Kayuringin Jaya',
+          postal_code: '17144',
+          contact_phone: '081234567800',
+          logo_url: null,
+          structure_image_url: null,
+        };
+        setProfile(demoProfile);
+        setRtValue('001');
+        setRwValue('001');
+        return;
+      }
+
       const res = await axios.get('/settings/profile');
       setProfile(res.data);
       if (res.data.logo_url) setLogoPreview(getImageUrl(res.data.logo_url));
       if (res.data.structure_image_url) setStructurePreview(getImageUrl(res.data.structure_image_url));
 
-      // Parse RT/RW from rt_name if available
       if (res.data.rt_name) {
         const match = res.data.rt_name.match(/RT\s+(\d+)\s+RW\s+(\d+)/i);
         if (match) {
@@ -215,55 +235,358 @@ export default function SettingsPage() {
           setRwValue(match[2]);
         }
       }
-    } catch (error) { console.error("Error fetching profile", error); }
+    } catch (error) {
+      const demoProfile: ProfileData = {
+        rt_name: 'RT 001 RW 001',
+        address: 'Jl. Melati No. 10, Kel. Kayuringin Jaya',
+        province: 'Jawa Barat',
+        city: 'Kota Bekasi',
+        district: 'Bekasi Selatan',
+        subdistrict: 'Kayuringin Jaya',
+        postal_code: '17144',
+        contact_phone: '081234567800',
+        logo_url: null,
+        structure_image_url: null,
+      };
+      setProfile(demoProfile);
+      setRtValue('001');
+      setRwValue('001');
+    }
   };
 
   const fetchWallets = async () => {
-    try { const res = await axios.get('/settings/wallets'); setWallets(res.data); } catch (error) { console.error(error); }
+    try {
+      const adminToken = Cookies.get('admin_token');
+      if (isDemo || !adminToken) {
+        const demoWallets: WalletData[] = [
+          {
+            id: 1,
+            name: 'Kas RT Tunai',
+            type: 'CASH',
+            balance: 1500000,
+          },
+          {
+            id: 2,
+            name: 'Rekening Bank RT',
+            type: 'BANK',
+            bank_name: 'Bank BCA',
+            account_number: '1234567890',
+            balance: 5000000,
+          },
+        ];
+        setWallets(demoWallets);
+        return;
+      }
+      const res = await axios.get('/settings/wallets');
+      setWallets(res.data);
+    } catch (error) {
+      if (!isDemo) {
+        console.error(error);
+      }
+    }
   };
 
   const fetchActivities = async () => {
-    try { const res = await axios.get('/settings/activities'); setActivities(res.data); } catch (error) { console.error(error); }
+    try {
+      const adminToken = Cookies.get('admin_token');
+      if (isDemo || !adminToken) {
+        const demoActivities: ActivityData[] = [
+          {
+            id: 1,
+            name: 'Ronda Malam',
+            description: 'Jadwal ronda malam warga RT 01 setiap akhir pekan.',
+          },
+          {
+            id: 2,
+            name: 'Kerja Bakti',
+            description: 'Kerja bakti rutin membersihkan lingkungan setiap bulan.',
+          },
+        ];
+        setActivities(demoActivities);
+        return;
+      }
+      const res = await axios.get('/settings/activities');
+      setActivities(res.data);
+    } catch (error) {
+      if (!isDemo) {
+        console.error(error);
+      }
+    }
   };
 
   const fetchAdmins = async () => {
-    try { const res = await axios.get('/settings/admins'); setAdmins(res.data); } catch (error) { console.error(error); }
+    try {
+      const adminToken = Cookies.get('admin_token');
+      if (isDemo || !adminToken) {
+        const demoAdmins: AdminData[] = [
+          {
+            id: 1,
+            user_id: 1,
+            name: 'Budi Santoso',
+            email: 'budi.santoso@example.com',
+            phone: '081234567801',
+            role: 'ADMIN_RT',
+          },
+          {
+            id: 2,
+            user_id: 2,
+            name: 'Siti Aminah',
+            email: 'siti.aminah@example.com',
+            phone: '081234567802',
+            role: 'BENDAHARA',
+          },
+        ];
+        setAdmins(demoAdmins);
+        return;
+      }
+      const res = await axios.get('/settings/admins');
+      setAdmins(res.data);
+    } catch (error) {
+      if (!isDemo) {
+        console.error(error);
+      }
+    }
   };
 
   const fetchRoles = async () => {
-    try { const res = await axios.get('/settings/roles'); setRoles(res.data); } catch (error) { console.error(error); }
+    try {
+      const adminToken = Cookies.get('admin_token');
+      if (isDemo || !adminToken) {
+        const demoRoles: RoleData[] = [
+          {
+            id: 1,
+            name: 'KETUA_RT',
+            label: 'Ketua RT',
+            description: 'Mengelola seluruh data dan pengaturan RT',
+            is_system: true,
+            scope: 'RT',
+            permissions: ['dashboard.view', 'finance.manage', 'service.manage', 'umkm.manage', 'admin.manage'],
+          },
+          {
+            id: 2,
+            name: 'BENDAHARA',
+            label: 'Bendahara',
+            description: 'Mengelola kas dan iuran warga',
+            is_system: false,
+            scope: 'RT',
+            permissions: ['finance.view', 'finance.manage'],
+          },
+          {
+            id: 3,
+            name: 'SEKRETARIS',
+            label: 'Sekretaris',
+            description: 'Mengelola surat dan arsip administrasi',
+            is_system: false,
+            scope: 'RT',
+            permissions: ['service.view', 'service.manage'],
+          },
+        ];
+        setRoles(demoRoles);
+        return;
+      }
+      const res = await axios.get('/settings/roles');
+      setRoles(res.data);
+    } catch (error) {
+      if (!isDemo) {
+        console.error(error);
+      }
+    }
   };
 
   const fetchFees = async () => {
-    try { const res = await axios.get('/fees'); setFees(res.data); } catch (error) { console.error(error); }
+    try {
+      const adminToken = Cookies.get('admin_token');
+      if (isDemo || !adminToken) {
+        const demoFees: FeeData[] = [
+          {
+            id: 1,
+            name: 'Iuran Kebersihan',
+            amount: 25000,
+            is_mandatory: true,
+          },
+          {
+            id: 2,
+            name: 'Iuran Keamanan',
+            amount: 30000,
+            is_mandatory: true,
+          },
+          {
+            id: 3,
+            name: 'Dana Sosial',
+            amount: 10000,
+            is_mandatory: false,
+          },
+        ];
+        setFees(demoFees);
+        return;
+      }
+      const res = await axios.get('/fees');
+      setFees(res.data);
+    } catch (error) {
+      if (!isDemo) {
+        console.error(error);
+      }
+    }
   };
 
   const fetchLetterTypes = async () => {
-    try { const res = await axios.get('/letter-types'); setLetterTypes(res.data.data); } catch (error) { console.error(error); }
+    try {
+      const adminToken = Cookies.get('admin_token');
+      if (isDemo || !adminToken) {
+        const demoLetterTypes: LetterTypeData[] = [
+          {
+            id: 1,
+            name: 'Surat Pengantar RT',
+            code: 'SP-RT',
+            description: 'Surat pengantar RT untuk keperluan administrasi umum',
+            is_active: true,
+          },
+          {
+            id: 2,
+            name: 'Surat Domisili',
+            code: 'SD',
+            description: 'Surat keterangan domisili warga',
+            is_active: true,
+          },
+          {
+            id: 3,
+            name: 'Surat Tidak Mampu',
+            code: 'STM',
+            description: 'Surat keterangan tidak mampu',
+            is_active: true,
+          },
+        ];
+        setLetterTypes(demoLetterTypes);
+        return;
+      }
+      const res = await axios.get('/letter-types');
+      setLetterTypes(res.data.data);
+    } catch (error) {
+      if (!isDemo) {
+        console.error(error);
+      }
+    }
   };
 
   const fetchWargas = async () => {
-    try { const res = await axios.get('/warga?all=true'); setWargas(res.data.data || []); } catch (error) { console.error(error); }
+    try {
+      const adminToken = Cookies.get('admin_token');
+      if (isDemo || !adminToken) {
+        const demoWargas = [
+          {
+            id: 1,
+            name: 'Budi Santoso',
+            email: 'budi.santoso@example.com',
+            phone: '081234567801',
+            nik: '3276010101010001',
+          },
+          {
+            id: 2,
+            name: 'Siti Aminah',
+            email: 'siti.aminah@example.com',
+            phone: '081234567802',
+            nik: '3276010202020002',
+          },
+          {
+            id: 3,
+            name: 'Andi Wijaya',
+            email: 'andi.wijaya@example.com',
+            phone: '081234567803',
+            nik: '3276010303030003',
+          },
+        ];
+        setWargas(demoWargas);
+        return;
+      }
+      const res = await axios.get('/warga?all=true');
+      setWargas(res.data.data || []);
+    } catch (error) {
+      if (!isDemo) {
+        console.error(error);
+      }
+    }
   };
 
   const fetchCctvs = async () => {
-    try { const res = await axios.get('/cctvs'); setCctvs(res.data.data); } catch (error) { console.error(error); }
+    try {
+      const adminToken = Cookies.get('admin_token');
+      if (isDemo || !adminToken) {
+        const demoCctvs: CctvData[] = [
+          {
+            id: 1,
+            label: 'Pos Ronda Utama',
+            stream_url: 'https://example.com/stream-cctv-1',
+            location: 'Gerbang Utama RT 01',
+            is_active: true,
+          },
+          {
+            id: 2,
+            label: 'Lapangan Warga',
+            stream_url: 'https://example.com/stream-cctv-2',
+            location: 'Dekat lapangan olahraga',
+            is_active: true,
+          },
+        ];
+        setCctvs(demoCctvs);
+        return;
+      }
+      const res = await axios.get('/cctvs');
+      setCctvs(res.data.data);
+    } catch (error) {
+      if (!isDemo) {
+        console.error(error);
+      }
+    }
   };
 
   // Region Fetch Functions
   const fetchProvinces = async () => {
     try {
+      if (isDemo) {
+        setProvinces({
+          '31': 'DKI Jakarta',
+          '32': 'Jawa Barat',
+          '33': 'Jawa Tengah',
+        });
+        return;
+      }
       const response = await axios.get('/regions/provinces');
       if (response.data.success) {
         setProvinces(response.data.data);
       }
     } catch (error) {
-      console.error('Failed to fetch provinces', error);
+      setProvinces({
+        '31': 'DKI Jakarta',
+        '32': 'Jawa Barat',
+        '33': 'Jawa Tengah',
+      });
     }
   };
 
   const fetchCities = async (provinceCode: string) => {
     try {
+      if (isDemo) {
+        const demoCities: Record<string, Record<string, string>> = {
+          '31': {
+            '3171': 'Jakarta Pusat',
+            '3172': 'Jakarta Utara',
+            '3173': 'Jakarta Barat',
+            '3174': 'Jakarta Selatan',
+            '3175': 'Jakarta Timur',
+          },
+          '32': {
+            '3273': 'Kota Bekasi',
+            '3275': 'Kota Depok',
+            '3204': 'Kabupaten Bandung',
+          },
+          '33': {
+            '3375': 'Kota Semarang',
+            '3320': 'Kabupaten Banyumas',
+          },
+        };
+        setCities(demoCities[provinceCode] || {});
+        return;
+      }
       const response = await axios.get(`/regions/cities/${provinceCode}`);
       if (response.data.success) {
         setCities(response.data.data);
@@ -275,6 +598,24 @@ export default function SettingsPage() {
 
   const fetchDistricts = async (cityCode: string) => {
     try {
+      if (isDemo) {
+        const demoDistricts: Record<string, Record<string, string>> = {
+          '3174': {
+            '3174030': 'Kebayoran Baru',
+            '3174040': 'Tebet',
+          },
+          '3273': {
+            '3273060': 'Bekasi Selatan',
+            '3273070': 'Bekasi Barat',
+          },
+          '3375': {
+            '3375030': 'Semarang Tengah',
+            '3375040': 'Semarang Selatan',
+          },
+        };
+        setDistricts(demoDistricts[cityCode] || {});
+        return;
+      }
       const response = await axios.get(`/regions/districts/${cityCode}`);
       if (response.data.success) {
         setDistricts(response.data.data);
@@ -286,6 +627,24 @@ export default function SettingsPage() {
 
   const fetchSubdistricts = async (districtCode: string) => {
     try {
+      if (isDemo) {
+        const demoVillages: Record<string, Record<string, string>> = {
+          '3273060': {
+            '3273060005': 'Kayuringin Jaya',
+            '3273060006': 'Jakasetia',
+          },
+          '3174030': {
+            '3174030007': 'Gandaria Utara',
+            '3174030004': 'Selong',
+          },
+          '3375030': {
+            '3375030001': 'Miroto',
+            '3375030002': 'Brumbungan',
+          },
+        };
+        setSubdistricts(demoVillages[districtCode] || {});
+        return;
+      }
       const response = await axios.get(`/regions/villages/${districtCode}`);
       if (response.data.success) {
         setSubdistricts(response.data.data);

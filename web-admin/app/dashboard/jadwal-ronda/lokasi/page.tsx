@@ -20,6 +20,7 @@ import Link from 'next/link';
 import { QRCodeCanvas } from 'qrcode.react';
 import { useTenant } from '@/context/TenantContext';
 import { DemoLabel } from '@/components/TenantStatusComponents';
+import Cookies from 'js-cookie';
 
 interface RondaLocation {
   id: number;
@@ -33,7 +34,7 @@ interface RondaLocation {
 }
 
 export default function RondaLokasiPage() {
-  const { isDemo, isExpired } = useTenant();
+  const { isDemo, isExpired, status } = useTenant();
   const [locations, setLocations] = useState<RondaLocation[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -54,19 +55,52 @@ export default function RondaLokasiPage() {
   const [selectedQrLocation, setSelectedQrLocation] = useState<RondaLocation | null>(null);
 
   useEffect(() => {
+    if (!status) return;
     fetchLocations();
-  }, []);
+  }, [status]);
 
   const fetchLocations = async () => {
     setLoading(true);
     try {
+      const adminToken = Cookies.get('admin_token');
+      if (isDemo || !adminToken) {
+        const now = new Date();
+        const isoNow = now.toISOString();
+        const demoLocations: RondaLocation[] = [
+          {
+            id: 1,
+            rt_id: 1,
+            name: 'Pos Ronda Utama',
+            latitude: -6.200000,
+            longitude: 106.816666,
+            radius_meter: 50,
+            qr_token: 'DEMO_QR_TOKEN_POS_UTAMA',
+            token_expires_at: isoNow,
+          },
+          {
+            id: 2,
+            rt_id: 1,
+            name: 'Pos Ronda Blok C',
+            latitude: -6.201000,
+            longitude: 106.817500,
+            radius_meter: 40,
+            qr_token: 'DEMO_QR_TOKEN_BLOK_C',
+            token_expires_at: isoNow,
+          },
+        ];
+        setLocations(demoLocations);
+        setLoading(false);
+        return;
+      }
       const response = await api.get('/ronda-locations');
       if (response.data.success) {
         setLocations(response.data.data);
       }
     } catch (error) {
-      console.error('Error fetching locations:', error);
-      toast.error('Gagal memuat data lokasi');
+      if (!isDemo) {
+        console.error('Error fetching locations:', error);
+        toast.error('Gagal memuat data lokasi');
+      }
     } finally {
       setLoading(false);
     }

@@ -15,6 +15,7 @@ import {
   MoreVertical
 } from 'lucide-react';
 import api from '@/lib/api';
+import Cookies from 'js-cookie';
 import { toast, Toaster } from 'react-hot-toast';
 import { useTenant } from '@/context/TenantContext';
 import { DemoLabel } from '@/components/TenantStatusComponents';
@@ -32,7 +33,7 @@ interface Announcement {
 }
 
 export default function PengumumanPage() {
-  const { isDemo, isExpired } = useTenant();
+  const { isDemo, isExpired, status } = useTenant();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -55,19 +56,62 @@ export default function PengumumanPage() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
+    if (!status) return;
     fetchAnnouncements();
-  }, []);
+  }, [status]);
 
   const fetchAnnouncements = async () => {
     setLoading(true);
     try {
+      const token = Cookies.get('admin_token');
+      if (isDemo || !token) {
+        const demoAnnouncements: Announcement[] = [
+          {
+            id: 1,
+            title: 'Kerja Bakti Bersih Lingkungan',
+            content: 'Kerja bakti akan dilaksanakan pada hari Minggu pukul 07.00 WIB. Mohon partisipasi seluruh warga untuk menjaga kebersihan lingkungan kita.',
+            image_url: 'https://placehold.co/800x450?text=Kerja+Bakti',
+            status: 'PUBLISHED',
+            expires_at: null,
+            created_at: new Date().toISOString(),
+            likes_count: 12,
+            comments_count: 3
+          },
+          {
+            id: 2,
+            title: 'Iuran Keamanan Bulan Ini',
+            content: 'Mohon kepada seluruh warga untuk melunasi iuran keamanan bulan ini paling lambat tanggal 10.',
+            image_url: 'https://placehold.co/800x450?text=Iuran+Keamanan',
+            status: 'PUBLISHED',
+            expires_at: null,
+            created_at: new Date().toISOString(),
+            likes_count: 8,
+            comments_count: 1
+          },
+          {
+            id: 3,
+            title: 'Pendataan Warga Baru',
+            content: 'Bagi warga baru atau yang belum terdata, silakan melapor ke pengurus RT untuk pendataan.',
+            image_url: null,
+            status: 'DRAFT',
+            expires_at: null,
+            created_at: new Date().toISOString(),
+            likes_count: 0,
+            comments_count: 0
+          }
+        ];
+        setAnnouncements(demoAnnouncements);
+        return;
+      }
       const response = await api.get('/announcements');
       if (response.data.success) {
         setAnnouncements(response.data.data.data || response.data.data);
       }
     } catch (error) {
-      console.error('Error fetching announcements:', error);
-      toast.error('Gagal memuat data pengumuman');
+      if (!isDemo) {
+        console.error('Error fetching announcements:', error);
+        toast.error('Gagal memuat data pengumuman');
+      }
     } finally {
       setLoading(false);
     }

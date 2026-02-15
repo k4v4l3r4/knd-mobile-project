@@ -7,6 +7,7 @@ import axios from '@/lib/axios';
 import { toast } from 'react-hot-toast';
 import { useTenant } from '@/context/TenantContext';
 import { DemoLabel } from '@/components/TenantStatusComponents';
+import Cookies from 'js-cookie';
 
 interface CctvData {
   id: number;
@@ -17,23 +18,55 @@ interface CctvData {
 }
 
 export default function CctvPage() {
-  const { isExpired, isDemo } = useTenant();
+  const { isExpired, isDemo, status } = useTenant();
   const [cameras, setCameras] = useState<CctvData[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!status) return;
     fetchCctvs();
-  }, []);
+  }, [status]);
 
   const fetchCctvs = async () => {
     try {
+      const token = Cookies.get('admin_token');
+      if (isDemo || !token) {
+        const demoCameras: CctvData[] = [
+          {
+            id: 1,
+            label: 'Pos Ronda Utama',
+            stream_url: 'https://example.com/stream-cctv-1',
+            location: 'Gerbang Utama RT 01',
+            is_active: true
+          },
+          {
+            id: 2,
+            label: 'Gang Selatan',
+            stream_url: 'https://example.com/stream-cctv-2',
+            location: 'Gang Selatan Blok B',
+            is_active: true
+          },
+          {
+            id: 3,
+            label: 'Taman Bermain',
+            stream_url: 'https://example.com/stream-cctv-3',
+            location: 'Taman Bermain Warga',
+            is_active: false
+          }
+        ];
+        const activeDemo = demoCameras.filter((c) => c.is_active);
+        setCameras(activeDemo);
+        setLoading(false);
+        return;
+      }
       const response = await axios.get('/cctvs');
-      // Filter only active cameras for monitoring view
       const activeCameras = response.data.data.filter((c: CctvData) => c.is_active);
       setCameras(activeCameras);
     } catch (error) {
-      console.error('Error fetching CCTVs:', error);
-      toast.error('Gagal memuat data CCTV');
+      if (!isDemo) {
+        console.error('Error fetching CCTVs:', error);
+        toast.error('Gagal memuat data CCTV');
+      }
     } finally {
       setLoading(false);
     }

@@ -58,6 +58,7 @@ import {
 } from 'recharts';
 import { toast } from 'react-hot-toast';
 import { useTenant } from '@/context/TenantContext';
+import Cookies from 'js-cookie';
 
 interface User {
   id: number;
@@ -137,7 +138,7 @@ import CctvPlayer from '@/components/CctvPlayer';
 
 export default function DashboardPage() {
   const { resolvedTheme } = useTheme();
-  const { isDemo } = useTenant();
+  const { isDemo, status } = useTenant();
   const [todaySchedules, setTodaySchedules] = useState<Schedule[]>([]);
   const [loadingSchedule, setLoadingSchedule] = useState(true);
 
@@ -184,8 +185,9 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
+    if (!status) return;
     fetchTodaySchedule();
-  }, []);
+  }, [status]);
 
   const handleEditClick = (action: QuickAction) => {
     setEditingAction(action);
@@ -229,6 +231,26 @@ export default function DashboardPage() {
   };
 
   const fetchTodaySchedule = async () => {
+    const token = Cookies.get('admin_token');
+    if (isDemo || !token) {
+      const todayName = new Date().toLocaleDateString('id-ID', { weekday: 'long' });
+      setTodaySchedules([
+        {
+          id: 1,
+          day_of_week: todayName,
+          start_time: '22:00',
+          end_time: '04:00',
+          members: [
+            { id: 1, user: { id: 1, name: 'Petugas 1' } },
+            { id: 2, user: { id: 2, name: 'Petugas 2' } },
+            { id: 3, user: { id: 3, name: 'Petugas 3' } }
+          ],
+          shift_name: 'Malam'
+        }
+      ]);
+      setLoadingSchedule(false);
+      return;
+    }
     try {
       const response = await api.get('/patrols/today');
       if (response.data.success) {
@@ -236,7 +258,9 @@ export default function DashboardPage() {
         setTodaySchedules(Array.isArray(data) ? data : (data ? [data] : []));
       }
     } catch (error) {
-      console.error('Failed to fetch today schedule:', error);
+      if (!isDemo) {
+        console.error('Failed to fetch today schedule:', error);
+      }
     } finally {
       setLoadingSchedule(false);
     }
@@ -636,7 +660,11 @@ export default function DashboardPage() {
                 </Link>
              </div>
              <div className="rounded-xl overflow-hidden shadow-sm ring-1 ring-slate-900/5 dark:ring-slate-100/10">
-                <CctvPlayer label="Gerbang Utama" isMini={true} src="https://source.unsplash.com/random/800x600?gate" />
+                <CctvPlayer 
+                  label="Gerbang Utama" 
+                  isMini={true} 
+                  src={isDemo ? 'https://placehold.co/800x600?text=Gerbang+Utama' : 'https://source.unsplash.com/random/800x600?gate'} 
+                />
              </div>
           </div>
 

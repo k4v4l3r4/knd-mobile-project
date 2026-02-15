@@ -119,37 +119,115 @@ export default function WargaPage() {
 
   const fetchProvinces = async () => {
     try {
+      const token = Cookies.get('admin_token');
+      if (isDemo || !token) {
+        setProvinces({
+          '31': 'DKI Jakarta',
+          '32': 'Jawa Barat',
+          '33': 'Jawa Tengah',
+        });
+        return;
+      }
       const res = await api.get('/regions/provinces');
       if (res.data.success) setProvinces(res.data.data);
     } catch (err) {
-      console.error('Failed to fetch provinces:', err);
+      if (!isDemo) {
+        console.error('Failed to fetch provinces:', err);
+      }
     }
   };
 
   const fetchCities = async (provinceCode: string) => {
     try {
+      const token = Cookies.get('admin_token');
+      if (isDemo || !token) {
+        const demoCities: Record<string, Record<string, string>> = {
+          '31': {
+            '3171': 'Jakarta Pusat',
+            '3172': 'Jakarta Utara',
+            '3173': 'Jakarta Barat',
+            '3174': 'Jakarta Selatan',
+            '3175': 'Jakarta Timur',
+          },
+          '32': {
+            '3273': 'Kota Bekasi',
+            '3275': 'Kota Depok',
+            '3204': 'Kabupaten Bandung',
+          },
+          '33': {
+            '3375': 'Kota Semarang',
+            '3320': 'Kabupaten Banyumas',
+          },
+        };
+        setCities(demoCities[provinceCode] || {});
+        return;
+      }
       const res = await api.get(`/regions/cities/${provinceCode}`);
       if (res.data.success) setCities(res.data.data);
     } catch (err) {
-      console.error('Failed to fetch cities:', err);
+      if (!isDemo) {
+        console.error('Failed to fetch cities:', err);
+      }
     }
   };
 
   const fetchDistricts = async (cityCode: string) => {
     try {
+      const token = Cookies.get('admin_token');
+      if (isDemo || !token) {
+        const demoDistricts: Record<string, Record<string, string>> = {
+          '3174': {
+            '3174030': 'Kebayoran Baru',
+            '3174040': 'Tebet',
+          },
+          '3273': {
+            '3273060': 'Bekasi Selatan',
+            '3273070': 'Bekasi Barat',
+          },
+          '3375': {
+            '3375030': 'Semarang Tengah',
+            '3375040': 'Semarang Selatan',
+          },
+        };
+        setDistricts(demoDistricts[cityCode] || {});
+        return;
+      }
       const res = await api.get(`/regions/districts/${cityCode}`);
       if (res.data.success) setDistricts(res.data.data);
     } catch (err) {
-      console.error('Failed to fetch districts:', err);
+      if (!isDemo) {
+        console.error('Failed to fetch districts:', err);
+      }
     }
   };
 
   const fetchVillages = async (districtCode: string) => {
     try {
+      const token = Cookies.get('admin_token');
+      if (isDemo || !token) {
+        const demoVillages: Record<string, Record<string, string>> = {
+          '3273060': {
+            '3273060005': 'Kayuringin Jaya',
+            '3273060006': 'Jakasetia',
+          },
+          '3174030': {
+            '3174030007': 'Gandaria Utara',
+            '3174030004': 'Selong',
+          },
+          '3375030': {
+            '3375030001': 'Miroto',
+            '3375030002': 'Brumbungan',
+          },
+        };
+        setVillages(demoVillages[districtCode] || {});
+        return;
+      }
       const res = await api.get(`/regions/villages/${districtCode}`);
       if (res.data.success) setVillages(res.data.data);
     } catch (err) {
-      console.error('Failed to fetch villages:', err);
+      if (!isDemo) {
+        console.error('Failed to fetch villages:', err);
+      }
     }
   };
 
@@ -189,6 +267,104 @@ export default function WargaPage() {
   const fetchWargas = async (searchTerm = '') => {
     setLoading(true);
     try {
+      const token = Cookies.get('admin_token');
+      if (isDemo || !token) {
+        const demo: Warga[] = [
+          {
+            id: 1,
+            name: 'Budi Santoso',
+            nik: '3201010101010001',
+            kk_number: '3201010101010000',
+            phone: '0812-1111-2222',
+            email: 'budi@example.com',
+            address: 'Jl. Melati No. 1',
+            address_rt: '01',
+            address_rw: '02',
+            gender: 'L',
+            place_of_birth: 'Bandung',
+            date_of_birth: '1985-05-12',
+            religion: 'ISLAM',
+            marital_status: 'KAWIN',
+            occupation: 'Karyawan',
+            status_in_family: 'KEPALA_KELUARGA',
+            province_code: '32',
+            city_code: '3204',
+            district_code: '3204050',
+            village_code: '3204050001',
+            rt_id: null,
+            rw_id: null,
+            address_ktp: null,
+            postal_code: '40288',
+            ktp_image_path: null,
+            kk_image_path: null
+          },
+          {
+            id: 2,
+            name: 'Siti Rahma',
+            nik: '3201010101010002',
+            kk_number: '3201010101010000',
+            phone: '0813-3333-4444',
+            email: 'siti@example.com',
+            address: 'Jl. Mawar No. 5',
+            address_rt: '01',
+            address_rw: '02',
+            gender: 'P',
+            place_of_birth: 'Jakarta',
+            date_of_birth: '1990-09-23',
+            religion: 'ISLAM',
+            marital_status: 'KAWIN',
+            occupation: 'Ibu Rumah Tangga',
+            status_in_family: 'IBU',
+            province_code: '31',
+            city_code: '3174',
+            district_code: '3174030',
+            village_code: '3174030007',
+            rt_id: null,
+            rw_id: null,
+            address_ktp: null,
+            postal_code: '12110',
+            ktp_image_path: null,
+            kk_image_path: null
+          },
+          {
+            id: 3,
+            name: 'Agus Wirawan',
+            nik: '3201010101010003',
+            kk_number: '3201010101010003',
+            phone: '0851-5555-6666',
+            email: 'agus@example.com',
+            address: 'Jl. Kenanga No. 8',
+            address_rt: '03',
+            address_rw: '04',
+            gender: 'L',
+            place_of_birth: 'Semarang',
+            date_of_birth: '1987-02-01',
+            religion: 'ISLAM',
+            marital_status: 'BELUM_KAWIN',
+            occupation: 'Wiraswasta',
+            status_in_family: 'WARGA',
+            province_code: '33',
+            city_code: '3375',
+            district_code: '3375030',
+            village_code: '3375030001',
+            rt_id: null,
+            rw_id: null,
+            address_ktp: null,
+            postal_code: '50134',
+            ktp_image_path: null,
+            kk_image_path: null
+          }
+        ];
+        const filtered = searchTerm
+          ? demo.filter(d =>
+              d.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              d.nik.includes(searchTerm) ||
+              d.phone.includes(searchTerm)
+            )
+          : demo;
+        setWargas(filtered);
+        return;
+      }
       const response = await api.get('/warga', {
         params: { search: searchTerm }
       });
@@ -196,8 +372,10 @@ export default function WargaPage() {
         setWargas(response.data.data.data);
       }
     } catch (err) {
-      console.error('Failed to fetch warga:', err);
-      toast.error('Gagal memuat data warga');
+      if (!isDemo) {
+        console.error('Failed to fetch warga:', err);
+        toast.error('Gagal memuat data warga');
+      }
     } finally {
       setLoading(false);
     }

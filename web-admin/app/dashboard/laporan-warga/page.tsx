@@ -55,7 +55,7 @@ const TABS = [
 ];
 
 export default function LaporanWargaPage() {
-  const { isDemo, isExpired } = useTenant();
+  const { isDemo, isExpired, status } = useTenant();
   const [reports, setReports] = useState<IssueReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('');
@@ -71,20 +71,84 @@ export default function LaporanWargaPage() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
+    if (!status) return;
     fetchReports();
-  }, [activeTab]);
+  }, [status, activeTab]);
 
   const fetchReports = async () => {
     setLoading(true);
     try {
-      // Use axios-like URL construction (removing double /api)
+      const adminToken = Cookies.get('admin_token');
+      if (isDemo || !adminToken) {
+        const now = new Date();
+        const isoNow = now.toISOString();
+        const earlier = new Date(now);
+        earlier.setDate(earlier.getDate() - 1);
+        const isoEarlier = earlier.toISOString();
+        const demoReports: IssueReport[] = [
+          {
+            id: 1,
+            user_id: 1,
+            rt_id: 1,
+            title: 'Lampu Jalan Padam di Gang Buntu',
+            description: 'Sudah 3 hari lampu jalan di dekat rumah padam sehingga gang menjadi gelap.',
+            category: 'INFRASTRUKTUR',
+            photo_url: null,
+            status: 'PENDING',
+            created_at: isoNow,
+            user: {
+              id: 1,
+              name: 'Budi Santoso',
+              photo_url: null,
+              phone: '081234567801'
+            }
+          },
+          {
+            id: 2,
+            user_id: 2,
+            rt_id: 1,
+            title: 'Sampah Menumpuk di Pojok Blok C',
+            description: 'Ada tumpukan sampah yang belum diangkut di pojok Blok C sejak kemarin.',
+            category: 'KEBERSIHAN',
+            photo_url: null,
+            status: 'PROCESSED',
+            created_at: isoEarlier,
+            user: {
+              id: 2,
+              name: 'Siti Aminah',
+              photo_url: null,
+              phone: '081234567802'
+            }
+          },
+          {
+            id: 3,
+            user_id: 3,
+            rt_id: 1,
+            title: 'Tamu Tidak Lapor di Rumah Blok D-12',
+            description: 'Sering ada tamu menginap tanpa laporan, mohon penertiban.',
+            category: 'KEAMANAN',
+            photo_url: null,
+            status: 'DONE',
+            created_at: isoEarlier,
+            user: {
+              id: 3,
+              name: 'Andi Wijaya',
+              photo_url: null,
+              phone: '081234567803'
+            }
+          }
+        ];
+        const filtered = activeTab ? demoReports.filter((r) => r.status === activeTab) : demoReports;
+        setReports(filtered);
+        setLoading(false);
+        return;
+      }
       const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '') || '';
       let url = `${baseUrl}/api/admin/issues`;
       if (activeTab) {
         url += `?status=${activeTab}`;
       }
 
-      // Get token from localStorage if Cookies is empty (fallback)
       const token = Cookies.get('token') || localStorage.getItem('token');
 
       const response = await fetch(url, {
@@ -99,8 +163,10 @@ export default function LaporanWargaPage() {
         setReports(data.data);
       }
     } catch (error) {
-      console.error('Error fetching reports:', error);
-      toast.error('Gagal memuat data laporan');
+      if (!isDemo) {
+        console.error('Error fetching reports:', error);
+        toast.error('Gagal memuat data laporan');
+      }
     } finally {
       setLoading(false);
     }

@@ -17,7 +17,7 @@ const inter = Inter({ subsets: ['latin'] });
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const isLoginPage = pathname === '/login';
+  const isAuthPage = pathname === '/login' || pathname === '/register' || pathname === '/reset-password';
 
   return (
     <html lang="id" suppressHydrationWarning>
@@ -27,8 +27,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <TrialBanner />
           <Toaster position="top-right" toastOptions={{ duration: 4000, style: { background: '#333', color: '#fff' } }} />
           <ExpiredOverlay />
-          
-          {isLoginPage ? (
+
+          {isAuthPage ? (
             <main className="min-h-screen w-full bg-slate-50 dark:bg-slate-950">
               {children}
             </main>

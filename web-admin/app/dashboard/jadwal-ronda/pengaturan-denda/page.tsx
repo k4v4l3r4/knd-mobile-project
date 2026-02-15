@@ -7,6 +7,7 @@ import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { useTenant } from '@/context/TenantContext';
 import { DemoLabel } from '@/components/TenantStatusComponents';
+import Cookies from "js-cookie";
 
 interface FineSetting {
   id?: number;
@@ -23,21 +24,27 @@ const defaultSettings: FineSetting[] = [
 ];
 
 export default function PengaturanDendaPage() {
-  const { isDemo, isExpired } = useTenant();
+  const { isDemo, isExpired, status } = useTenant();
   const [settings, setSettings] = useState<FineSetting[]>(defaultSettings);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
+    if (!status) return;
     fetchSettings();
-  }, []);
+  }, [status]);
 
   const fetchSettings = async () => {
     try {
+      const adminToken = Cookies.get("admin_token");
+      if (isDemo || !adminToken) {
+        setSettings(defaultSettings);
+        setLoading(false);
+        return;
+      }
       const response = await api.get("/rt/fine-settings");
       if (response.data.data && response.data.data.length > 0) {
-        // Merge fetched settings with default structure to ensure all types exist
         const fetched = response.data.data as FineSetting[];
         const merged = defaultSettings.map((def) => {
           const existing = fetched.find((f) => f.fine_type === def.fine_type);
@@ -46,10 +53,15 @@ export default function PengaturanDendaPage() {
             : def;
         });
         setSettings(merged);
+      } else {
+        setSettings(defaultSettings);
       }
     } catch (error) {
-      console.error("Failed to fetch settings:", error);
-      toast.error("Gagal memuat pengaturan denda");
+      setSettings(defaultSettings);
+      if (!isDemo) {
+        console.error("Failed to fetch settings:", error);
+        toast.error("Gagal memuat pengaturan denda");
+      }
     } finally {
       setLoading(false);
     }
