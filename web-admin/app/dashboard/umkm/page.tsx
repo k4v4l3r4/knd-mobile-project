@@ -259,22 +259,33 @@ export default function UmkmPage() {
           {
             id: 1,
             user_id: 1,
-            store_id: 1,
             name: 'Nasi Kotak Komplit',
             description: 'Nasi kotak dengan lauk ayam goreng, sayur, sambal, dan buah.',
             price: '25000',
             category: 'FOOD',
-            photo_url: null,
+            image_url: null,
             whatsapp: '081234567801',
+            created_at: new Date().toISOString(),
             store: {
               id: 1,
-              user_id: 1,
               name: 'Warung Sembako RT 01',
-              description: 'Warung kebutuhan sehari-hari warga RT 01.',
-              address: 'Jl. Melati No. 10, RT 01',
-              whatsapp: '081234567801',
               status: 'verified',
-              logo_url: null
+              verified_at: new Date().toISOString(),
+              user: {
+                id: 1,
+                name: 'Budi Santoso',
+                email: 'budi.santoso@example.com',
+                phone: '081234567801',
+                role: 'ADMIN_RT',
+                photo_url: null,
+                rt_id: 1
+              },
+              description: 'Warung kebutuhan sehari-hari warga RT 01.',
+              image_url: null,
+              category: 'FOOD',
+              contact: '081234567801',
+              address: 'Jl. Melati No. 10, RT 01',
+              products: []
             },
             user: {
               id: 1,
@@ -282,28 +293,40 @@ export default function UmkmPage() {
               email: 'budi.santoso@example.com',
               phone: '081234567801',
               role: 'ADMIN_RT',
-              photo_url: null
+              photo_url: null,
+              rt_id: 1
             }
           },
           {
             id: 2,
             user_id: 2,
-            store_id: 2,
             name: 'Jasa Cuci Motor',
             description: 'Cuci motor higienis dan cepat, bisa dipanggil ke rumah.',
             price: '15000',
             category: 'SERVICE',
-            photo_url: null,
+            image_url: null,
             whatsapp: '081234567802',
+            created_at: new Date().toISOString(),
             store: {
               id: 2,
-              user_id: 2,
               name: 'Cuci Motor Pak Andi',
-              description: 'Layanan cuci motor panggilan di lingkungan RT.',
-              address: 'Jl. Kenanga No. 3, RT 01',
-              whatsapp: '081234567802',
               status: 'verified',
-              logo_url: null
+              verified_at: new Date().toISOString(),
+              user: {
+                id: 2,
+                name: 'Andi Wijaya',
+                email: 'andi.wijaya@example.com',
+                phone: '081234567802',
+                role: 'WARGA',
+                photo_url: null,
+                rt_id: 1
+              },
+              description: 'Layanan cuci motor panggilan di lingkungan RT.',
+              image_url: null,
+              category: 'SERVICE',
+              contact: '081234567802',
+              address: 'Jl. Kenanga No. 3, RT 01',
+              products: []
             },
             user: {
               id: 2,
@@ -311,7 +334,8 @@ export default function UmkmPage() {
               email: 'andi.wijaya@example.com',
               phone: '081234567802',
               role: 'WARGA',
-              photo_url: null
+              photo_url: null,
+              rt_id: 1
             }
           }
         ];
