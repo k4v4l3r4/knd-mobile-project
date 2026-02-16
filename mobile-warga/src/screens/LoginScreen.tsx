@@ -36,6 +36,15 @@ export default function LoginScreen({ onLoginSuccess, onRegisterRT }: LoginScree
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [resetVisible, setResetVisible] = useState(false);
+  const [resetStep, setResetStep] = useState<1 | 2 | 3>(1);
+  const [resetPhone, setResetPhone] = useState('');
+  const [resetOtp, setResetOtp] = useState('');
+  const [resetNewPassword, setResetNewPassword] = useState('');
+  const [resetConfirmPassword, setResetConfirmPassword] = useState('');
+  const [resetToken, setResetToken] = useState('');
+  const [resetError, setResetError] = useState<string | null>(null);
+  const [resetLoading, setResetLoading] = useState(false);
 
   useEffect(() => {
     checkRememberedUser();
@@ -130,11 +139,117 @@ export default function LoginScreen({ onLoginSuccess, onRegisterRT }: LoginScree
   };
 
   const handleForgotPassword = () => {
-    Alert.alert(
-      t('login.alert.forgotPasswordTitle'),
-      t('login.alert.forgotPasswordMsg'),
-      [{ text: t('login.alert.understand'), style: "default" }]
-    );
+    setResetError(null);
+    setResetStep(1);
+    setResetPhone(phone);
+    setResetOtp('');
+    setResetNewPassword('');
+    setResetConfirmPassword('');
+    setResetToken('');
+    setResetVisible(true);
+  };
+
+  const handleResetRequestOtp = async () => {
+    const targetPhone = (resetPhone || phone).trim();
+    if (!targetPhone) {
+      setResetError('Mohon isi nomor WhatsApp terlebih dahulu.');
+      return;
+    }
+    setResetLoading(true);
+    setResetError(null);
+    try {
+      await api.post('/auth/forgot-password', { phone: targetPhone });
+      setResetPhone(targetPhone);
+      Alert.alert('Berhasil', 'Kode verifikasi telah dikirim ke WhatsApp Anda.');
+      setResetStep(2);
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Gagal mengirim kode verifikasi. Mohon coba lagi.';
+      setResetError(message);
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const handleResetVerifyOtp = async () => {
+    if (!resetPhone.trim()) {
+      setResetError('Nomor WhatsApp tidak boleh kosong.');
+      return;
+    }
+    if (!resetOtp || resetOtp.length !== 6) {
+      setResetError('Mohon isi kode verifikasi 6 digit.');
+      return;
+    }
+    setResetLoading(true);
+    setResetError(null);
+    try {
+      const response = await api.post('/auth/verify-otp', {
+        phone: resetPhone.trim(),
+        otp: resetOtp,
+      });
+      const token = response.data?.data?.token;
+      if (!token) {
+        setResetError('Token reset tidak ditemukan. Mohon coba lagi.');
+        return;
+      }
+      setResetToken(token);
+      Alert.alert('Berhasil', 'Kode verifikasi benar. Silakan buat kata sandi baru.');
+      setResetStep(3);
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Kode verifikasi tidak valid. Mohon coba lagi.';
+      setResetError(message);
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const handleResetSubmitPassword = async () => {
+    if (!resetNewPassword || resetNewPassword.length < 6) {
+      setResetError('Kata sandi baru minimal 6 karakter.');
+      return;
+    }
+    if (resetNewPassword !== resetConfirmPassword) {
+      setResetError('Konfirmasi kata sandi baru tidak cocok.');
+      return;
+    }
+    if (!resetPhone.trim() || !resetToken) {
+      setResetError('Data reset tidak lengkap. Mohon ulangi proses reset sandi.');
+      return;
+    }
+    setResetLoading(true);
+    setResetError(null);
+    try {
+      const response = await api.post('/auth/reset-password', {
+        phone: resetPhone.trim(),
+        password: resetNewPassword,
+        token: resetToken,
+      });
+      const data = response.data?.data;
+      if (data?.token && data?.user) {
+        const { token, user } = data;
+        await AsyncStorage.multiSet([
+          ['user_token', token],
+          ['user_data', JSON.stringify(user)],
+        ]);
+        await AsyncStorage.multiRemove(['remembered_phone', 'remembered_password']);
+        setResetVisible(false);
+        Alert.alert('Berhasil', 'Kata sandi berhasil direset. Anda akan masuk ke aplikasi.', [
+          {
+            text: 'OK',
+            onPress: () => {
+              onLoginSuccess();
+            },
+          },
+        ]);
+        return;
+      }
+      setResetVisible(false);
+      Alert.alert('Berhasil', 'Kata sandi berhasil direset. Silakan login dengan kata sandi baru.');
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Gagal menyimpan kata sandi baru. Mohon coba lagi.';
+      setResetError(message);
+    } finally {
+      setResetLoading(false);
+    }
   };
 
   const isSmallDevice = width < 375;
@@ -215,6 +330,147 @@ export default function LoginScreen({ onLoginSuccess, onRegisterRT }: LoginScree
                 <Text style={[styles.forgotPassword, { color: colors.primary }]}>{t('login.forgotPassword')}</Text>
               </TouchableOpacity>
             </View>
+
+            {resetVisible && (
+              <View style={[styles.resetContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <View style={styles.resetHeader}>
+                  <Text style={[styles.resetTitle, { color: colors.text }]}>Reset Kata Sandi</Text>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setResetVisible(false);
+                      setResetError(null);
+                    }}
+                  >
+                    <Text style={[styles.resetClose, { color: colors.textSecondary }]}>Tutup</Text>
+                  </TouchableOpacity>
+                </View>
+                <Text style={[styles.resetStepText, { color: colors.textSecondary }]}>
+                  Langkah {resetStep} dari 3
+                </Text>
+                {resetError && (
+                  <Text style={[styles.resetErrorText, { color: '#DC2626' }]}>
+                    {resetError}
+                  </Text>
+                )}
+
+                {resetStep === 1 && (
+                  <View style={styles.resetSection}>
+                    <Text style={[styles.resetLabel, { color: colors.textSecondary }]}>
+                      Nomor WhatsApp yang terdaftar
+                    </Text>
+                    <View style={[styles.inputWrapper, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                      <Feather name="phone" size={20} color={colors.textSecondary} style={styles.inputIcon} />
+                      <TextInput
+                        style={[styles.input, { color: colors.text }]}
+                        placeholder={t('login.phonePlaceholder')}
+                        placeholderTextColor={colors.textSecondary}
+                        value={resetPhone}
+                        onChangeText={setResetPhone}
+                        keyboardType="phone-pad"
+                        autoCapitalize="none"
+                      />
+                    </View>
+                    <TouchableOpacity
+                      onPress={handleResetRequestOtp}
+                      disabled={resetLoading}
+                      style={[
+                        styles.resetButton,
+                        { backgroundColor: colors.primary, opacity: resetLoading ? 0.7 : 1 },
+                      ]}
+                      activeOpacity={0.8}
+                    >
+                      {resetLoading ? (
+                        <ActivityIndicator color="#fff" />
+                      ) : (
+                        <Text style={styles.resetButtonText}>Kirim Kode Verifikasi</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {resetStep === 2 && (
+                  <View style={styles.resetSection}>
+                    <Text style={[styles.resetLabel, { color: colors.textSecondary }]}>
+                      Masukkan kode verifikasi 6 digit yang dikirim ke WhatsApp {resetPhone}.
+                    </Text>
+                    <View style={[styles.inputWrapper, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                      <Feather name="key" size={20} color={colors.textSecondary} style={styles.inputIcon} />
+                      <TextInput
+                        style={[styles.input, { color: colors.text, letterSpacing: 6, textAlign: 'center' }]}
+                        placeholder="••••••"
+                        placeholderTextColor={colors.textSecondary}
+                        value={resetOtp}
+                        onChangeText={(text) => setResetOtp(text.replace(/[^0-9]/g, ''))}
+                        keyboardType="number-pad"
+                        maxLength={6}
+                      />
+                    </View>
+                    <TouchableOpacity
+                      onPress={handleResetVerifyOtp}
+                      disabled={resetLoading}
+                      style={[
+                        styles.resetButton,
+                        { backgroundColor: colors.primary, opacity: resetLoading ? 0.7 : 1 },
+                      ]}
+                      activeOpacity={0.8}
+                    >
+                      {resetLoading ? (
+                        <ActivityIndicator color="#fff" />
+                      ) : (
+                        <Text style={styles.resetButtonText}>Verifikasi Kode</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {resetStep === 3 && (
+                  <View style={styles.resetSection}>
+                    <Text style={[styles.resetLabel, { color: colors.textSecondary }]}>
+                      Buat kata sandi baru
+                    </Text>
+                    <View style={[styles.inputWrapper, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                      <Feather name="lock" size={20} color={colors.textSecondary} style={styles.inputIcon} />
+                      <TextInput
+                        style={[styles.input, { color: colors.text }]}
+                        placeholder="Minimal 6 karakter"
+                        placeholderTextColor={colors.textSecondary}
+                        value={resetNewPassword}
+                        onChangeText={setResetNewPassword}
+                        secureTextEntry
+                        autoCapitalize="none"
+                      />
+                    </View>
+                    <View style={[styles.inputWrapper, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                      <Feather name="lock" size={20} color={colors.textSecondary} style={styles.inputIcon} />
+                      <TextInput
+                        style={[styles.input, { color: colors.text }]}
+                        placeholder="Ulangi kata sandi baru"
+                        placeholderTextColor={colors.textSecondary}
+                        value={resetConfirmPassword}
+                        onChangeText={setResetConfirmPassword}
+                        secureTextEntry
+                        autoCapitalize="none"
+                      />
+                    </View>
+                    <TouchableOpacity
+                      onPress={handleResetSubmitPassword}
+                      disabled={resetLoading}
+                      style={[
+                        styles.resetButton,
+                        { backgroundColor: colors.primary, opacity: resetLoading ? 0.7 : 1 },
+                      ]}
+                      activeOpacity={0.8}
+                    >
+                      {resetLoading ? (
+                        <ActivityIndicator color="#fff" />
+                      ) : (
+                        <Text style={styles.resetButtonText}>Simpan Kata Sandi Baru</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            )}
 
             <TouchableOpacity
               onPress={() => handleLogin()}
@@ -384,6 +640,55 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
   forgotPassword: {
     fontSize: 14,
     color: colors.primary,
+    fontWeight: '600',
+  },
+  resetContainer: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 24,
+    gap: 8,
+  },
+  resetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  resetTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  resetClose: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  resetStepText: {
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  resetErrorText: {
+    fontSize: 12,
+    marginBottom: 8,
+  },
+  resetSection: {
+    gap: 8,
+    marginTop: 4,
+  },
+  resetLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  resetButton: {
+    marginTop: 8,
+    borderRadius: 12,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  resetButtonText: {
+    color: '#fff',
+    fontSize: 14,
     fontWeight: '600',
   },
   loginButton: {

@@ -53,12 +53,11 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return;
       }
 
-      // Avoid setting loading to true on background refreshes to prevent UI flicker
-      // setLoading(true); 
-      
       const response = await api.get('/tenant/status');
-      if (response.data && response.data.data) {
-        setStatus(response.data.data);
+      const payload = response.data && response.data.data ? response.data.data : response.data;
+
+      if (payload && typeof payload.tenant_type === 'string') {
+        setStatus(payload);
       }
     } catch (error) {
       setStatus({

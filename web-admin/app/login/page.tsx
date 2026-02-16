@@ -17,10 +17,12 @@ import {
   Monitor
 } from 'lucide-react';
 import api from '@/lib/api';
+import { useTenant } from '@/context/TenantContext';
 
 function LoginForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { refreshStatus } = useTenant();
     const testimonials = [
         {
             initial: 'B',
@@ -48,6 +50,15 @@ function LoginForm() {
     const [isDemoLoading, setIsDemoLoading] = useState(false);
     const [errors, setErrors] = useState<{ phone?: string; password?: string; general?: string }>({});
     const [testimonialIndex, setTestimonialIndex] = useState(0);
+    const [isResetOpen, setIsResetOpen] = useState(false);
+    const [resetStep, setResetStep] = useState<1 | 2 | 3>(1);
+    const [resetPhone, setResetPhone] = useState('');
+    const [resetOtp, setResetOtp] = useState('');
+    const [resetPassword, setResetPassword] = useState('');
+    const [resetPasswordConfirm, setResetPasswordConfirm] = useState('');
+    const [resetToken, setResetToken] = useState('');
+    const [resetError, setResetError] = useState('');
+    const [isResetLoading, setIsResetLoading] = useState(false);
 
     useEffect(() => {
         if (searchParams.get('expired') === '1') {
@@ -70,9 +81,109 @@ function LoginForm() {
 
     const handleForgotPassword = (e: React.MouseEvent) => {
         e.preventDefault();
-        toast.error(
-            'Fitur lupa sandi mandiri belum tersedia. Silakan hubungi Admin RT/RW atau tim dukungan RT Online untuk bantuan reset sandi.'
-        );
+        setResetError('');
+        setResetStep(1);
+        setResetPhone(phone);
+        setResetOtp('');
+        setResetPassword('');
+        setResetPasswordConfirm('');
+        setResetToken('');
+        setIsResetOpen(true);
+    };
+
+    const handleResetRequestOtp = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const targetPhone = resetPhone || phone;
+        if (!targetPhone) {
+            setResetError('Mohon isi nomor WhatsApp terlebih dahulu.');
+            return;
+        }
+        setIsResetLoading(true);
+        setResetError('');
+        try {
+            await api.post('/auth/forgot-password', { phone: targetPhone });
+            setResetPhone(targetPhone);
+            toast.success('Kode verifikasi telah dikirim ke WhatsApp Anda.');
+            setResetStep(2);
+        } catch (error: any) {
+            const message = error.response?.data?.message || 'Gagal mengirim kode verifikasi. Mohon coba lagi.';
+            setResetError(message);
+        } finally {
+            setIsResetLoading(false);
+        }
+    };
+
+    const handleResetVerifyOtp = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!resetPhone) {
+            setResetError('Nomor WhatsApp tidak boleh kosong.');
+            return;
+        }
+        if (!resetOtp || resetOtp.length !== 6) {
+            setResetError('Mohon isi kode verifikasi 6 digit.');
+            return;
+        }
+        setIsResetLoading(true);
+        setResetError('');
+        try {
+            const response = await api.post('/auth/verify-otp', {
+                phone: resetPhone,
+                otp: resetOtp,
+            });
+            const token = response.data?.data?.token;
+            if (!token) {
+                setResetError('Token reset tidak ditemukan. Mohon coba lagi.');
+                return;
+            }
+            setResetToken(token);
+            toast.success('Kode verifikasi benar. Silakan buat kata sandi baru.');
+            setResetStep(3);
+        } catch (error: any) {
+            const message = error.response?.data?.message || 'Kode verifikasi tidak valid. Mohon coba lagi.';
+            setResetError(message);
+        } finally {
+            setIsResetLoading(false);
+        }
+    };
+
+    const handleResetSubmitPassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!resetPassword || resetPassword.length < 6) {
+            setResetError('Kata sandi baru minimal 6 karakter.');
+            return;
+        }
+        if (resetPassword !== resetPasswordConfirm) {
+            setResetError('Konfirmasi kata sandi baru tidak cocok.');
+            return;
+        }
+        if (!resetPhone || !resetToken) {
+            setResetError('Data reset tidak lengkap. Mohon ulangi proses reset sandi.');
+            return;
+        }
+        setIsResetLoading(true);
+        setResetError('');
+        try {
+            const response = await api.post('/auth/reset-password', {
+                phone: resetPhone,
+                password: resetPassword,
+                token: resetToken,
+            });
+            const data = response.data?.data;
+            if (data?.token) {
+                Cookies.set('admin_token', data.token, { expires: 1, path: '/' });
+                toast.success('Kata sandi berhasil direset. Mengalihkan ke dashboard...');
+                setIsResetOpen(false);
+                router.push('/dashboard');
+                return;
+            }
+            toast.success('Kata sandi berhasil direset. Silakan login dengan kata sandi baru.');
+            setIsResetOpen(false);
+        } catch (error: any) {
+            const message = error.response?.data?.message || 'Gagal menyimpan kata sandi baru. Mohon coba lagi.';
+            setResetError(message);
+        } finally {
+            setIsResetLoading(false);
+        }
     };
 
     const handleLogin = async (e: React.FormEvent) => {
@@ -108,6 +219,7 @@ function LoginForm() {
             if (response.data.success) {
                 const token = response.data.data.token;
                 Cookies.set('admin_token', token, { expires: 1, path: '/' });
+                await refreshStatus();
                 toast.success('Login berhasil! Mengalihkan...');
                 router.push('/dashboard');
             } else {
@@ -349,6 +461,125 @@ function LoginForm() {
                             )}
                         </button>
                     </form>
+
+                    {isResetOpen && (
+                        <div className="mt-6 border border-emerald-100 dark:border-emerald-800 rounded-2xl p-4 bg-emerald-50/60 dark:bg-emerald-900/20 space-y-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-200">
+                                        Reset Kata Sandi
+                                    </p>
+                                    <p className="text-xs text-emerald-700/80 dark:text-emerald-300/80">
+                                        Langkah {resetStep} dari 3
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsResetOpen(false);
+                                        setResetError('');
+                                    }}
+                                    className="text-xs text-emerald-700 dark:text-emerald-200 hover:underline"
+                                >
+                                    Tutup
+                                </button>
+                            </div>
+
+                            {resetError && (
+                                <div className="bg-red-50 text-red-600 px-3 py-2 rounded-xl text-xs border border-red-100">
+                                    {resetError}
+                                </div>
+                            )}
+
+                            {resetStep === 1 && (
+                                <form onSubmit={handleResetRequestOtp} className="space-y-3">
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-medium text-emerald-900 dark:text-emerald-100">
+                                            Nomor WhatsApp yang terdaftar
+                                        </label>
+                                        <input
+                                            type="tel"
+                                            value={resetPhone}
+                                            onChange={(e) => setResetPhone(e.target.value)}
+                                            className="block w-full px-3 py-2.5 bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500"
+                                            placeholder="08123456789"
+                                        />
+                                    </div>
+                                    <button
+                                        type="submit"
+                                        disabled={isResetLoading}
+                                        className="w-full flex justify-center items-center py-2.5 px-4 rounded-xl text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 disabled:opacity-70 disabled:cursor-not-allowed"
+                                    >
+                                        {isResetLoading ? 'Mengirim kode...' : 'Kirim Kode Verifikasi'}
+                                    </button>
+                                </form>
+                            )}
+
+                            {resetStep === 2 && (
+                                <form onSubmit={handleResetVerifyOtp} className="space-y-3">
+                                    <p className="text-xs text-emerald-800 dark:text-emerald-100">
+                                        Masukkan kode verifikasi 6 digit yang dikirim ke WhatsApp {resetPhone}.
+                                    </p>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-medium text-emerald-900 dark:text-emerald-100">
+                                            Kode Verifikasi
+                                        </label>
+                                        <input
+                                            type="text"
+                                            maxLength={6}
+                                            value={resetOtp}
+                                            onChange={(e) => setResetOtp(e.target.value.replace(/[^0-9]/g, ''))}
+                                            className="block w-full px-3 py-2.5 bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 tracking-[0.4em] text-center"
+                                            placeholder="••••••"
+                                        />
+                                    </div>
+                                    <button
+                                        type="submit"
+                                        disabled={isResetLoading}
+                                        className="w-full flex justify-center items-center py-2.5 px-4 rounded-xl text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 disabled:opacity-70 disabled:cursor-not-allowed"
+                                    >
+                                        {isResetLoading ? 'Memeriksa kode...' : 'Verifikasi Kode'}
+                                    </button>
+                                </form>
+                            )}
+
+                            {resetStep === 3 && (
+                                <form onSubmit={handleResetSubmitPassword} className="space-y-3">
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-medium text-emerald-900 dark:text-emerald-100">
+                                            Kata Sandi Baru
+                                        </label>
+                                        <input
+                                            type="password"
+                                            value={resetPassword}
+                                            onChange={(e) => setResetPassword(e.target.value)}
+                                            className="block w-full px-3 py-2.5 bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500"
+                                            placeholder="Minimal 6 karakter"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-medium text-emerald-900 dark:text-emerald-100">
+                                            Konfirmasi Kata Sandi Baru
+                                        </label>
+                                        <input
+                                            type="password"
+                                            value={resetPasswordConfirm}
+                                            onChange={(e) => setResetPasswordConfirm(e.target.value)}
+                                            className="block w-full px-3 py-2.5 bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500"
+                                            placeholder="Ulangi kata sandi baru"
+                                        />
+                                    </div>
+                                    <button
+                                        type="submit"
+                                        disabled={isResetLoading}
+                                        className="w-full flex justify-center items-center py-2.5 px-4 rounded-xl text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 disabled:opacity-70 disabled:cursor-not-allowed"
+                                    >
+                                        {isResetLoading ? 'Menyimpan...' : 'Simpan Kata Sandi Baru'}
+                                    </button>
+                                </form>
+                            )}
+                        </div>
+                    )}
 
                     {/* Separation / Divider */}
                     <div className="relative py-4">

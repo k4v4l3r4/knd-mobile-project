@@ -17,9 +17,11 @@ import {
   MapPin
 } from 'lucide-react';
 import api from '@/lib/api';
+import { useTenant } from '@/context/TenantContext';
 
 export default function RegisterPage() {
     const router = useRouter();
+    const { refreshStatus } = useTenant();
     
     // Form States
     const [formData, setFormData] = useState({
@@ -107,6 +109,7 @@ export default function RegisterPage() {
             if (response.data.success || response.status === 201) {
                 const token = response.data.data.token;
                 Cookies.set('admin_token', token, { expires: 1, path: '/' });
+                await refreshStatus();
                 toast.success('Pendaftaran berhasil! Mengalihkan...');
                 router.push('/dashboard');
             } else {
@@ -114,19 +117,15 @@ export default function RegisterPage() {
             }
         } catch (error: any) {
             console.error('Registration error:', error);
-            
-            // Default message
             let message = "Terjadi kesalahan sistem. Silakan coba lagi.";
             
             if (error.response) {
-                // Server responded with error
                 if (error.response.data && error.response.data.message) {
                     message = error.response.data.message;
                 } else {
                     message = `Server Error: ${error.response.status}`;
                 }
 
-                // Handle validation errors from backend
                 if (error.response.data && error.response.data.errors) {
                     const backendErrors = error.response.data.errors;
                     const newErrors: { [key: string]: string } = {};
@@ -134,12 +133,38 @@ export default function RegisterPage() {
                         newErrors[key] = backendErrors[key][0];
                     });
                     setErrors(prev => ({ ...prev, ...newErrors }));
-                    
-                    // Also show validation summary in general error
-                    message = "Mohon periksa kembali inputan Anda.";
+
+                    const allMessages: string[] = [];
+                    Object.keys(backendErrors).forEach(key => {
+                        const arr = backendErrors[key];
+                        if (Array.isArray(arr)) {
+                            arr.forEach((m: string) => {
+                                if (m && allMessages.indexOf(m) === -1) {
+                                    allMessages.push(m);
+                                }
+                            });
+                        }
+                    });
+
+                    if (backendErrors.phone && Array.isArray(backendErrors.phone)) {
+                        const raw = backendErrors.phone[0] || "";
+                        const lower = raw.toLowerCase();
+                        if (lower.indexOf('taken') !== -1 || lower.indexOf('sudah ada') !== -1 || lower.indexOf('sudah terdaftar') !== -1) {
+                            message = "Nomor WhatsApp sudah terdaftar. Gunakan nomor lain atau login jika sudah punya akun.";
+                        } else if (raw) {
+                            message = raw;
+                        } else if (allMessages.length > 0) {
+                            message = allMessages[0];
+                        } else {
+                            message = "Nomor WhatsApp tidak valid. Mohon periksa kembali.";
+                        }
+                    } else if (allMessages.length > 0) {
+                        message = allMessages[0];
+                    } else {
+                        message = "Mohon periksa kembali inputan Anda.";
+                    }
                 }
             } else if (error.request) {
-                // Network error (no response)
                 message = "Gagal terhubung ke server. Periksa koneksi internet Anda.";
             }
 

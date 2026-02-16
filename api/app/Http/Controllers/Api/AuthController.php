@@ -56,7 +56,7 @@ class AuthController extends Controller
             'name' => $validated['name'],
             'phone' => $validated['phone'],
             'email' => $validated['email'] ?? null,
-            'password' => $validated['password'], // Casted to hashed
+            'password' => Hash::make($validated['password']),
             'rt_id' => $rtId,
             'rw_id' => $rwId,
             'role' => 'WARGA_TETAP', 
@@ -118,7 +118,7 @@ class AuthController extends Controller
         $user = User::create([
             'name' => $validated['name'],
             'phone' => $validated['phone'],
-            'password' => $validated['password'], // Casted to hashed
+            'password' => Hash::make($validated['password']),
             'rt_id' => $rt->id,
             'rw_id' => $rw->id,
             'role' => 'ADMIN_RT',
