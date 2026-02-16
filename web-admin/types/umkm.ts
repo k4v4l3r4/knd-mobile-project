@@ -1,6 +1,7 @@
 export interface UserData {
   id: number;
   name: string;
+  email?: string;
   phone: string;
   photo_url: string | null;
   role: string;
