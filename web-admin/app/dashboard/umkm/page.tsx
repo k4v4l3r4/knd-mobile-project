@@ -168,13 +168,24 @@ export default function UmkmPage() {
       if (isDemo) {
         const demoStore: Store = {
           id: 1,
-          user_id: 1,
           name: 'Warung Sembako RT 01',
-          description: 'Warung kebutuhan sehari-hari warga RT 01.',
-          address: 'Jl. Melati No. 10, RT 01',
-          whatsapp: '081234567801',
           status: 'verified',
-          logo_url: null
+          verified_at: new Date().toISOString(),
+          user: {
+            id: 1,
+            name: 'Budi Santoso',
+            email: 'budi.santoso@example.com',
+            phone: '081234567801',
+            role: 'ADMIN_RT',
+            photo_url: null,
+            rt_id: 1
+          },
+          description: 'Warung kebutuhan sehari-hari warga RT 01.',
+          image_url: null,
+          category: 'FOOD',
+          contact: '081234567801',
+          address: 'Jl. Melati No. 10, RT 01',
+          products: []
         };
         setMyStore(demoStore);
         return;
@@ -194,13 +205,24 @@ export default function UmkmPage() {
         const demoPending: Store[] = [
           {
             id: 2,
-            user_id: 2,
             name: 'Katering Bu Siti',
-            description: 'Katering rumahan untuk acara keluarga dan kantor.',
-            address: 'Jl. Mawar No. 5, RT 01',
-            whatsapp: '081234567802',
             status: 'pending',
-            logo_url: null
+            verified_at: null,
+            user: {
+              id: 2,
+              name: 'Siti Aminah',
+              email: 'siti.aminah@example.com',
+              phone: '081234567802',
+              role: 'WARGA',
+              photo_url: null,
+              rt_id: 1
+            },
+            description: 'Katering rumahan untuk acara keluarga dan kantor.',
+            image_url: null,
+            category: 'FOOD',
+            contact: '081234567802',
+            address: 'Jl. Mawar No. 5, RT 01',
+            products: []
           }
         ];
         setPendingStores(demoPending);
