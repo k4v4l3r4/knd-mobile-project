@@ -111,18 +111,6 @@ function ResetPasswordContent() {
             </div>
         );
     }
-}
-
-export default function ResetPasswordPage() {
-    return (
-        <Suspense fallback={
-            <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#0f172a]">
-                <p className="text-slate-500 dark:text-slate-400 text-sm">Memuat halaman reset kata sandi...</p>
-            </div>
-        }>
-            <ResetPasswordContent />
-        </Suspense>
-    );
 
     return (
         <div className="min-h-screen flex w-full font-sans bg-slate-50 dark:bg-[#0f172a]">
@@ -336,5 +324,17 @@ export default function ResetPasswordPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function ResetPasswordPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#0f172a]">
+                <p className="text-slate-500 dark:text-slate-400 text-sm">Memuat halaman reset kata sandi...</p>
+            </div>
+        }>
+            <ResetPasswordContent />
+        </Suspense>
     );
 }
