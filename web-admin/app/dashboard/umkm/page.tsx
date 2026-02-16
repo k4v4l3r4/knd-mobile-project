@@ -148,7 +148,8 @@ export default function UmkmPage() {
           email: 'budi.santoso@example.com',
           phone: '081234567801',
           role: 'ADMIN_RT',
-          photo_url: null
+          photo_url: null,
+          rt_id: 1
         };
         setCurrentUser(demoUser);
         return;
