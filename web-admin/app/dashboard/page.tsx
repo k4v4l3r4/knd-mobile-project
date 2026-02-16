@@ -184,6 +184,19 @@ export default function DashboardPage() {
     return null;
   };
 
+  const moneyFlowData = isDemo ? MONEY_FLOW_DATA : [];
+  const budgetData = isDemo ? BUDGET_DATA : [];
+  const recentTransactions = isDemo ? RECENT_TRANSACTIONS : [];
+  const totalBalanceAmount = isDemo ? 'Rp 15.7jt' : 'Rp 0';
+  const totalBalanceChange = isDemo ? '12.1%' : '0%';
+  const incomeAmount = isDemo ? 'Rp 8.5jt' : 'Rp 0';
+  const incomeChange = isDemo ? '6.3%' : '0%';
+  const expenseAmount = isDemo ? 'Rp 6.2jt' : 'Rp 0';
+  const expenseChange = isDemo ? '2.4%' : '0%';
+  const emergencyFundAmount = isDemo ? 'Rp 32.9jt' : 'Rp 0';
+  const emergencyFundChange = isDemo ? '12.1%' : '0%';
+  const budgetTotalAmount = isDemo ? 'Rp 10jt' : 'Rp 0';
+
   useEffect(() => {
     if (!status) return;
     fetchTodaySchedule();
@@ -427,11 +440,11 @@ export default function DashboardPage() {
               <ArrowUpRight size={18} className="text-slate-400 dark:text-slate-500" />
             </button>
           </div>
-          <h3 className="text-3xl font-black text-slate-800 dark:text-white mb-4 tracking-tight">Rp 15.7jt</h3>
+          <h3 className="text-3xl font-black text-slate-800 dark:text-white mb-4 tracking-tight">{totalBalanceAmount}</h3>
           <div className="flex items-center gap-2">
             <span className="bg-emerald-50 text-emerald-600 text-xs font-bold px-2 py-1 rounded-lg flex items-center gap-1">
               <ArrowUpRight size={12} strokeWidth={3} />
-              12.1%
+              {totalBalanceChange}
             </span>
             <span className="text-slate-400 dark:text-slate-500 text-xs font-medium">vs bulan lalu</span>
           </div>
@@ -445,11 +458,11 @@ export default function DashboardPage() {
               <ArrowUpRight size={18} className="text-slate-400 dark:text-slate-500" />
             </button>
           </div>
-          <h3 className="text-3xl font-black text-slate-800 dark:text-white mb-4 tracking-tight">Rp 8.5jt</h3>
+          <h3 className="text-3xl font-black text-slate-800 dark:text-white mb-4 tracking-tight">{incomeAmount}</h3>
           <div className="flex items-center gap-2">
             <span className="bg-emerald-50 text-emerald-600 text-xs font-bold px-2 py-1 rounded-lg flex items-center gap-1">
               <ArrowUpRight size={12} strokeWidth={3} />
-              6.3%
+              {incomeChange}
             </span>
             <span className="text-slate-400 dark:text-slate-500 text-xs font-medium">vs bulan lalu</span>
           </div>
@@ -463,11 +476,11 @@ export default function DashboardPage() {
               <ArrowUpRight size={18} className="text-slate-400 dark:text-slate-500" />
             </button>
           </div>
-          <h3 className="text-3xl font-black text-slate-800 dark:text-white mb-4 tracking-tight">Rp 6.2jt</h3>
+          <h3 className="text-3xl font-black text-slate-800 dark:text-white mb-4 tracking-tight">{expenseAmount}</h3>
           <div className="flex items-center gap-2">
             <span className="bg-rose-50 text-rose-600 text-xs font-bold px-2 py-1 rounded-lg flex items-center gap-1">
               <ArrowDownRight size={12} strokeWidth={3} />
-              2.4%
+              {expenseChange}
             </span>
             <span className="text-slate-400 dark:text-slate-500 text-xs font-medium">vs bulan lalu</span>
           </div>
@@ -481,11 +494,11 @@ export default function DashboardPage() {
               <ArrowUpRight size={18} className="text-slate-400 dark:text-slate-500" />
             </button>
           </div>
-          <h3 className="text-3xl font-black text-slate-800 dark:text-white mb-4 tracking-tight">Rp 32.9jt</h3>
+          <h3 className="text-3xl font-black text-slate-800 dark:text-white mb-4 tracking-tight">{emergencyFundAmount}</h3>
           <div className="flex items-center gap-2">
             <span className="bg-emerald-50 text-emerald-600 text-xs font-bold px-2 py-1 rounded-lg flex items-center gap-1">
               <ArrowUpRight size={12} strokeWidth={3} />
-              12.1%
+              {emergencyFundChange}
             </span>
             <span className="text-slate-400 dark:text-slate-500 text-xs font-medium">vs bulan lalu</span>
           </div>
@@ -517,7 +530,7 @@ export default function DashboardPage() {
           
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={MONEY_FLOW_DATA} barGap={8}>
+              <BarChart data={moneyFlowData} barGap={8}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={resolvedTheme === 'dark' ? '#334155' : '#f1f5f9'} />
                 <XAxis 
                   dataKey="month" 
@@ -557,14 +570,14 @@ export default function DashboardPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={BUDGET_DATA}
+                    data={budgetData}
                     innerRadius={60}
                     outerRadius={80}
                     paddingAngle={5}
                     dataKey="value"
                     stroke="none"
                   >
-                    {BUDGET_DATA.map((entry, index) => (
+                    {budgetData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
@@ -574,12 +587,12 @@ export default function DashboardPage() {
               {/* Center Text */}
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                 <span className="text-slate-400 dark:text-slate-500 text-xs font-medium">Total</span>
-                <span className="text-2xl font-black text-slate-800 dark:text-white">Rp 10jt</span>
+                <span className="text-2xl font-black text-slate-800 dark:text-white">{budgetTotalAmount}</span>
               </div>
             </div>
             
             <div className="w-full mt-6 space-y-3">
-              {BUDGET_DATA.map((item, idx) => (
+              {budgetData.map((item, idx) => (
                 <div key={idx} className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
@@ -623,28 +636,36 @@ export default function DashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                {RECENT_TRANSACTIONS.map((tx) => (
-                  <tr key={tx.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
-                    <td className="py-4 pl-2 text-sm font-bold text-slate-500 dark:text-slate-400">{tx.date}</td>
-                    <td className={`py-4 text-sm font-bold ${tx.amount > 0 ? 'text-emerald-600' : 'text-slate-800 dark:text-white'}`}>
-                      {tx.amount > 0 ? '+' : ''}{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumSignificantDigits: 3 }).format(tx.amount)}
-                    </td>
-                    <td className="py-4">
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-xl ${tx.iconBg} ${tx.iconColor}`}>
-                          <tx.icon size={18} />
-                        </div>
-                        <span className="text-sm font-bold text-slate-700 dark:text-slate-200">{tx.name}</span>
-                      </div>
-                    </td>
-                    <td className="py-4 text-sm font-medium text-slate-500 dark:text-slate-400">{tx.method}</td>
-                    <td className="py-4 pr-2">
-                      <span className="px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold border border-slate-200 dark:border-slate-700">
-                        {tx.category}
-                      </span>
+                {recentTransactions.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-6 text-sm text-slate-400 dark:text-slate-500 text-center">
+                      Belum ada transaksi.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  recentTransactions.map((tx) => (
+                    <tr key={tx.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                      <td className="py-4 pl-2 text-sm font-bold text-slate-500 dark:text-slate-400">{tx.date}</td>
+                      <td className={`py-4 text-sm font-bold ${tx.amount > 0 ? 'text-emerald-600' : 'text-slate-800 dark:text-white'}`}>
+                        {tx.amount > 0 ? '+' : ''}{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumSignificantDigits: 3 }).format(tx.amount)}
+                      </td>
+                      <td className="py-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-xl ${tx.iconBg} ${tx.iconColor}`}>
+                            <tx.icon size={18} />
+                          </div>
+                          <span className="text-sm font-bold text-slate-700 dark:text-slate-200">{tx.name}</span>
+                        </div>
+                      </td>
+                      <td className="py-4 text-sm font-medium text-slate-500 dark:text-slate-400">{tx.method}</td>
+                      <td className="py-4 pr-2">
+                        <span className="px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold border border-slate-200 dark:border-slate-700">
+                          {tx.category}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
