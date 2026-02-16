@@ -273,6 +273,7 @@ export default function WargaPage() {
           {
             id: 1,
             name: 'Budi Santoso',
+            role: 'WARGA_TETAP',
             nik: '3201010101010001',
             kk_number: '3201010101010000',
             phone: '0812-1111-2222',
@@ -301,6 +302,7 @@ export default function WargaPage() {
           {
             id: 2,
             name: 'Siti Rahma',
+            role: 'WARGA_TETAP',
             nik: '3201010101010002',
             kk_number: '3201010101010000',
             phone: '0813-3333-4444',
@@ -329,6 +331,7 @@ export default function WargaPage() {
           {
             id: 3,
             name: 'Agus Wirawan',
+            role: 'WARGA_KOST',
             nik: '3201010101010003',
             kk_number: '3201010101010003',
             phone: '0851-5555-6666',
