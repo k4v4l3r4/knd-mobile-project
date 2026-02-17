@@ -633,8 +633,9 @@ export default function WargaPage() {
         
         if (response.data.success) {
             toast.success(response.data.message);
-            if (response.data.errors && response.data.errors.length > 0) {
-                toast.error(`${response.data.errors.length} baris gagal diimport`);
+            if (response.data.errors && Array.isArray(response.data.errors) && response.data.errors.length > 0) {
+                const preview = response.data.errors.slice(0, 3).join('\n');
+                toast.error(`Beberapa baris gagal diimport:\n${preview}`);
                 console.error('Import errors:', response.data.errors);
             }
             setIsImportModalOpen(false);
@@ -643,10 +644,14 @@ export default function WargaPage() {
         }
     } catch (err: unknown) {
         console.error('Import error:', err);
-        const msg =
-          (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-          'Gagal import data';
+        const apiError = (err as { response?: { data?: { message?: string; errors?: string[] } } })?.response?.data;
+        const msg = apiError?.message || 'Gagal import data';
         toast.error(msg);
+        if (apiError?.errors && Array.isArray(apiError.errors) && apiError.errors.length > 0) {
+          const preview = apiError.errors.slice(0, 3).join('\n');
+          toast.error(preview);
+          console.error('Import errors detail:', apiError.errors);
+        }
     } finally {
         setImporting(false);
     }

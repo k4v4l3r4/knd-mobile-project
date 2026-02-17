@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\WargaRequest;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Crypt;
@@ -225,8 +226,25 @@ class WargaController extends Controller
 
         $header = array_shift($data); // Remove header row
 
-        // Expected columns mapping (index based on Export columns)
-        // 0:Name, 1:NIK, 2:KK, 3:Phone, 4:Gender, 5:Place, 6:Date, 7:Religion, 8:Marital, 9:Job, 10:StatusFam, 11:Address, 12:AddressKTP, 13:Block, 14:RT, 15:RW, 16:PostalCode
+        $columnNames = [
+            0 => 'Nama',
+            1 => 'NIK',
+            2 => 'Nomor KK',
+            3 => 'No HP',
+            4 => 'Jenis Kelamin',
+            5 => 'Tempat Lahir',
+            6 => 'Tanggal Lahir',
+            7 => 'Agama',
+            8 => 'Status Perkawinan',
+            9 => 'Pekerjaan',
+            10 => 'Status Keluarga',
+            11 => 'Alamat Domisili',
+            12 => 'Alamat KTP',
+            13 => 'Blok',
+            14 => 'RT',
+            15 => 'RW',
+            16 => 'Kode Pos',
+        ];
 
         $successCount = 0;
         $errors = [];
@@ -244,7 +262,51 @@ class WargaController extends Controller
         }
 
         foreach ($data as $index => $row) {
-            if (count($row) < 4) continue; // Skip empty/invalid rows
+            $rowNumber = $index + 2;
+            $filledColumns = array_filter($row, function ($value) {
+                return $value !== null && trim((string) $value) !== '';
+            });
+
+            if (count($filledColumns) === 0) {
+                continue;
+            }
+
+            if (count($row) < 2) {
+                $errors[] = "Baris $rowNumber: Jumlah kolom kurang. Minimal isi kolom Nama dan NIK.";
+                continue;
+            }
+
+            $rowErrors = [];
+
+            $name = trim($row[0] ?? '');
+            $nik = trim($row[1] ?? '');
+            $dateOfBirthRaw = trim($row[6] ?? '');
+            $genderRaw = strtoupper(trim($row[4] ?? ''));
+
+            if ($name === '') {
+                $rowErrors[] = "Kolom 'Nama' wajib diisi";
+            }
+
+            if ($nik === '') {
+                $rowErrors[] = "Kolom 'NIK' wajib diisi";
+            }
+
+            if ($dateOfBirthRaw !== '') {
+                try {
+                    Carbon::parse($dateOfBirthRaw);
+                } catch (\Exception $e) {
+                    $rowErrors[] = "Kolom 'Tanggal Lahir' tidak valid. Gunakan format YYYY-MM-DD (contoh 1990-02-17)";
+                }
+            }
+
+            if ($genderRaw !== '' && !in_array($genderRaw, ['L', 'P'])) {
+                $rowErrors[] = "Kolom 'Jenis Kelamin' harus diisi dengan L atau P";
+            }
+
+            if (!empty($rowErrors)) {
+                $errors[] = "Baris $rowNumber: " . implode('; ', $rowErrors);
+                continue;
+            }
 
             try {
                 $nik = $row[1] ?? null;
@@ -254,13 +316,13 @@ class WargaController extends Controller
                 $user = User::where('nik', $nik)->first();
 
                 $userData = [
-                    'name' => $row[0],
-                    'nik' => $row[1],
+                    'name' => $name,
+                    'nik' => $nik,
                     'kk_number' => $row[2] ?? null,
                     'phone' => $row[3] ?? null,
-                    'gender' => $row[4] ?? 'L',
+                    'gender' => $genderRaw !== '' ? $genderRaw : 'L',
                     'place_of_birth' => $row[5] ?? null,
-                    'date_of_birth' => $row[6] ?? null,
+                    'date_of_birth' => $dateOfBirthRaw ?: null,
                     'religion' => $row[7] ?? 'ISLAM',
                     'marital_status' => $row[8] ?? 'BELUM_KAWIN',
                     'occupation' => $row[9] ?? null,
@@ -287,7 +349,7 @@ class WargaController extends Controller
                 }
                 $successCount++;
             } catch (\Exception $e) {
-                $errors[] = "Row " . ($index + 2) . ": " . $e->getMessage();
+                $errors[] = "Baris $rowNumber: " . $e->getMessage();
             }
         }
 
