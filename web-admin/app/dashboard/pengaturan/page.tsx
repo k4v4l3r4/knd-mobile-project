@@ -381,11 +381,33 @@ export default function SettingsPage() {
             permissions: ['service.view', 'service.manage'],
           },
         ];
-        setRoles(demoRoles);
+
+        const coreOrder = ['ADMIN_RT', 'ADMIN_RW', 'BENDAHARA_RT', 'SEKRETARIS_RT'];
+        const sortedDemoRoles = [...demoRoles].sort((a, b) => {
+          const aIndex = coreOrder.indexOf(a.name);
+          const bIndex = coreOrder.indexOf(b.name);
+
+          if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+          if (aIndex !== -1) return -1;
+          if (bIndex !== -1) return 1;
+          return a.label.localeCompare(b.label);
+        });
+
+        setRoles(sortedDemoRoles);
         return;
       }
       const res = await axios.get('/settings/roles');
-      setRoles(res.data);
+      const coreOrder = ['ADMIN_RT', 'ADMIN_RW', 'BENDAHARA_RT', 'SEKRETARIS_RT'];
+      const sortedRoles = [...res.data].sort((a: RoleData, b: RoleData) => {
+        const aIndex = coreOrder.indexOf(a.name);
+        const bIndex = coreOrder.indexOf(b.name);
+
+        if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+        if (aIndex !== -1) return -1;
+        if (bIndex !== -1) return 1;
+        return a.label.localeCompare(b.label);
+      });
+      setRoles(sortedRoles);
     } catch (error) {
       if (!isDemo) {
         console.error(error);
@@ -1695,21 +1717,23 @@ export default function SettingsPage() {
                             </td>
                             <td className="px-8 py-5 text-right">
                               <div className="flex items-center justify-end gap-2">
-                                <button 
-                                  onClick={() => openRoleModal(role)}
-                                  className="p-2.5 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-slate-400 dark:text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-xl transition-colors border border-transparent hover:border-emerald-100 dark:hover:border-emerald-800"
-                                  title="Edit"
-                                >
-                                  <Pencil className="w-4 h-4" />
-                                </button>
                                 {!role.is_system && (
-                                  <button 
-                                    onClick={() => confirmDelete('role', role.id!, role.label)}
-                                    className="p-2.5 hover:bg-rose-50 dark:hover:bg-rose-900/30 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 rounded-xl transition-colors border border-transparent hover:border-rose-100 dark:hover:border-rose-800"
-                                    title="Hapus"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
+                                  <>
+                                    <button 
+                                      onClick={() => openRoleModal(role)}
+                                      className="p-2.5 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-slate-400 dark:text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-xl transition-colors border border-transparent hover:border-emerald-100 dark:hover:border-emerald-800"
+                                      title="Edit"
+                                    >
+                                      <Pencil className="w-4 h-4" />
+                                    </button>
+                                    <button 
+                                      onClick={() => confirmDelete('role', role.id!, role.label)}
+                                      className="p-2.5 hover:bg-rose-50 dark:hover:bg-rose-900/30 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 rounded-xl transition-colors border border-transparent hover:border-rose-100 dark:hover:border-rose-800"
+                                      title="Hapus"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </>
                                 )}
                               </div>
                             </td>

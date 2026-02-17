@@ -216,7 +216,14 @@ class SettingController extends Controller {
 
     public function updateRole(Request $request, $id) {
         $user = $request->user('sanctum');
-        $role = UserRole::where('rt_id', $user->rt_id)->findOrFail($id); // Only edit custom roles
+        $role = UserRole::where('rt_id', $user->rt_id)
+            ->where('is_system', false)
+            ->where('id', $id)
+            ->first();
+
+        if (!$role) {
+            return response()->json(['message' => 'Role tidak ditemukan atau tidak bisa diubah'], 404);
+        }
 
         $validated = $request->validate([
             'label' => 'required|string',
