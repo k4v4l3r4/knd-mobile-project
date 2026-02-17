@@ -20,7 +20,7 @@ export const PlanSelectionCard: React.FC<PlanSelectionCardProps> = ({
   isPopular = false
 }) => {
   return (
-    <div className={`relative group flex flex-col p-6 bg-white dark:bg-slate-900 rounded-3xl border-2 transition-all duration-300 transform ${
+    <div className={`relative group flex flex-col h-full p-6 bg-white dark:bg-slate-900 rounded-3xl border-2 transition-all duration-300 transform ${
       isPopular 
         ? 'border-emerald-500 shadow-xl shadow-emerald-500/10 scale-105 z-10 group-hover:scale-110 group-hover:-translate-y-2'
         : 'border-slate-100 dark:border-slate-800 hover:border-emerald-400 hover:shadow-xl hover:shadow-emerald-500/10 hover:-translate-y-2'

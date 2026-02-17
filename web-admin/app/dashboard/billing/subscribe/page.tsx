@@ -135,7 +135,7 @@ export default function SubscribePage() {
         </p>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-8 items-start">
+      <div className="grid md:grid-cols-3 gap-8 items-stretch">
         {plans.map((plan) => (
           <PlanSelectionCard
             key={plan.id}
