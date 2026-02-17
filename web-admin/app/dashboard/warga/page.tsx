@@ -1122,9 +1122,12 @@ export default function WargaPage() {
                             {/* RT/RW & Kodepos */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
                                 <div className="space-y-1.5">
-                                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">RT</label>
+                                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                        RT <span className="text-rose-500">*</span>
+                                    </label>
                                     <input
                                         type="text"
+                                        required
                                         value={formData.address_rt}
                                         onChange={(e) => setFormData({...formData, address_rt: e.target.value})}
                                         className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all dark:text-white"
@@ -1132,9 +1135,12 @@ export default function WargaPage() {
                                     />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">RW</label>
+                                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                        RW <span className="text-rose-500">*</span>
+                                    </label>
                                     <input
                                         type="text"
+                                        required
                                         value={formData.address_rw}
                                         onChange={(e) => setFormData({...formData, address_rw: e.target.value})}
                                         className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all dark:text-white"
