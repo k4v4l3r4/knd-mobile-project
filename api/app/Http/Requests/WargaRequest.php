@@ -7,6 +7,27 @@ use Illuminate\Validation\Rule;
 
 class WargaRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $regionFields = [
+            'province_code',
+            'city_code',
+            'district_code',
+            'village_code',
+        ];
+
+        $data = [];
+        foreach ($regionFields as $field) {
+            if ($this->has($field) && $this->input($field) === '') {
+                $data[$field] = null;
+            }
+        }
+
+        if (!empty($data)) {
+            $this->merge($data);
+        }
+    }
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -71,6 +92,18 @@ class WargaRequest extends FormRequest
             'city_code' => ['nullable', 'string', 'size:4', 'exists:indonesia_cities,code'],
             'district_code' => ['nullable', 'string', 'size:7', 'exists:indonesia_districts,code'],
             'village_code' => ['nullable', 'string', 'size:10', 'exists:indonesia_villages,code'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'province_code.size' => 'Kode provinsi tidak valid.',
+            'city_code.size' => 'Kode kota/kabupaten tidak valid.',
+            'district_code.size' => 'Kecamatan tidak valid. Silakan pilih dari daftar.',
+            'district_code.exists' => 'Kecamatan tidak ditemukan di database wilayah.',
+            'village_code.size' => 'Kelurahan tidak valid. Silakan pilih dari daftar.',
+            'village_code.exists' => 'Kelurahan tidak ditemukan di database wilayah.',
         ];
     }
 }
