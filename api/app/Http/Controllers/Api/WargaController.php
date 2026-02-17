@@ -289,6 +289,68 @@ class WargaController extends Controller
         return response()->stream($callback, 200, $headers);
     }
 
+    public function exportTemplate(Request $request)
+    {
+        $fileName = 'template_import_warga.csv';
+
+        $headers = [
+            "Content-type"        => "text/csv",
+            "Content-Disposition" => "attachment; filename=$fileName",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+
+        $columns = [
+            'Nama',
+            'NIK',
+            'Nomor KK',
+            'No HP',
+            'Jenis Kelamin',
+            'Tempat Lahir',
+            'Tanggal Lahir (YYYY-MM-DD)',
+            'Agama',
+            'Status Perkawinan',
+            'Pekerjaan',
+            'Status Keluarga',
+            'Alamat Domisili',
+            'Alamat KTP',
+            'Blok',
+            'RT',
+            'RW',
+            'Kode Pos',
+        ];
+
+        $sampleRow = [
+            'Contoh: Budi Santoso',
+            '3201010101010001',
+            '3201010101010000',
+            '081234567890',
+            'L',
+            'Bandung',
+            '1990-02-17',
+            'ISLAM',
+            'KAWIN',
+            'Karyawan Swasta',
+            'KEPALA_KELUARGA',
+            'Jl. Melati No. 1',
+            'Jl. Melati No. 1',
+            'A1',
+            '01',
+            '02',
+            '40288',
+        ];
+
+        $callback = function () use ($columns, $sampleRow) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, $columns);
+            fputcsv($file, $sampleRow);
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
     /**
      * Import Data Warga from CSV
      */

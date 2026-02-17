@@ -175,6 +175,7 @@ Route::middleware(['auth:sanctum', 'tenant.status', 'tenant.feature'])->group(fu
     Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index'])->middleware('permission:dashboard.view');
 
     Route::get('/warga/export', [WargaController::class, 'export'])->middleware('permission:laporan.export');
+    Route::get('/warga/export-template', [WargaController::class, 'exportTemplate'])->middleware('permission:laporan.export');
     Route::post('/warga/import', [WargaController::class, 'import'])->middleware('permission:warga.create');
     
     // Warga Resource Split for Permissions
