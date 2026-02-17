@@ -1717,7 +1717,7 @@ export default function SettingsPage() {
                             </td>
                             <td className="px-8 py-5 text-right">
                               <div className="flex items-center justify-end gap-2">
-                                {!role.is_system && (
+                                {!(role.name === 'ADMIN_RT' || role.name === 'ADMIN_RW') && (
                                   <>
                                     <button 
                                       onClick={() => openRoleModal(role)}

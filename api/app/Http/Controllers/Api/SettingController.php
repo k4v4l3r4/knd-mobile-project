@@ -216,13 +216,14 @@ class SettingController extends Controller {
 
     public function updateRole(Request $request, $id) {
         $user = $request->user('sanctum');
-        $role = UserRole::where('rt_id', $user->rt_id)
-            ->where('is_system', false)
-            ->where('id', $id)
-            ->first();
+        $role = UserRole::find($id);
 
         if (!$role) {
             return response()->json(['message' => 'Role tidak ditemukan atau tidak bisa diubah'], 404);
+        }
+
+        if (in_array($role->role_code, ['ADMIN_RT', 'ADMIN_RW'])) {
+            return response()->json(['message' => 'Role Admin RT dan Admin RW tidak boleh diubah'], 403);
         }
 
         $validated = $request->validate([
@@ -237,7 +238,14 @@ class SettingController extends Controller {
 
     public function deleteRole(Request $request, $id) {
         $user = $request->user('sanctum');
-        $role = UserRole::where('rt_id', $user->rt_id)->findOrFail($id);
+        $role = UserRole::where(function ($q) use ($user) {
+                $q->whereNull('rt_id')->orWhere('rt_id', $user->rt_id);
+            })
+            ->findOrFail($id);
+
+        if (in_array($role->role_code, ['ADMIN_RT', 'ADMIN_RW'])) {
+            return response()->json(['message' => 'Role Admin RT dan Admin RW tidak boleh dihapus'], 403);
+        }
         
         // Check if any user uses this role
         $inUse = User::where('role_id', $role->id)->exists();
