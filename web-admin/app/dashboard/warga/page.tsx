@@ -1015,6 +1015,8 @@ export default function WargaPage() {
                             <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tanggal Lahir</label>
                             <input
                                 type="date"
+                                lang="id-ID"
+                                max={new Date().toISOString().split('T')[0]}
                                 value={formData.date_of_birth}
                                 onChange={(e) => setFormData({...formData, date_of_birth: e.target.value})}
                                 className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all dark:text-white"
