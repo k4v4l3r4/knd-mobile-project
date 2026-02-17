@@ -109,6 +109,21 @@ class WargaController extends Controller
         $roleCode = 'WARGA_TETAP';
         $validated['role'] = $roleCode;
 
+        $admin = $request->user();
+        if ($admin) {
+            if (Schema::hasColumn('users', 'rt_id')) {
+                $validated['rt_id'] = $admin->rt_id;
+            }
+
+            if (Schema::hasColumn('users', 'rw_id')) {
+                $validated['rw_id'] = $admin->rw_id;
+            }
+
+            if (Schema::hasColumn('users', 'tenant_id')) {
+                $validated['tenant_id'] = $admin->tenant_id;
+            }
+        }
+
         if (Schema::hasColumn('users', 'role_id')) {
             $role = Role::where('role_code', $roleCode)->first();
             if ($role) {
@@ -161,6 +176,40 @@ class WargaController extends Controller
                 'message' => $baseMessage . ' Detail: ' . $detail,
             ], 500);
         }
+    }
+
+    public function fixOrphanWarga(Request $request)
+    {
+        $admin = $request->user();
+
+        if (!$admin || !$admin->rt_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hanya Admin RT yang terhubung ke RT tertentu yang dapat menjalankan aksi ini.',
+            ], 403);
+        }
+
+        $updateData = [
+            'rt_id' => $admin->rt_id,
+        ];
+
+        if (Schema::hasColumn('users', 'rw_id')) {
+            $updateData['rw_id'] = $admin->rw_id;
+        }
+
+        if (Schema::hasColumn('users', 'tenant_id')) {
+            $updateData['tenant_id'] = $admin->tenant_id;
+        }
+
+        $affected = User::whereNull('rt_id')
+            ->whereIn('role', ['WARGA', 'WARGA_TETAP', 'WARGA_KOST'])
+            ->update($updateData);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Berhasil menempelkan warga tanpa RT ke RT Anda.',
+            'updated' => $affected,
+        ]);
     }
 
     /**
