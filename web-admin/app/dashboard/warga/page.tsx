@@ -34,6 +34,7 @@ interface Warga {
   phone: string;
   email?: string | null;
   address: string | null;
+  block?: string | null;
   role: string;
   rt_id: number | null;
   rw_id: number | null;
@@ -872,10 +873,18 @@ export default function WargaPage() {
                         </div>
                         <div>
                           <div className="font-bold text-slate-800 dark:text-white text-base">{warga.name}</div>
-                          <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
-                            <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wide dark:text-slate-300">
-                                {warga.gender === 'L' ? 'LAKI-LAKI' : 'PEREMPUAN'}
-                            </span>
+                          <div className="mt-0.5 space-y-0.5">
+                            <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                              <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wide dark:text-slate-300">
+                                  {warga.gender === 'L' ? 'LAKI-LAKI' : 'PEREMPUAN'}
+                              </span>
+                            </div>
+                            {warga.block && (
+                              <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                                <MapPin size={12} className="text-slate-400 dark:text-slate-500" />
+                                <span>Blok / No: {warga.block}</span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -910,11 +919,19 @@ export default function WargaPage() {
                     </td>
                     <td className="px-8 py-5">
                         <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
-                            warga.status_in_family === 'KEPALA_KELUARGA'
+                            warga.status_in_family === 'KEPALA_KELUARGA' || warga.role === 'ADMIN_RT' || warga.role === 'RT'
                             ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' 
                             : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
                         }`}>
-                            {warga.status_in_family?.replace('_', ' ') || 'WARGA'}
+                            {warga.status_in_family
+                              ? warga.status_in_family.replace('_', ' ')
+                              : (warga.role === 'ADMIN_RT' || warga.role === 'RT'
+                                  ? 'KETUA RT'
+                                  : warga.role === 'WARGA_TETAP'
+                                    ? 'WARGA TETAP'
+                                    : warga.role === 'WARGA_KOST'
+                                      ? 'WARGA KOST'
+                                      : 'WARGA')}
                         </span>
                     </td>
                     <td className="px-8 py-5 text-right">
