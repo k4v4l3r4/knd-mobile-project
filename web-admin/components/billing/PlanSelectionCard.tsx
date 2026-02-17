@@ -20,11 +20,11 @@ export const PlanSelectionCard: React.FC<PlanSelectionCardProps> = ({
   isPopular = false
 }) => {
   return (
-    <div className={`relative flex flex-col p-6 bg-white dark:bg-slate-900 rounded-3xl border-2 transition-all duration-300 ${
+    <div className={`relative group flex flex-col p-6 bg-white dark:bg-slate-900 rounded-3xl border-2 transition-all duration-300 transform ${
       isPopular 
-        ? 'border-emerald-500 shadow-xl shadow-emerald-500/10 scale-105 z-10' 
-        : 'border-slate-100 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
-    } ${disabled ? 'opacity-60 grayscale' : ''}`}>
+        ? 'border-emerald-500 shadow-xl shadow-emerald-500/10 scale-105 z-10 group-hover:scale-110 group-hover:-translate-y-2'
+        : 'border-slate-100 dark:border-slate-800 hover:border-emerald-400 hover:shadow-xl hover:shadow-emerald-500/10 hover:-translate-y-2'
+    } ${disabled ? 'opacity-60 grayscale cursor-not-allowed' : 'cursor-pointer'}`}>
       
       {isPopular && (
         <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
@@ -33,7 +33,9 @@ export const PlanSelectionCard: React.FC<PlanSelectionCardProps> = ({
       )}
 
       <div className="mb-4">
-        <h3 className="text-lg font-bold text-slate-900 dark:text-white">{plan.name}</h3>
+        <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+          {plan.name}
+        </h3>
         <div className="mt-2 flex items-baseline gap-1">
           <span className="text-3xl font-bold text-slate-900 dark:text-white">
             Rp {plan.price.toLocaleString('id-ID')}
