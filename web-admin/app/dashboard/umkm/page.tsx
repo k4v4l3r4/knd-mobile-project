@@ -406,9 +406,19 @@ export default function UmkmPage() {
 
   // Filter products
   const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          product.user?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          product.store?.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const query = searchQuery.trim().toLowerCase();
+
+    const matchesSearch =
+      query === '' ||
+      [
+        product.name,
+        product.description,
+        product.user?.name,
+        product.user?.phone,
+        product.store?.name,
+      ]
+        .filter(Boolean)
+        .some((field) => String(field).toLowerCase().includes(query));
     
     let matchesCategory = true;
     

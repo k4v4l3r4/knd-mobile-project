@@ -7,6 +7,7 @@ use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 use App\Http\Resources\ProductResource;
 
@@ -37,12 +38,25 @@ class ProductController extends Controller
         }
         
         // Search functionality
-        if ($request->has('search')) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
-            });
+        if ($request->filled('search')) {
+            $search = trim((string) $request->input('search'));
+
+            if ($search !== '') {
+                $searchLower = Str::lower($search);
+                $like = "%{$searchLower}%";
+
+                $query->where(function($q) use ($like) {
+                    $q->whereRaw('LOWER(name) LIKE ?', [$like])
+                      ->orWhereRaw('LOWER(description) LIKE ?', [$like])
+                      ->orWhereHas('user', function($uq) use ($like) {
+                          $uq->whereRaw('LOWER(name) LIKE ?', [$like])
+                             ->orWhereRaw('LOWER(phone) LIKE ?', [$like]);
+                      })
+                      ->orWhereHas('store', function($sq) use ($like) {
+                          $sq->whereRaw('LOWER(name) LIKE ?', [$like]);
+                      });
+                });
+            }
         }
         
         $products = $query->latest()->get();
