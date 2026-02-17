@@ -915,15 +915,19 @@ export default function SettingsPage() {
   // --- Role Logic ---
   const openRoleModal = (role?: RoleData) => {
     if (role) {
-      setCurrentRole(role);
+      const safePermissions = Array.isArray(role.permissions) ? role.permissions : [];
+      setCurrentRole({
+        ...role,
+        permissions: safePermissions,
+      });
     } else {
-      setCurrentRole({ 
-        name: '', 
-        label: '', 
-        description: '', 
+      setCurrentRole({
+        name: '',
+        label: '',
+        description: '',
         is_system: false,
         scope: 'RT',
-        permissions: []
+        permissions: [],
       });
     }
     setIsRoleModalOpen(true);
@@ -2382,7 +2386,10 @@ export default function SettingsPage() {
                 </label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {PERMISSION_GROUPS.map((group) => {
-                    const isSelected = currentRole.permissions.includes(group.id);
+                    const currentPermissions = Array.isArray(currentRole.permissions)
+                      ? currentRole.permissions
+                      : [];
+                    const isSelected = currentPermissions.includes(group.id);
                     return (
                       <label 
                         key={group.id} 
@@ -2402,10 +2409,13 @@ export default function SettingsPage() {
                           className="hidden"
                           checked={isSelected}
                           onChange={(e) => {
-                            const newPermissions = e.target.checked 
-                              ? [...currentRole.permissions, group.id]
-                              : currentRole.permissions.filter(p => p !== group.id);
-                            setCurrentRole({...currentRole, permissions: newPermissions});
+                            const basePermissions = Array.isArray(currentRole.permissions)
+                              ? currentPermissions
+                              : [];
+                            const newPermissions = e.target.checked
+                              ? [...basePermissions, group.id]
+                              : basePermissions.filter(p => p !== group.id);
+                            setCurrentRole({ ...currentRole, permissions: newPermissions });
                           }}
                         />
                         <div>

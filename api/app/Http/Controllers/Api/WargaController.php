@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\WargaRequest;
 use App\Models\User;
+use App\Models\Role;
 use Illuminate\Support\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -104,7 +105,16 @@ class WargaController extends Controller
 
         // Set default values
         $validated['password'] = Hash::make('12345678');
-        $validated['role'] = 'WARGA';
+
+        $roleCode = 'WARGA_TETAP';
+        $validated['role'] = $roleCode;
+
+        if (Schema::hasColumn('users', 'role_id')) {
+            $role = Role::where('role_code', $roleCode)->first();
+            if ($role) {
+                $validated['role_id'] = $role->id;
+            }
+        }
 
         $validated = array_filter(
             $validated,
