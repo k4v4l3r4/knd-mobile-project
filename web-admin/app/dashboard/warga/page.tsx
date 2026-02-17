@@ -943,6 +943,9 @@ export default function WargaPage() {
                   {modalMode === 'add' ? 'Tambah Warga Baru' : 'Edit Data Warga'}
                 </h3>
                 <p className="text-sm text-slate-500">Lengkapi informasi data diri warga dengan benar.</p>
+                <p className="text-xs text-rose-500 mt-1 font-medium">
+                  <span className="text-rose-500">*</span> Wajib diisi
+                </p>
               </div>
               <button 
                 onClick={() => setIsModalOpen(false)}
@@ -962,7 +965,9 @@ export default function WargaPage() {
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-1.5">
-                            <label className="text-sm font-semibold text-slate-700">Nama Lengkap</label>
+                            <label className="text-sm font-semibold text-slate-700">
+                                Nama Lengkap <span className="text-rose-500">*</span>
+                            </label>
                             <input
                                 type="text"
                                 required
@@ -973,7 +978,9 @@ export default function WargaPage() {
                             />
                         </div>
                         <div className="space-y-1.5">
-                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">NIK (16 Digit)</label>
+                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                NIK (16 Digit) <span className="text-rose-500">*</span>
+                            </label>
                             <input
                                 type="text"
                                 required
@@ -985,9 +992,12 @@ export default function WargaPage() {
                             />
                         </div>
                         <div className="space-y-1.5">
-                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Nomor KK</label>
+                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                Nomor KK <span className="text-rose-500">*</span>
+                            </label>
                             <input
                                 type="text"
+                                required
                                 maxLength={16}
                                 value={formData.kk_number}
                                 onChange={(e) => setFormData({...formData, kk_number: e.target.value})}
@@ -1007,9 +1017,12 @@ export default function WargaPage() {
                             </select>
                         </div>
                         <div className="space-y-1.5">
-                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tempat Lahir</label>
+                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                Tempat Lahir <span className="text-rose-500">*</span>
+                            </label>
                             <input
                                 type="text"
+                                required
                                 value={formData.place_of_birth}
                                 onChange={(e) => setFormData({...formData, place_of_birth: e.target.value})}
                                 className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all dark:text-white"
@@ -1017,11 +1030,14 @@ export default function WargaPage() {
                             />
                         </div>
                         <div className="space-y-1.5">
-                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tanggal Lahir</label>
+                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                Tanggal Lahir <span className="text-rose-500">*</span>
+                            </label>
                             <input
                                 type="date"
                                 lang="id-ID"
                                 max={new Date().toISOString().split('T')[0]}
+                                required
                                 value={formData.date_of_birth}
                                 onChange={(e) => setFormData({...formData, date_of_birth: e.target.value})}
                                 className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all dark:text-white"
@@ -1059,7 +1075,9 @@ export default function WargaPage() {
                             />
                         </div>
                         <div className="space-y-1.5">
-                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Alamat Domisili</label>
+                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                Alamat Domisili <span className="text-rose-500">*</span>
+                            </label>
                             <textarea
                                 required
                                 value={formData.address}
@@ -1124,9 +1142,12 @@ export default function WargaPage() {
                                     />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Kodepos</label>
+                                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                        Kodepos <span className="text-rose-500">*</span>
+                                    </label>
                                     <input
                                         type="text"
+                                        required
                                         value={formData.postal_code}
                                         onChange={(e) => setFormData({...formData, postal_code: e.target.value})}
                                         className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all dark:text-white"
@@ -1137,10 +1158,13 @@ export default function WargaPage() {
                             {/* New Region Dropdowns */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
                                 <div className="space-y-1.5">
-                                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Provinsi</label>
+                                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                        Provinsi <span className="text-rose-500">*</span>
+                                    </label>
                                     <select
                                         value={formData.province_code}
                                         onChange={(e) => handleRegionChange('province', e.target.value)}
+                                        required
                                         className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all dark:text-white"
                                     >
                                         <option value="">Pilih Provinsi</option>
@@ -1150,11 +1174,14 @@ export default function WargaPage() {
                                     </select>
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Kabupaten/Kota</label>
+                                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                        Kabupaten/Kota <span className="text-rose-500">*</span>
+                                    </label>
                                     <select
                                         value={formData.city_code}
                                         onChange={(e) => handleRegionChange('city', e.target.value)}
                                         disabled={!formData.province_code}
+                                        required
                                         className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all disabled:opacity-50 dark:text-white"
                                     >
                                         <option value="">Pilih Kota/Kab</option>
@@ -1164,11 +1191,14 @@ export default function WargaPage() {
                                     </select>
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Kecamatan</label>
+                                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                        Kecamatan <span className="text-rose-500">*</span>
+                                    </label>
                                     <select
                                         value={formData.district_code}
                                         onChange={(e) => handleRegionChange('district', e.target.value)}
                                         disabled={!formData.city_code}
+                                        required
                                         className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all disabled:opacity-50 dark:text-white"
                                     >
                                         <option value="">Pilih Kecamatan</option>
@@ -1178,11 +1208,14 @@ export default function WargaPage() {
                                     </select>
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Kelurahan</label>
+                                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                        Kelurahan <span className="text-rose-500">*</span>
+                                    </label>
                                     <select
                                         value={formData.village_code}
                                         onChange={(e) => handleRegionChange('village', e.target.value)}
                                         disabled={!formData.district_code}
+                                        required
                                         className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all disabled:opacity-50 dark:text-white"
                                     >
                                         <option value="">Pilih Kelurahan</option>

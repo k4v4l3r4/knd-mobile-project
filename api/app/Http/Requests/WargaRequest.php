@@ -49,6 +49,9 @@ class WargaRequest extends FormRequest
         // If creating, $warga is null.
         $userId = $warga;
 
+        $isCreate = $this->isMethod('post');
+        $requiredOnCreate = $isCreate ? 'required' : 'nullable';
+
         return [
             'name' => ['required', 'string', 'max:255'],
             'nik' => [
@@ -56,7 +59,7 @@ class WargaRequest extends FormRequest
                 'string', 
                 'size:16', 
             ],
-            'kk_number' => ['nullable', 'string', 'size:16'],
+            'kk_number' => [$requiredOnCreate, 'string', 'size:16'],
             'phone' => [
                 'nullable', 
                 'string', 
@@ -80,18 +83,18 @@ class WargaRequest extends FormRequest
             'address_ktp' => ['nullable', 'string'],
             'postal_code' => ['nullable', 'string', 'max:10'],
             'gender' => ['nullable', 'in:L,P'],
-            'place_of_birth' => ['nullable', 'string'],
-            'date_of_birth' => ['nullable', 'date'],
+            'place_of_birth' => [$requiredOnCreate, 'string'],
+            'date_of_birth' => [$requiredOnCreate, 'date'],
             'religion' => ['nullable', 'string'],
             'marital_status' => ['nullable', 'in:BELUM_KAWIN,KAWIN,CERAI_HIDUP,CERAI_MATI'],
             'occupation' => ['nullable', 'string'],
             'status_in_family' => ['nullable', 'in:KEPALA_KELUARGA,ISTRI,ANAK,FAMILI_LAIN'],
             'ktp_image' => ['nullable', 'image', 'max:2048'], // Max 2MB
             'kk_image' => ['nullable', 'image', 'max:2048'], // Max 2MB
-            'province_code' => ['nullable', 'string', 'size:2', 'exists:indonesia_provinces,code'],
-            'city_code' => ['nullable', 'string', 'size:4', 'exists:indonesia_cities,code'],
-            'district_code' => ['nullable', 'string', 'exists:indonesia_districts,code'],
-            'village_code' => ['nullable', 'string', 'size:10', 'exists:indonesia_villages,code'],
+            'province_code' => [$requiredOnCreate, 'string', 'size:2', 'exists:indonesia_provinces,code'],
+            'city_code' => [$requiredOnCreate, 'string', 'size:4', 'exists:indonesia_cities,code'],
+            'district_code' => [$requiredOnCreate, 'string', 'exists:indonesia_districts,code'],
+            'village_code' => [$requiredOnCreate, 'string', 'size:10', 'exists:indonesia_villages,code'],
         ];
     }
 
