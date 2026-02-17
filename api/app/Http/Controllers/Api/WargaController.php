@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\WargaRequest;
 use App\Models\User;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Crypt;
@@ -99,6 +100,19 @@ class WargaController extends Controller
     public function store(WargaRequest $request)
     {
         $validated = $request->validated();
+
+        $optionalColumns = [
+            'province_code',
+            'city_code',
+            'district_code',
+            'village_code',
+        ];
+
+        foreach ($optionalColumns as $column) {
+            if (array_key_exists($column, $validated) && !Schema::hasColumn('users', $column)) {
+                unset($validated[$column]);
+            }
+        }
 
         // Set default values
         $validated['password'] = Hash::make('12345678');
