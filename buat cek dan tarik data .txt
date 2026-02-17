@@ -1,0 +1,29 @@
+1. Proses Update (Git Pull)
+Buka terminal di aaPanel dan jalankan perintah ini:
+
+Bash
+cd /www/wwwroot/knd-mobile-project/
+git pull origin main
+
+2. Update Backend (API Laravel)
+Karena ada penambahan field baru (Email & Alamat), kamu harus memperbarui library dan database agar tidak error:
+
+Bash
+cd /www/wwwroot/knd-mobile-project/api
+# Tarik update library jika ada (opsional tapi disarankan)
+composer install
+# Update struktur database agar kolom email & alamat muncul
+php artisan migrate
+# Bersihkan cache agar rute baru terbaca
+php artisan optimize
+
+
+3. Update Frontend (Web Admin)
+Agar tampilan form pendaftaran yang baru (dengan field email/alamat) muncul:
+
+Bash
+cd /www/wwwroot/knd-mobile-project/web-admin
+# Jika ini project React/Vue/Next.js, kamu mungkin perlu build ulang
+# npm run build
+# Restart PM2 agar menggunakan kode terbaru
+pm2 restart web-admin
