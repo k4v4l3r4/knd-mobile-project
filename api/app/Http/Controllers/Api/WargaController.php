@@ -354,9 +354,15 @@ class WargaController extends Controller
         }
 
         if ($successCount === 0) {
+            $previewErrors = array_slice($errors, 0, 3);
+            $detailMessage = '';
+            if (!empty($previewErrors)) {
+                $detailMessage = ' Contoh kesalahan: ' . implode(' | ', $previewErrors);
+            }
+
             return response()->json([
                 'success' => false,
-                'message' => 'Tidak ada baris yang berhasil diimport. Periksa kembali format kolom dan pemisah (gunakan koma atau titik koma).',
+                'message' => 'Tidak ada baris yang berhasil diimport. Periksa kembali format kolom dan pemisah (gunakan koma atau titik koma).' . $detailMessage,
                 'errors' => $errors,
             ], 422);
         }
