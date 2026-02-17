@@ -90,7 +90,7 @@ class WargaRequest extends FormRequest
             'kk_image' => ['nullable', 'image', 'max:2048'], // Max 2MB
             'province_code' => ['nullable', 'string', 'size:2', 'exists:indonesia_provinces,code'],
             'city_code' => ['nullable', 'string', 'size:4', 'exists:indonesia_cities,code'],
-            'district_code' => ['nullable', 'string', 'size:7', 'exists:indonesia_districts,code'],
+            'district_code' => ['nullable', 'string', 'exists:indonesia_districts,code'],
             'village_code' => ['nullable', 'string', 'size:10', 'exists:indonesia_villages,code'],
         ];
     }
@@ -100,8 +100,7 @@ class WargaRequest extends FormRequest
         return [
             'province_code.size' => 'Kode provinsi tidak valid.',
             'city_code.size' => 'Kode kota/kabupaten tidak valid.',
-            'district_code.size' => 'Kecamatan tidak valid. Silakan pilih dari daftar.',
-            'district_code.exists' => 'Kecamatan tidak ditemukan di database wilayah.',
+            'district_code.exists' => 'Kecamatan tidak ditemukan di database wilayah. Silakan pilih ulang.',
             'village_code.size' => 'Kelurahan tidak valid. Silakan pilih dari daftar.',
             'village_code.exists' => 'Kelurahan tidak ditemukan di database wilayah.',
         ];
