@@ -467,7 +467,9 @@ class WargaController extends Controller
      */
     public function show(string $id)
     {
-        $warga = User::with('family')->where('role', 'WARGA')->find($id);
+        $warga = User::with('family')
+            ->whereIn('role', ['WARGA', 'WARGA_TETAP', 'WARGA_KOST'])
+            ->find($id);
 
         if (!$warga) {
             return response()->json([
@@ -498,7 +500,8 @@ class WargaController extends Controller
      */
     public function update(WargaRequest $request, string $id)
     {
-        $warga = User::where('role', 'WARGA')->find($id);
+        $warga = User::whereIn('role', ['WARGA', 'WARGA_TETAP', 'WARGA_KOST'])
+            ->find($id);
 
         if (!$warga) {
             return response()->json([
@@ -548,7 +551,8 @@ class WargaController extends Controller
      */
     public function destroy(string $id)
     {
-        $warga = User::where('role', 'WARGA')->find($id);
+        $warga = User::whereIn('role', ['WARGA', 'WARGA_TETAP', 'WARGA_KOST'])
+            ->find($id);
 
         if (!$warga) {
             return response()->json([
