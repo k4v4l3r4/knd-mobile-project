@@ -166,10 +166,15 @@ class SettingController extends Controller {
         $user = $request->user('sanctum');
         if (!$user) return response()->json(['message' => 'Unauthorized'], 401);
 
-        $roles = UserRole::where(function($q) use ($user) {
-            $q->whereNull('rt_id') // System roles
-              ->orWhere('rt_id', $user->rt_id); // Custom roles
-        })->get();
+        // Hide legacy/global roles that should not be managed at tenant level
+        $excludedCodes = ['SUPER_ADMIN', 'SECRETARY', 'TREASURER'];
+
+        $roles = UserRole::where(function ($q) use ($user) {
+                $q->whereNull('rt_id') // System roles
+                  ->orWhere('rt_id', $user->rt_id); // Custom roles
+            })
+            ->whereNotIn('role_code', $excludedCodes)
+            ->get();
 
         // Transform for frontend compatibility (name = role_code)
         $roles->transform(function ($role) {
@@ -242,7 +247,7 @@ class SettingController extends Controller {
         $user = $request->user('sanctum');
         if (!$user) return response()->json(['message' => 'Unauthorized'], 401);
         
-        $excludedCodes = ['WARGA_TETAP', 'WARGA_KOST', 'JURAGAN_KOST'];
+        $excludedCodes = ['WARGA_TETAP', 'WARGA_KOST', 'JURAGAN_KOST', 'SUPER_ADMIN'];
         
         // Get valid role IDs
         $validRoleIds = UserRole::where(function($q) use ($user) {
@@ -271,8 +276,12 @@ class SettingController extends Controller {
         
         // Get valid role codes for validation
         $validRoles = UserRole::where(function($q) use ($user) {
-            $q->whereNull('rt_id')->orWhere('rt_id', $user->rt_id);
-        })->pluck('role_code')->implode(',');
+                $q->whereNull('rt_id')->orWhere('rt_id', $user->rt_id);
+            })
+            ->where('scope', 'TENANT')
+            ->where('role_code', '!=', 'SUPER_ADMIN')
+            ->pluck('role_code')
+            ->implode(',');
 
         // Check if promoting existing user
         if ($request->has('user_id') && $request->user_id) {
@@ -324,8 +333,12 @@ class SettingController extends Controller {
         $admin = User::where('rt_id', $user->rt_id)->findOrFail($id);
         
         $validRoles = UserRole::where(function($q) use ($user) {
-            $q->whereNull('rt_id')->orWhere('rt_id', $user->rt_id);
-        })->pluck('role_code')->implode(',');
+                $q->whereNull('rt_id')->orWhere('rt_id', $user->rt_id);
+            })
+            ->where('scope', 'TENANT')
+            ->where('role_code', '!=', 'SUPER_ADMIN')
+            ->pluck('role_code')
+            ->implode(',');
 
         $validated = $request->validate([
             'name' => 'required|string',
