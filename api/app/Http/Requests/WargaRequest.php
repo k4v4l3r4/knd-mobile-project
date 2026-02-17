@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 
 class WargaRequest extends FormRequest
@@ -52,6 +53,11 @@ class WargaRequest extends FormRequest
         $isCreate = $this->isMethod('post');
         $requiredOnCreate = $isCreate ? 'required' : 'nullable';
 
+        $provinceExistsRule = Schema::hasTable('indonesia_provinces') ? 'exists:indonesia_provinces,code' : 'nullable';
+        $cityExistsRule = Schema::hasTable('indonesia_cities') ? 'exists:indonesia_cities,code' : 'nullable';
+        $districtExistsRule = Schema::hasTable('indonesia_districts') ? 'exists:indonesia_districts,code' : 'nullable';
+        $villageExistsRule = Schema::hasTable('indonesia_villages') ? 'exists:indonesia_villages,code' : 'nullable';
+
         return [
             'name' => ['required', 'string', 'max:255'],
             'nik' => [
@@ -91,10 +97,10 @@ class WargaRequest extends FormRequest
             'status_in_family' => ['nullable', 'in:KEPALA_KELUARGA,ISTRI,ANAK,FAMILI_LAIN'],
             'ktp_image' => ['nullable', 'image', 'max:2048'], // Max 2MB
             'kk_image' => ['nullable', 'image', 'max:2048'], // Max 2MB
-            'province_code' => [$requiredOnCreate, 'string', 'size:2', 'exists:indonesia_provinces,code'],
-            'city_code' => [$requiredOnCreate, 'string', 'size:4', 'exists:indonesia_cities,code'],
-            'district_code' => [$requiredOnCreate, 'string', 'exists:indonesia_districts,code'],
-            'village_code' => [$requiredOnCreate, 'string', 'size:10', 'exists:indonesia_villages,code'],
+            'province_code' => [$requiredOnCreate, 'string', 'size:2', $provinceExistsRule],
+            'city_code' => [$requiredOnCreate, 'string', 'size:4', $cityExistsRule],
+            'district_code' => [$requiredOnCreate, 'string', $districtExistsRule],
+            'village_code' => [$requiredOnCreate, 'string', 'size:10', $villageExistsRule],
         ];
     }
 
