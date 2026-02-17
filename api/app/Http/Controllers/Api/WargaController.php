@@ -229,7 +229,16 @@ class WargaController extends Controller
     public function export(Request $request)
     {
         $fileName = 'data_warga_' . date('Y-m-d_H-i-s') . '.csv';
-        $wargas = User::where('role', 'WARGA')->get();
+
+        $admin = $request->user();
+
+        $query = User::whereIn('role', ['WARGA', 'WARGA_TETAP', 'WARGA_KOST']);
+
+        if ($admin && $admin->rt_id) {
+            $query->where('rt_id', $admin->rt_id);
+        }
+
+        $wargas = $query->orderBy('name')->get();
 
         $headers = [
             "Content-type"        => "text/csv",
@@ -277,7 +286,12 @@ class WargaController extends Controller
                     $warga->marital_status,
                     $warga->occupation,
                     $warga->status_in_family,
-                    $warga->address
+                    $warga->address,
+                    $warga->address_ktp,
+                    $warga->block,
+                    $warga->address_rt,
+                    $warga->address_rw,
+                    $warga->postal_code,
                 ];
 
                 fputcsv($file, $row);
