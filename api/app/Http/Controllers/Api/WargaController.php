@@ -19,8 +19,11 @@ class WargaController extends Controller
     {
         $user = $request->user();
 
-        // Include all types of warga
-        $query = User::whereIn('role', ['WARGA', 'WARGA_TETAP', 'WARGA_KOST']);
+        // Include warga + admin RT sebagai bagian dari data warga
+        $query = User::where(function ($q) {
+            $q->whereIn('role', ['WARGA', 'WARGA_TETAP', 'WARGA_KOST'])
+              ->orWhereIn('role', ['ADMIN_RT', 'RT']);
+        });
 
         // Filter by user's RT
         if ($user && $user->rt_id) {
