@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { 
@@ -15,7 +15,7 @@ import {
 import { toast, Toaster } from 'react-hot-toast';
 import api from '@/lib/api';
 
-export default function VerifyOtpPage() {
+function VerifyOtpContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const phone = searchParams.get('phone');
@@ -377,5 +377,17 @@ export default function VerifyOtpPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function VerifyOtpPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#0f172a]">
+                <p className="text-slate-500 dark:text-slate-400 text-sm">Memuat halaman verifikasi kode...</p>
+            </div>
+        }>
+            <VerifyOtpContent />
+        </Suspense>
     );
 }
