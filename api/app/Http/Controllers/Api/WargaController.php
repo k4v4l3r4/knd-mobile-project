@@ -101,22 +101,17 @@ class WargaController extends Controller
     {
         $validated = $request->validated();
 
-        $optionalColumns = [
-            'province_code',
-            'city_code',
-            'district_code',
-            'village_code',
-        ];
-
-        foreach ($optionalColumns as $column) {
-            if (array_key_exists($column, $validated) && !Schema::hasColumn('users', $column)) {
-                unset($validated[$column]);
-            }
-        }
-
         // Set default values
         $validated['password'] = Hash::make('12345678');
         $validated['role'] = 'WARGA';
+
+        $validated = array_filter(
+            $validated,
+            function ($value, $key) {
+                return Schema::hasColumn('users', $key);
+            },
+            ARRAY_FILTER_USE_BOTH
+        );
 
         // Handle File Uploads
         if ($request->hasFile('ktp_image')) {
