@@ -120,12 +120,17 @@ class TenantFeatureGate
         foreach ($restrictedCategories as $category) {
             switch ($category) {
                 case 'export':
-                    // Block export routes
+                    // Block export routes, kecuali export Data Warga
                     // Route names often contain 'export' or path contains 'export', 'pdf'
-                    if (str_contains($routeName, 'export') || 
-                        str_contains($path, '/export') || 
-                        str_contains($path, '/pdf') || 
-                        str_contains($path, 'reports/dues')) {
+                    if (
+                        !(str_contains($routeName, 'warga') || str_contains($path, 'warga/export')) &&
+                        (
+                            str_contains($routeName, 'export') || 
+                            str_contains($path, '/export') || 
+                            str_contains($path, '/pdf') || 
+                            str_contains($path, 'reports/dues')
+                        )
+                    ) {
                         return true;
                     }
                     break;

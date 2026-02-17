@@ -577,8 +577,8 @@ export default function WargaPage() {
   };
 
   const handleExport = async () => {
-    if (isDemo || isTrial) {
-        toast.error('Fitur Export tidak tersedia dalam mode Trial/Demo');
+    if (isDemo) {
+        toast.error('Mode Demo: Export data tidak diizinkan');
         return;
     }
     if (isExpired) {
