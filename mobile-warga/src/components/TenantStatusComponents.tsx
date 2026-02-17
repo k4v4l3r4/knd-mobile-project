@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Linking } from 'react-native';
 import { useTenant } from '../context/TenantContext';
 import { useTheme } from '../context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
+import { BASE_URL } from '../services/api';
 
 export const TrialBanner = () => {
   const { isTrial, daysRemaining, isExpired } = useTenant();
@@ -13,6 +14,12 @@ export const TrialBanner = () => {
   const isCritical = daysRemaining <= 2;
   const backgroundColor = isCritical ? colors.danger : colors.primary;
 
+  const handleUpgrade = () => {
+    const baseUrl = BASE_URL.replace(/\/api$/, '');
+    const url = `${baseUrl}/dashboard/billing/subscribe`;
+    Linking.openURL(url).catch(() => {});
+  };
+
   return (
     <View style={[styles.banner, { backgroundColor }]}>
       <Text style={styles.bannerText}>
@@ -20,7 +27,7 @@ export const TrialBanner = () => {
           ? `Trial hampir berakhir (${Math.ceil(daysRemaining)} hari). Segera lakukan pembayaran.` 
           : `Masa trial tersisa ${Math.ceil(daysRemaining)} hari`}
       </Text>
-      <TouchableOpacity style={styles.upgradeButton}>
+      <TouchableOpacity style={styles.upgradeButton} onPress={handleUpgrade}>
         <Text style={[styles.upgradeText, { color: backgroundColor }]}>Upgrade</Text>
       </TouchableOpacity>
     </View>
@@ -33,6 +40,12 @@ export const ExpiredOverlay = ({ onLogout }: { onLogout: () => void }) => {
 
   if (!isExpired) return null;
 
+  const handleContinuePayment = () => {
+    const baseUrl = BASE_URL.replace(/\/api$/, '');
+    const url = `${baseUrl}/dashboard/billing/subscribe`;
+    Linking.openURL(url).catch(() => {});
+  };
+
   return (
     <View style={[styles.overlay, { backgroundColor: colors.background }]}>
       <Ionicons name="lock-closed-outline" size={64} color={colors.danger} />
@@ -41,7 +54,7 @@ export const ExpiredOverlay = ({ onLogout }: { onLogout: () => void }) => {
         Akses sistem dikunci hingga pembayaran dilakukan.
       </Text>
       
-      <TouchableOpacity style={[styles.button, { backgroundColor: colors.primary }]}>
+      <TouchableOpacity style={[styles.button, { backgroundColor: colors.primary }]} onPress={handleContinuePayment}>
         <Text style={styles.buttonText}>Lanjutkan Pembayaran</Text>
       </TouchableOpacity>
 
