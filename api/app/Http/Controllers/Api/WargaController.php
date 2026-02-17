@@ -215,6 +215,18 @@ class WargaController extends Controller
         $successCount = 0;
         $errors = [];
 
+        $admin = $request->user();
+        $rtId = $admin->rt_id;
+        $rwId = $admin->rw_id;
+        $tenantId = $admin->tenant_id ?? null;
+
+        if (!$rtId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Import hanya dapat dilakukan oleh Admin RT yang terhubung ke RT tertentu.',
+            ], 422);
+        }
+
         foreach ($data as $index => $row) {
             if (count($row) < 4) continue; // Skip empty/invalid rows
 
@@ -244,7 +256,9 @@ class WargaController extends Controller
                     'address_rw' => $row[15] ?? null,
                     'postal_code' => $row[16] ?? null,
                     'role' => 'WARGA',
-                    'rt_id' => $request->user()->rt_id ?? 1, // Default to admin's RT or 1
+                    'rt_id' => $rtId,
+                    'rw_id' => $rwId,
+                    'tenant_id' => $tenantId,
                 ];
 
                 if ($user) {
