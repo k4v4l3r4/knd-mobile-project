@@ -8,11 +8,16 @@ import { useRouter } from 'next/navigation';
 
 export const TrialBanner = () => {
   const { isTrial, daysRemaining, isExpired } = useTenant();
+  const router = useRouter();
   
   if (!isTrial || isExpired) return null;
 
   const isCritical = daysRemaining <= 2;
   const bgColor = isCritical ? 'bg-rose-500' : 'bg-emerald-600';
+
+  const handleUpgradeClick = () => {
+    router.push('/dashboard/billing/subscribe');
+  };
 
   return (
     <div className={`${bgColor} text-white px-4 py-3 shadow-md relative z-50 print:hidden`}>
@@ -25,7 +30,10 @@ export const TrialBanner = () => {
               : `Mode Trial: Masa aktif tersisa ${Math.ceil(daysRemaining)} hari.`}
           </span>
         </div>
-        <button className="bg-white/20 hover:bg-white/30 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap">
+        <button
+          onClick={handleUpgradeClick}
+          className="bg-white/20 hover:bg-white/30 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap"
+        >
           Upgrade Sekarang
         </button>
       </div>
