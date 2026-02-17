@@ -639,17 +639,6 @@ export default function HomeScreen({ onLogout, onNavigate }: HomeScreenProps) {
   };
 
   const checkRestriction = (action: () => void, type: 'write' | 'billing') => {
-    // MODIFIED: Allow access in Demo mode (Read Only enforced by backend)
-    // if (isDemo && type === 'write') {
-    //   Alert.alert('Mode Demo', 'Fitur ini tidak tersedia dalam mode demo.');
-    //   return;
-    // }
-    
-    // Keep restriction for TRIAL on billing only if needed, but allow for DEMO
-    if (isTrial && type === 'billing' && !isDemo) {
-      Alert.alert(t('common.featureLimited'), t('bills.trialPayment'));
-      return;
-    }
     action();
   };
 

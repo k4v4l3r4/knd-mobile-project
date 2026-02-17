@@ -205,8 +205,24 @@ class WargaController extends Controller
 
         $file = $request->file('file');
         $path = $file->getRealPath();
-        
-        $data = array_map('str_getcsv', file($path));
+
+        $rows = file($path);
+        if ($rows === false || count($rows) === 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'File CSV kosong atau tidak dapat dibaca',
+            ], 422);
+        }
+
+        $firstLine = $rows[0];
+        $commaCount = substr_count($firstLine, ',');
+        $semicolonCount = substr_count($firstLine, ';');
+        $delimiter = $semicolonCount > $commaCount ? ';' : ',';
+
+        $data = array_map(function ($line) use ($delimiter) {
+            return str_getcsv($line, $delimiter);
+        }, $rows);
+
         $header = array_shift($data); // Remove header row
 
         // Expected columns mapping (index based on Export columns)
@@ -275,10 +291,18 @@ class WargaController extends Controller
             }
         }
 
+        if ($successCount === 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak ada baris yang berhasil diimport. Periksa kembali format kolom dan pemisah (gunakan koma atau titik koma).',
+                'errors' => $errors,
+            ], 422);
+        }
+
         return response()->json([
             'success' => true,
-            'message' => "Import processed: $successCount items success.",
-            'errors' => $errors
+            'message' => "Import berhasil: $successCount baris.",
+            'errors' => $errors,
         ]);
     }
 

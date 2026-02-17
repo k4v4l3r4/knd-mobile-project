@@ -76,10 +76,7 @@ class TenantFeatureGate
         // STATUS 3: TRIAL (status = TRIAL)
         // =========================================================================
         if ($status === 'TRIAL') {
-            // Check if trial actually expired by date (double check)
             if ($tenant->trial_end_at && now()->greaterThan($tenant->trial_end_at)) {
-                // Should ideally be handled by a scheduled job to set status=EXPIRED, 
-                // but we treat as EXPIRED here just in case.
                  if (!$request->isMethod('get')) {
                     return response()->json([
                         'message' => 'Masa trial telah berakhir. Silakan upgrade ke Active.',
@@ -87,16 +84,6 @@ class TenantFeatureGate
                         'tenant_status' => 'EXPIRED'
                     ], 402);
                 }
-            }
-
-            // Rule 3.1: Block Specific Features
-            // Billing Warga, Export
-            if ($this->isRestrictedFeature($request, ['billing_warga', 'export'])) {
-                 return response()->json([
-                    'message' => 'Fitur ini tidak tersedia di mode TRIAL.',
-                    'code' => 'TRIAL_RESTRICTED_FEATURE',
-                    'tenant_status' => 'TRIAL'
-                ], 403);
             }
         }
 

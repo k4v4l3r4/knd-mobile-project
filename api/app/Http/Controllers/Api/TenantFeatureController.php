@@ -37,10 +37,10 @@ class TenantFeatureController extends Controller
         if ($type === 'DEMO') {
             $blockedFeatures = ['export', 'billing', 'integration', 'invite', 'write_operations'];
         } elseif ($status === 'TRIAL') {
-            $blockedFeatures = ['billing_warga', 'export'];
             if ($remainingTrialDays <= 0) {
-                 // Actually expired
                  $blockedFeatures = ['all_write_operations'];
+            } else {
+                $blockedFeatures = [];
             }
         } elseif ($status === 'EXPIRED') {
             $blockedFeatures = ['all_write_operations'];

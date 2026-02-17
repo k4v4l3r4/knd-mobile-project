@@ -197,8 +197,8 @@ export default function KeuanganPage() {
   };
 
   const handleDownloadReport = async () => {
-    if (isDemo || isTrial || isExpired) {
-        toast.error("Fitur Export Laporan tidak tersedia dalam mode Trial/Demo.");
+    if (isDemo || isExpired) {
+        toast.error("Fitur Export Laporan tidak tersedia dalam mode Demo atau saat langganan berakhir.");
         return;
     }
 

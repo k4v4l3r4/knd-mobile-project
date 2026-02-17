@@ -122,10 +122,6 @@ export default function BillsScreen({ initialTab = 'bills', onNavigate }: { init
       Alert.alert(t('common.demoMode'), t('bills.demoPayment'));
       return;
     }
-    if (isTrial) {
-      Alert.alert(t('common.featureLimited'), t('bills.trialPayment'));
-      return;
-    }
     if (isExpired) {
       Alert.alert(t('report.accessLimited'), t('bills.expiredPayment'));
       return;
