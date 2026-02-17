@@ -143,13 +143,12 @@ class WargaController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            $message = app()->environment('local', 'development')
-                ? $e->getMessage()
-                : 'Terjadi kesalahan pada server saat menyimpan data warga.';
+            $baseMessage = 'Terjadi kesalahan pada server saat menyimpan data warga.';
+            $detail = $e->getMessage();
 
             return response()->json([
                 'success' => false,
-                'message' => $message,
+                'message' => $baseMessage . ' Detail: ' . $detail,
             ], 500);
         }
     }
