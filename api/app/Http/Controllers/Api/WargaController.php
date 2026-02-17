@@ -6,11 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\WargaRequest;
 use App\Models\User;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 class WargaController extends Controller
 {
@@ -128,14 +129,29 @@ class WargaController extends Controller
         unset($validated['ktp_image']);
         unset($validated['kk_image']);
 
-        $warga = User::create($validated);
-        $warga->makeVisible('nik');
+        try {
+            $warga = User::create($validated);
+            $warga->makeVisible('nik');
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Data warga berhasil ditambahkan',
-            'data' => $warga
-        ], 201);
+            return response()->json([
+                'success' => true,
+                'message' => 'Data warga berhasil ditambahkan',
+                'data' => $warga
+            ], 201);
+        } catch (\Throwable $e) {
+            Log::error('Failed to create warga user', [
+                'error' => $e->getMessage(),
+            ]);
+
+            $message = app()->environment('local', 'development')
+                ? $e->getMessage()
+                : 'Terjadi kesalahan pada server saat menyimpan data warga.';
+
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+            ], 500);
+        }
     }
 
     /**

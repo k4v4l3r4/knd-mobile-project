@@ -77,7 +77,6 @@ export default function WargaPage() {
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
 
-  // Form states
   const [formData, setFormData] = useState({
     name: '',
     nik: '',
@@ -102,6 +101,7 @@ export default function WargaPage() {
     district_code: '',
     village_code: '',
   });
+  const [birthDateInput, setBirthDateInput] = useState('');
   
   const [addressSame, setAddressSame] = useState(true);
   const [ktpFile, setKtpFile] = useState<File | null>(null);
@@ -404,6 +404,7 @@ export default function WargaPage() {
     
     if (mode === 'edit' && warga) {
       setCurrentWarga(warga);
+      const isoBirthDate = warga.date_of_birth ? new Date(warga.date_of_birth).toISOString().split('T')[0] : '';
       setFormData({
         name: warga.name,
         nik: warga.nik, 
@@ -418,7 +419,7 @@ export default function WargaPage() {
         postal_code: warga.postal_code || '',
         gender: warga.gender || 'L',
         place_of_birth: warga.place_of_birth || '',
-        date_of_birth: warga.date_of_birth ? new Date(warga.date_of_birth).toISOString().split('T')[0] : '',
+        date_of_birth: isoBirthDate,
         religion: warga.religion || 'ISLAM',
         marital_status: warga.marital_status || 'BELUM_KAWIN',
         occupation: warga.occupation || '',
@@ -428,6 +429,12 @@ export default function WargaPage() {
         district_code: warga.district_code || '',
         village_code: warga.village_code || '',
       });
+      if (isoBirthDate) {
+        const [y, m, d] = isoBirthDate.split('-');
+        setBirthDateInput(`${d.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`);
+      } else {
+        setBirthDateInput('');
+      }
       
       // Load dependent dropdowns if editing
       if (warga.province_code) fetchCities(warga.province_code);
@@ -465,6 +472,7 @@ export default function WargaPage() {
         district_code: '',
         village_code: '',
       });
+      setBirthDateInput('');
       setAddressSame(true);
       setCities({});
       setDistricts({});
@@ -483,6 +491,11 @@ export default function WargaPage() {
     if (isExpired) {
         toast.error('Akses Terbatas: Silakan perpanjang langganan');
         return;
+    }
+
+    if (!formData.date_of_birth) {
+      toast.error('Format Tanggal Lahir tidak valid. Gunakan dd/mm/yyyy.');
+      return;
     }
 
     setSaving(true);
@@ -535,10 +548,43 @@ export default function WargaPage() {
       fetchWargas(search);
     } catch (err: unknown) {
       console.error('Error saving warga:', err);
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Gagal menyimpan data warga';
-      toast.error(msg);
+      type BackendErrors = Record<string, string[]>;
+      interface ErrorResponseData {
+        message?: string;
+        errors?: BackendErrors;
+      }
+      interface AxiosErrorLike {
+        response?: {
+          data?: ErrorResponseData;
+          status?: number;
+        };
+      }
+
+      let message = 'Gagal menyimpan data warga.';
+      const error = err as AxiosErrorLike;
+      const data = error.response?.data;
+
+      if (data) {
+        if (data.message) {
+          message = data.message;
+        } else if (data.errors) {
+          const collected: string[] = [];
+          Object.values(data.errors).forEach((arr) => {
+            arr.forEach((m) => {
+              if (collected.indexOf(m) === -1) {
+                collected.push(m);
+              }
+            });
+          });
+          if (collected.length) {
+            message = collected.join('\n');
+          }
+        }
+      } else if (typeof error.response?.status === 'number') {
+        message = `Server Error: ${error.response.status}`;
+      }
+
+      toast.error(message);
     } finally {
       setSaving(false);
     }
@@ -1034,12 +1080,32 @@ export default function WargaPage() {
                                 Tanggal Lahir <span className="text-rose-500">*</span>
                             </label>
                             <input
-                                type="date"
-                                lang="id-ID"
-                                max={new Date().toISOString().split('T')[0]}
+                                type="text"
+                                inputMode="numeric"
+                                placeholder="dd/mm/yyyy"
                                 required
-                                value={formData.date_of_birth}
-                                onChange={(e) => setFormData({...formData, date_of_birth: e.target.value})}
+                                value={birthDateInput}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    setBirthDateInput(value);
+                                    const parts = value.split(/[\/\-]/);
+                                    if (parts.length === 3) {
+                                        let [d, m, y] = parts;
+                                        d = d.padStart(2, '0');
+                                        m = m.padStart(2, '0');
+                                        if (y.length === 4) {
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                date_of_birth: `${y}-${m}-${d}`,
+                                            }));
+                                            return;
+                                        }
+                                    }
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        date_of_birth: '',
+                                    }));
+                                }}
                                 className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all dark:text-white"
                             />
                         </div>
