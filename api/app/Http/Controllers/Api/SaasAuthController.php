@@ -135,13 +135,20 @@ class SaasAuthController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string', // User Name
+            'name' => 'required|string',
             'phone' => 'required|string|unique:users,phone',
+            'email' => 'required|email|unique:users,email',
             'password' => 'required|min:6',
             'level' => 'required|in:RT,RW',
             'rt_number' => 'required_if:level,RT',
             'rw_number' => 'required',
             'rt_name' => 'nullable|string',
+            'address' => 'required_if:level,RT|string',
+            'province' => 'required_if:level,RT|string',
+            'city' => 'required_if:level,RT|string',
+            'district' => 'required_if:level,RT|string',
+            'subdistrict' => 'required_if:level,RT|string',
+            'postal_code' => 'required_if:level,RT|string',
             // 'otp' => 'required', // Optional depending on strictness. Removing for streamlined prompt task unless requested.
         ]);
 
@@ -200,6 +207,12 @@ class SaasAuthController extends Controller
                     'rw_id' => $rw->id,
                     'rt_number' => $rtNumber,
                     'rt_name' => $request->rt_name ?? "RT {$rtNumber}",
+                    'address' => $request->address,
+                    'province' => $request->province,
+                    'city' => $request->city,
+                    'district' => $request->district,
+                    'subdistrict' => $request->subdistrict,
+                    'postal_code' => $request->postal_code,
                     'kas_balance' => 0,
                     'invite_code' => strtoupper(Str::random(6)),
                 ]);
@@ -226,7 +239,7 @@ class SaasAuthController extends Controller
                 'rw_id' => $rw->id,
                 'role_id' => $roleId,
                 'name' => $request->name,
-                'email' => null, // Optional
+                'email' => $request->email,
                 'phone' => $request->phone,
                 'password' => Hash::make($request->password),
                 'role' => $role,

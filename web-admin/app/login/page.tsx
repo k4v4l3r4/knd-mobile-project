@@ -273,9 +273,9 @@ function LoginForm() {
                     <Image 
                         src="/knd-logo.png" 
                         alt="RT Online Logo" 
-                        width={240} 
-                        height={80} 
-                        className="h-16 w-auto object-contain" 
+                        width={280} 
+                        height={90} 
+                        className="h-20 w-auto object-contain" 
                     />
                     <p className="mt-4 text-sm font-medium tracking-[0.2em] text-emerald-100/80 uppercase">
                         Kawasan Nyaman Digital
@@ -353,23 +353,23 @@ function LoginForm() {
                     
                     {/* Header Section */}
                     <div className="text-center lg:text-left space-y-2">
-                         {/* Logo for Mobile only */}
-                         <div className="lg:hidden flex justify-center mb-6">
+                        {/* Logo + Tagline for Mobile only */}
+                        <div className="lg:hidden flex flex-col items-center mb-6">
                             <Image 
                                 src="/knd-logo.png" 
                                 alt="Logo" 
-                                width={120} 
-                                height={40} 
-                                className="h-12 w-auto object-contain"
+                                width={140} 
+                                height={46} 
+                                className="h-14 w-auto object-contain"
                             />
-                         </div>
+                            <p className="mt-2 text-slate-500 dark:text-slate-400 text-xs font-medium tracking-[0.18em] uppercase">
+                                Kawasan Nyaman Digital
+                            </p>
+                        </div>
 
                         <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
                             Login Admin
                         </h2>
-                        <p className="text-slate-500 dark:text-slate-400 text-sm font-medium tracking-[0.15em] uppercase">
-                            Kawasan Nyaman Digital
-                        </p>
                     </div>
 
                     {/* Form Section */}

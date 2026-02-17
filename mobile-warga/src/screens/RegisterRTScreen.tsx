@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -10,7 +10,8 @@ import {
   ScrollView,
   Image,
   TouchableOpacity,
-  ActivityIndicator
+  ActivityIndicator,
+  Modal
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { Ionicons, MaterialIcons, Feather } from '@expo/vector-icons';
@@ -28,6 +29,13 @@ export default function RegisterRTScreen({ onSuccess }: RegisterRTScreenProps) {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
+    email: '',
+    address: '',
+    province: '',
+    city: '',
+    district: '',
+    subdistrict: '',
+    postalCode: '',
     password: '',
     confirmPassword: '',
     rtNumber: '',
@@ -35,9 +43,176 @@ export default function RegisterRTScreen({ onSuccess }: RegisterRTScreenProps) {
     rtName: ''
   });
 
+  const [provinces, setProvinces] = useState<Record<string, string>>({});
+  const [cities, setCities] = useState<Record<string, string>>({});
+  const [districts, setDistricts] = useState<Record<string, string>>({});
+  const [villages, setVillages] = useState<Record<string, string>>({});
+
+  const [regionCodes, setRegionCodes] = useState({
+    province: '',
+    city: '',
+    district: '',
+    subdistrict: '',
+  });
+
+  const [regionModalVisible, setRegionModalVisible] = useState(false);
+  const [regionModalType, setRegionModalType] = useState<'province' | 'city' | 'district' | 'subdistrict' | null>(null);
+  const [regionSearch, setRegionSearch] = useState('');
+
+  useEffect(() => {
+    const fetchProvinces = async () => {
+      try {
+        const response = await api.get('/regions/provinces');
+        if (response.data.success) {
+          setProvinces(response.data.data);
+        }
+      } catch (error) {
+        console.log('Gagal memuat provinsi:', error);
+      }
+    };
+
+    fetchProvinces();
+  }, []);
+
+  const fetchCities = async (provinceCode: string) => {
+    try {
+      if (!provinceCode) return;
+      const response = await api.get(`/regions/cities/${provinceCode}`);
+      if (response.data.success) {
+        setCities(response.data.data);
+      }
+    } catch (error) {
+      console.log('Gagal memuat kota/kabupaten:', error);
+    }
+  };
+
+  const fetchDistricts = async (cityCode: string) => {
+    try {
+      if (!cityCode) return;
+      const response = await api.get(`/regions/districts/${cityCode}`);
+      if (response.data.success) {
+        setDistricts(response.data.data);
+      }
+    } catch (error) {
+      console.log('Gagal memuat kecamatan:', error);
+    }
+  };
+
+  const fetchVillages = async (districtCode: string) => {
+    try {
+      if (!districtCode) return;
+      const response = await api.get(`/regions/villages/${districtCode}`);
+      if (response.data.success) {
+        setVillages(response.data.data);
+      }
+    } catch (error) {
+      console.log('Gagal memuat kelurahan:', error);
+    }
+  };
+
+  const openRegionModal = (type: 'province' | 'city' | 'district' | 'subdistrict') => {
+    if (type === 'city' && !regionCodes.province) {
+      Alert.alert('Info', 'Silakan pilih provinsi terlebih dahulu');
+      return;
+    }
+    if (type === 'district' && !regionCodes.city) {
+      Alert.alert('Info', 'Silakan pilih kota/kabupaten terlebih dahulu');
+      return;
+    }
+    if (type === 'subdistrict' && !regionCodes.district) {
+      Alert.alert('Info', 'Silakan pilih kecamatan terlebih dahulu');
+      return;
+    }
+    setRegionModalType(type);
+    setRegionSearch('');
+    setRegionModalVisible(true);
+  };
+
+  const handleRegionSelect = (code: string) => {
+    if (!regionModalType) return;
+
+    if (regionModalType === 'province') {
+      const name = provinces[code] || '';
+      setFormData(prev => ({
+        ...prev,
+        province: name,
+        city: '',
+        district: '',
+        subdistrict: '',
+      }));
+      setRegionCodes({
+        province: code,
+        city: '',
+        district: '',
+        subdistrict: '',
+      });
+      setCities({});
+      setDistricts({});
+      setVillages({});
+      fetchCities(code);
+    } else if (regionModalType === 'city') {
+      const name = cities[code] || '';
+      setFormData(prev => ({
+        ...prev,
+        city: name,
+        district: '',
+        subdistrict: '',
+      }));
+      setRegionCodes(prev => ({
+        ...prev,
+        city: code,
+        district: '',
+        subdistrict: '',
+      }));
+      setDistricts({});
+      setVillages({});
+      fetchDistricts(code);
+    } else if (regionModalType === 'district') {
+      const name = districts[code] || '';
+      setFormData(prev => ({
+        ...prev,
+        district: name,
+        subdistrict: '',
+      }));
+      setRegionCodes(prev => ({
+        ...prev,
+        district: code,
+        subdistrict: '',
+      }));
+      setVillages({});
+      fetchVillages(code);
+    } else if (regionModalType === 'subdistrict') {
+      const name = villages[code] || '';
+      setFormData(prev => ({
+        ...prev,
+        subdistrict: name,
+      }));
+      setRegionCodes(prev => ({
+        ...prev,
+        subdistrict: code,
+      }));
+    }
+
+    setRegionModalVisible(false);
+  };
+
+  const getRegionOptions = () => {
+    let data: Record<string, string> = {};
+    if (regionModalType === 'province') data = provinces;
+    if (regionModalType === 'city') data = cities;
+    if (regionModalType === 'district') data = districts;
+    if (regionModalType === 'subdistrict') data = villages;
+
+    const entries = Object.entries(data);
+    if (!regionSearch.trim()) return entries;
+
+    const keyword = regionSearch.toLowerCase();
+    return entries.filter(([, name]) => name.toLowerCase().includes(keyword));
+  };
+
   const handleRegister = async () => {
-    if (!formData.name || !formData.phone || !formData.password || !formData.rtNumber || !formData.rwNumber) {
-      Alert.alert('Error', 'Mohon lengkapi data wajib (Nama, HP, Password, No RT, No RW)');
+    if (!formData.name || !formData.phone || !formData.email || !formData.password || !formData.rtNumber || !formData.rwNumber || !formData.address || !formData.province || !formData.city || !formData.district || !formData.subdistrict || !formData.postalCode) {
+      Alert.alert('Error', 'Mohon lengkapi semua data wajib (Nama, HP, Email, Password, No RT/RW, Alamat & Wilayah)');
       return;
     }
 
@@ -51,6 +226,13 @@ export default function RegisterRTScreen({ onSuccess }: RegisterRTScreenProps) {
       const response = await api.post('/register', {
         name: formData.name,
         phone: formData.phone,
+        email: formData.email,
+        address: formData.address,
+        province: formData.province,
+        city: formData.city,
+        district: formData.district,
+        subdistrict: formData.subdistrict,
+        postal_code: formData.postalCode,
         password: formData.password,
         rt_number: formData.rtNumber,
         rw_number: formData.rwNumber,
@@ -133,6 +315,19 @@ export default function RegisterRTScreen({ onSuccess }: RegisterRTScreenProps) {
             </View>
 
             <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Email Resmi RT</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
+                placeholder="contoh: adminrt@example.com"
+                placeholderTextColor={colors.textSecondary}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={formData.email}
+                onChangeText={(text) => setFormData({ ...formData, email: text })}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>Password</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
@@ -194,6 +389,149 @@ export default function RegisterRTScreen({ onSuccess }: RegisterRTScreenProps) {
                 onChangeText={(text) => setFormData({...formData, rtName: text})}
               />
             </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Alamat Lengkap</Text>
+              <TextInput
+                style={[styles.input, styles.textArea, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
+                placeholder="Alamat sekretariat / wilayah RT"
+                placeholderTextColor={colors.textSecondary}
+                multiline
+                numberOfLines={3}
+                value={formData.address}
+                onChangeText={(text) => setFormData({ ...formData, address: text })}
+              />
+            </View>
+
+            <View style={styles.row}>
+              <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>Provinsi</Text>
+                <TouchableOpacity
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    },
+                  ]}
+                  onPress={() => openRegionModal('province')}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={{
+                      color: formData.province ? colors.text : colors.textSecondary,
+                      fontSize: 16,
+                    }}
+                    numberOfLines={1}
+                  >
+                    {formData.province || 'Pilih Provinsi'}
+                  </Text>
+                  <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+              <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>Kota/Kabupaten</Text>
+                <TouchableOpacity
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    },
+                  ]}
+                  onPress={() => openRegionModal('city')}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={{
+                      color: formData.city ? colors.text : colors.textSecondary,
+                      fontSize: 16,
+                    }}
+                    numberOfLines={1}
+                  >
+                    {formData.city || 'Pilih Kota/Kabupaten'}
+                  </Text>
+                  <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.row}>
+              <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>Kecamatan</Text>
+                <TouchableOpacity
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    },
+                  ]}
+                  onPress={() => openRegionModal('district')}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={{
+                      color: formData.district ? colors.text : colors.textSecondary,
+                      fontSize: 16,
+                    }}
+                    numberOfLines={1}
+                  >
+                    {formData.district || 'Pilih Kecamatan'}
+                  </Text>
+                  <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+              <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>Kelurahan</Text>
+                <TouchableOpacity
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    },
+                  ]}
+                  onPress={() => openRegionModal('subdistrict')}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={{
+                      color: formData.subdistrict ? colors.text : colors.textSecondary,
+                      fontSize: 16,
+                    }}
+                    numberOfLines={1}
+                  >
+                    {formData.subdistrict || 'Pilih Kelurahan'}
+                  </Text>
+                  <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Kode Pos</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
+                placeholder="contoh: 12820"
+                placeholderTextColor={colors.textSecondary}
+                keyboardType="numeric"
+                value={formData.postalCode}
+                onChangeText={(text) => setFormData({ ...formData, postalCode: text })}
+              />
+            </View>
           </View>
 
           <TouchableOpacity
@@ -210,6 +548,55 @@ export default function RegisterRTScreen({ onSuccess }: RegisterRTScreenProps) {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <Modal
+        visible={regionModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setRegionModalVisible(false)}
+      >
+        <View style={styles.regionModalOverlay}>
+          <View style={[styles.regionModalContent, { backgroundColor: colors.card }]}>
+            <View style={styles.regionModalHeader}>
+              <Text style={[styles.regionModalTitle, { color: colors.text }]}>
+                {regionModalType === 'province' && 'Pilih Provinsi'}
+                {regionModalType === 'city' && 'Pilih Kota/Kabupaten'}
+                {regionModalType === 'district' && 'Pilih Kecamatan'}
+                {regionModalType === 'subdistrict' && 'Pilih Kelurahan'}
+              </Text>
+              <TouchableOpacity onPress={() => setRegionModalVisible(false)}>
+                <Ionicons name="close" size={22} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <TextInput
+                style={[
+                  styles.input,
+                  styles.regionSearchInput,
+                  { backgroundColor: isDarkMode ? '#0f172a' : '#f1f5f9', borderColor: colors.border, color: colors.text },
+                ]}
+                placeholder="Cari nama wilayah..."
+                placeholderTextColor={colors.textSecondary}
+                value={regionSearch}
+                onChangeText={setRegionSearch}
+              />
+            </View>
+
+            <ScrollView style={{ maxHeight: 320 }}>
+              {getRegionOptions().map(([code, name]) => (
+                <TouchableOpacity
+                  key={code}
+                  style={styles.regionOptionItem}
+                  onPress={() => handleRegionSelect(code)}
+                >
+                  <Text style={{ color: colors.text }}>{name}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -257,6 +644,45 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 16,
     fontSize: 16,
+  },
+  textArea: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  row: {
+    flexDirection: 'row',
+  },
+  regionModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  regionModalContent: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 24,
+  },
+  regionModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  regionModalTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  regionSearchInput: {
+    height: 44,
+    borderRadius: 12,
+    fontSize: 14,
+  },
+  regionOptionItem: {
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#e2e8f0',
   },
   submitButton: {
     height: 56,

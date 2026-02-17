@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Cookies from 'js-cookie';
@@ -18,20 +18,38 @@ import {
 } from 'lucide-react';
 import api from '@/lib/api';
 import { useTenant } from '@/context/TenantContext';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 
 export default function RegisterPage() {
     const router = useRouter();
     const { refreshStatus } = useTenant();
     
-    // Form States
     const [formData, setFormData] = useState({
         name: '',
         phone: '',
+        email: '',
+        address: '',
+        province: '',
+        city: '',
+        district: '',
+        subdistrict: '',
+        postal_code: '',
         password: '',
         confirmPassword: '',
         rt_number: '',
         rw_number: '',
         rt_name: ''
+    });
+
+    const [provinces, setProvinces] = useState<Record<string, string>>({});
+    const [cities, setCities] = useState<Record<string, string>>({});
+    const [districts, setDistricts] = useState<Record<string, string>>({});
+    const [subdistricts, setSubdistricts] = useState<Record<string, string>>({});
+    const [regionCodes, setRegionCodes] = useState({
+        province: '',
+        city: '',
+        district: '',
+        subdistrict: ''
     });
 
     const [showPassword, setShowPassword] = useState(false);
@@ -47,6 +65,135 @@ export default function RegisterPage() {
         }
     };
 
+    const fetchProvinces = async () => {
+        try {
+            const res = await api.get('/regions/provinces');
+            if (res.data.success) {
+                setProvinces(res.data.data);
+            }
+        } catch (err) {
+            console.error('Failed to fetch provinces', err);
+        }
+    };
+
+    const fetchCities = async (provinceCode: string) => {
+        try {
+            if (!provinceCode) {
+                setCities({});
+                return;
+            }
+            const res = await api.get(`/regions/cities/${provinceCode}`);
+            if (res.data.success) {
+                setCities(res.data.data);
+            }
+        } catch (err) {
+            console.error('Failed to fetch cities', err);
+        }
+    };
+
+    const fetchDistricts = async (cityCode: string) => {
+        try {
+            if (!cityCode) {
+                setDistricts({});
+                return;
+            }
+            const res = await api.get(`/regions/districts/${cityCode}`);
+            if (res.data.success) {
+                setDistricts(res.data.data);
+            }
+        } catch (err) {
+            console.error('Failed to fetch districts', err);
+        }
+    };
+
+    const fetchSubdistricts = async (districtCode: string) => {
+        try {
+            if (!districtCode) {
+                setSubdistricts({});
+                return;
+            }
+            const res = await api.get(`/regions/villages/${districtCode}`);
+            if (res.data.success) {
+                setSubdistricts(res.data.data);
+            }
+        } catch (err) {
+            console.error('Failed to fetch subdistricts', err);
+        }
+    };
+
+    const handleRegionChange = (type: 'province' | 'city' | 'district' | 'subdistrict', code: string, label: string) => {
+        if (type === 'province') {
+            setFormData(prev => ({
+                ...prev,
+                province: label,
+                city: '',
+                district: '',
+                subdistrict: ''
+            }));
+            setRegionCodes({
+                province: code,
+                city: '',
+                district: '',
+                subdistrict: ''
+            });
+            setCities({});
+            setDistricts({});
+            setSubdistricts({});
+            if (code) {
+                fetchCities(code);
+            }
+        } else if (type === 'city') {
+            setFormData(prev => ({
+                ...prev,
+                city: label,
+                district: '',
+                subdistrict: ''
+            }));
+            setRegionCodes(prev => ({
+                ...prev,
+                city: code,
+                district: '',
+                subdistrict: ''
+            }));
+            setDistricts({});
+            setSubdistricts({});
+            if (code) {
+                fetchDistricts(code);
+            }
+        } else if (type === 'district') {
+            setFormData(prev => ({
+                ...prev,
+                district: label,
+                subdistrict: ''
+            }));
+            setRegionCodes(prev => ({
+                ...prev,
+                district: code,
+                subdistrict: ''
+            }));
+            setSubdistricts({});
+            if (code) {
+                fetchSubdistricts(code);
+            }
+        } else if (type === 'subdistrict') {
+            setFormData(prev => ({
+                ...prev,
+                subdistrict: label
+            }));
+            setRegionCodes(prev => ({
+                ...prev,
+                subdistrict: code
+            }));
+        }
+        if (errors[type]) {
+            setErrors(prev => ({ ...prev, [type]: '' }));
+        }
+    };
+
+    useEffect(() => {
+        fetchProvinces();
+    }, []);
+
     const validateForm = () => {
         const newErrors: { [key: string]: string } = {};
         let isValid = true;
@@ -58,6 +205,41 @@ export default function RegisterPage() {
 
         if (!formData.phone.trim()) {
             newErrors.phone = "Nomor WhatsApp wajib diisi";
+            isValid = false;
+        }
+
+        if (!formData.email.trim()) {
+            newErrors.email = "Email wajib diisi";
+            isValid = false;
+        }
+
+        if (!formData.address.trim()) {
+            newErrors.address = "Alamat lengkap wajib diisi";
+            isValid = false;
+        }
+
+        if (!formData.province.trim()) {
+            newErrors.province = "Provinsi wajib diisi";
+            isValid = false;
+        }
+
+        if (!formData.city.trim()) {
+            newErrors.city = "Kota/Kabupaten wajib diisi";
+            isValid = false;
+        }
+
+        if (!formData.district.trim()) {
+            newErrors.district = "Kecamatan wajib diisi";
+            isValid = false;
+        }
+
+        if (!formData.subdistrict.trim()) {
+            newErrors.subdistrict = "Kelurahan wajib diisi";
+            isValid = false;
+        }
+
+        if (!formData.postal_code.trim()) {
+            newErrors.postal_code = "Kode Pos wajib diisi";
             isValid = false;
         }
 
@@ -99,6 +281,13 @@ export default function RegisterPage() {
             const response = await api.post('/register', {
                 name: formData.name,
                 phone: formData.phone,
+                email: formData.email,
+                address: formData.address,
+                province: formData.province,
+                city: formData.city,
+                district: formData.district,
+                subdistrict: formData.subdistrict,
+                postal_code: formData.postal_code,
                 password: formData.password,
                 rt_number: formData.rt_number,
                 rw_number: formData.rw_number,
@@ -307,6 +496,102 @@ export default function RegisterPage() {
                                         className="block w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                                         placeholder="Contoh: RT Mawar Indah"
                                     />
+                                </div>
+                            </div>
+
+                            {/* Contact & Address */}
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 ml-1">Email Resmi RT</label>
+                                <div className="relative">
+                                    <input
+                                        name="email"
+                                        type="email"
+                                        value={formData.email}
+                                        onChange={handleChange}
+                                        className={`block w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border ${errors.email ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all`}
+                                        placeholder="contoh: adminrt@example.com"
+                                    />
+                                </div>
+                                {errors.email && <p className="text-red-500 text-xs ml-1">{errors.email}</p>}
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 ml-1">Alamat Lengkap</label>
+                                <div className="relative">
+                                    <textarea
+                                        name="address"
+                                        value={formData.address}
+                                        onChange={(e) => handleChange(e as any)}
+                                        className={`block w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border ${errors.address ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all min-h-[80px]`}
+                                        placeholder="Alamat sekretariat / wilayah RT"
+                                    />
+                                </div>
+                                {errors.address && <p className="text-red-500 text-xs ml-1">{errors.address}</p>}
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 ml-1">Kode Pos</label>
+                                <div className="relative">
+                                    <input
+                                        name="postal_code"
+                                        type="text"
+                                        value={formData.postal_code}
+                                        onChange={handleChange}
+                                        className={`block w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border ${errors.postal_code ? 'border-red-300' : 'border-slate-200 dark:border-slate-700'} rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all`}
+                                        placeholder="contoh: 12820"
+                                    />
+                                </div>
+                                {errors.postal_code && <p className="text-red-500 text-xs ml-1">{errors.postal_code}</p>}
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                                <div className="space-y-1.5">
+                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300 ml-1">Provinsi</label>
+                                    <SearchableSelect
+                                        value={regionCodes.province}
+                                        onChange={(value, label) => handleRegionChange('province', value, label)}
+                                        options={Object.entries(provinces).map(([code, name]) => ({ label: name, value: code }))}
+                                        placeholder="Pilih Provinsi"
+                                    />
+                                    {errors.province && <p className="text-red-500 text-xs ml-1">{errors.province}</p>}
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300 ml-1">Kota/Kabupaten</label>
+                                    <SearchableSelect
+                                        value={regionCodes.city}
+                                        onChange={(value, label) => handleRegionChange('city', value, label)}
+                                        options={Object.entries(cities).map(([code, name]) => ({ label: name, value: code }))}
+                                        placeholder="Pilih Kota/Kabupaten"
+                                        disabled={!regionCodes.province}
+                                    />
+                                    {errors.city && <p className="text-red-500 text-xs ml-1">{errors.city}</p>}
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300 ml-1">Kecamatan</label>
+                                    <SearchableSelect
+                                        value={regionCodes.district}
+                                        onChange={(value, label) => handleRegionChange('district', value, label)}
+                                        options={Object.entries(districts).map(([code, name]) => ({ label: name, value: code }))}
+                                        placeholder="Pilih Kecamatan"
+                                        disabled={!regionCodes.city}
+                                    />
+                                    {errors.district && <p className="text-red-500 text-xs ml-1">{errors.district}</p>}
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                <div className="space-y-1.5">
+                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300 ml-1">Kelurahan</label>
+                                    <SearchableSelect
+                                        value={regionCodes.subdistrict}
+                                        onChange={(value, label) => handleRegionChange('subdistrict', value, label)}
+                                        options={Object.entries(subdistricts).map(([code, name]) => ({ label: name, value: code }))}
+                                        placeholder="Pilih Kelurahan"
+                                        disabled={!regionCodes.district}
+                                    />
+                                    {errors.subdistrict && <p className="text-red-500 text-xs ml-1">{errors.subdistrict}</p>}
                                 </div>
                             </div>
 
