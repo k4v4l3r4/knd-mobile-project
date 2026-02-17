@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 class WargaController extends Controller
 {
@@ -35,13 +36,18 @@ class WargaController extends Controller
         }
 
         if ($request->has('search')) {
-            $search = $request->input('search');
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('nik', 'like', "%{$search}%")
-                  ->orWhere('kk_number', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%");
-            });
+            $search = trim((string) $request->input('search'));
+            if ($search !== '') {
+                $searchLower = Str::lower($search);
+                $like = "%{$searchLower}%";
+
+                $query->where(function ($q) use ($like) {
+                    $q->whereRaw('LOWER(name) LIKE ?', [$like])
+                      ->orWhereRaw('LOWER(nik) LIKE ?', [$like])
+                      ->orWhereRaw('LOWER(kk_number) LIKE ?', [$like])
+                      ->orWhereRaw('LOWER(phone) LIKE ?', [$like]);
+                });
+            }
         }
 
         $perPage = $request->input('per_page', 10);
