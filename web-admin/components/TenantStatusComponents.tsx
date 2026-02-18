@@ -92,6 +92,10 @@ export const ExpiredOverlay = () => {
 
   if (!isExpired) return null;
 
+  const handleGoToBilling = () => {
+    router.push('/dashboard/billing/subscribe');
+  };
+
   const handleLogout = () => {
     Cookies.remove('admin_token');
     Cookies.remove('admin_token', { path: '/' });
@@ -114,7 +118,10 @@ export const ExpiredOverlay = () => {
         </p>
 
         <div className="space-y-3">
-          <button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-emerald-600/20">
+          <button
+            onClick={handleGoToBilling}
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-emerald-600/20"
+          >
             Bayar Sekarang
           </button>
           
