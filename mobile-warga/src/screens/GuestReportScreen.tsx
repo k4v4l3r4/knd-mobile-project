@@ -13,6 +13,7 @@ import { useTheme, ThemeColors } from '../context/ThemeContext';
 import { useTenant } from '../context/TenantContext';
 import { DemoLabel } from '../components/TenantStatusComponents';
 import { useLanguage } from '../context/LanguageContext';
+import { ImagePickerModal } from '../components/ImagePickerModal';
 
 interface Guest {
   id: number;
@@ -46,6 +47,7 @@ export default function GuestReportScreen() {
     visit_date: new Date().toISOString(),
   });
   const [photo, setPhoto] = useState<string | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   useEffect(() => {
     if (activeTab === 'history') {
@@ -76,20 +78,57 @@ export default function GuestReportScreen() {
     fetchGuests();
   };
 
-  const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.5,
-    });
+  const pickImage = async (mode: 'camera' | 'gallery') => {
+    try {
+      let result;
 
-    if (!result.canceled) {
-      setPhoto(result.assets[0].uri);
+      if (mode === 'camera') {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert(t('report.permissionDenied'), t('report.cameraPermission'));
+          return;
+        }
+
+        result = await ImagePicker.launchCameraAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true,
+          aspect: [4, 3],
+          quality: 0.5,
+        });
+      } else {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert(t('report.permissionDenied'), t('report.galleryPermission'));
+          return;
+        }
+
+        result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true,
+          aspect: [4, 3],
+          quality: 0.5,
+        });
+      }
+
+      if (!result.canceled) {
+        setPhoto(result.assets[0].uri);
+      }
+    } catch (error) {
+      Alert.alert(t('common.error'), t('common.failed'));
     }
   };
 
   const handleSubmit = async () => {
+    if (isExpired) {
+      Alert.alert(t('report.accessLimited'), t('report.trialExpired'));
+      return;
+    }
+
+    if (isDemo) {
+      Alert.alert(t('common.demoMode'), t('report.demoMode'));
+      return;
+    }
+
     if (!formData.guest_name || !formData.purpose) {
       Alert.alert(t('common.error'), t('guest.alert.validation'));
       return;
@@ -297,7 +336,7 @@ export default function GuestReportScreen() {
                   <Text style={styles.label}>{t('guest.form.photo')}</Text>
                   <TouchableOpacity
                     style={styles.photoButton}
-                    onPress={pickImage}
+                    onPress={() => setModalVisible(true)}
                     activeOpacity={0.7}
                   >
                     {photo ? (
@@ -349,6 +388,13 @@ export default function GuestReportScreen() {
           />
         )}
       </View>
+
+      <ImagePickerModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        onCamera={() => pickImage('camera')}
+        onGallery={() => pickImage('gallery')}
+      />
     </View>
   );
 }

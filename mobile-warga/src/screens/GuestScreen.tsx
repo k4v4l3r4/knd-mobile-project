@@ -14,7 +14,6 @@ import {
   FlatList,
   TouchableOpacity,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialIcons, Feather } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -23,6 +22,7 @@ import api, { getStorageUrl } from '../services/api';
 import { useTheme, ThemeColors } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { DemoLabel } from '../components/TenantStatusComponents';
+import { ImagePickerModal } from '../components/ImagePickerModal';
 
 interface Guest {
   id: number;
@@ -53,6 +53,7 @@ export default function GuestScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
 
   useEffect(() => {
     if (activeTab === 'history') {
@@ -79,24 +80,48 @@ export default function GuestScreen() {
     fetchGuests();
   };
 
-  const pickImage = async () => {
-    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-    
-    if (permissionResult.granted === false) {
-      Alert.alert(t('guest.alert.permissionDenied'), t('guest.alert.cameraPermission'));
-      return;
-    }
+  const pickImage = async (mode: 'camera' | 'gallery') => {
+    try {
+      let result;
 
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 0.5,
-      aspect: [4, 3],
-    });
+      if (mode === 'camera') {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert(t('report.permissionDenied'), t('report.cameraPermission'));
+          return;
+        }
 
-    if (!result.canceled) {
-      setPhoto(result.assets[0].uri);
+        result = await ImagePicker.launchCameraAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true,
+          quality: 0.5,
+          aspect: [4, 3],
+        });
+      } else {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert(t('report.permissionDenied'), t('report.galleryPermission'));
+          return;
+        }
+
+        result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true,
+          quality: 0.5,
+          aspect: [4, 3],
+        });
+      }
+
+      if (!result.canceled) {
+        setPhoto(result.assets[0].uri);
+      }
+    } catch (error) {
+      Alert.alert(t('common.error'), t('common.failed'));
     }
+  };
+
+  const showImagePickerOptions = () => {
+    setModalVisible(true);
   };
 
   const handleSubmit = async () => {
@@ -318,7 +343,7 @@ export default function GuestScreen() {
               <Text style={styles.label}>{t('guest.form.photo')}</Text>
               <TouchableOpacity 
                 style={[styles.photoButton, { padding: 0 }]} 
-                onPress={pickImage}
+                onPress={showImagePickerOptions}
                 activeOpacity={0.7}
               >
                 {photo ? (
@@ -364,6 +389,13 @@ export default function GuestScreen() {
           }
         />
       )}
+
+      <ImagePickerModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        onCamera={() => pickImage('camera')}
+        onGallery={() => pickImage('gallery')}
+      />
     </View>
   );
 }

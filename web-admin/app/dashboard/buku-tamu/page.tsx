@@ -469,6 +469,7 @@ export default function GuestBookPage() {
                       type="file" 
                       className="hidden" 
                       accept="image/*"
+                      capture="environment"
                       onChange={e => {
                         if (e.target.files?.[0]) {
                           setFormData({...formData, id_card_photo: e.target.files[0]});
