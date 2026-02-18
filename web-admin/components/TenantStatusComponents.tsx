@@ -61,9 +61,9 @@ export const TrialBanner = () => {
           <AlertTriangle size={18} className="shrink-0" />
           <div className="flex flex-col gap-0.5">
             <span className="font-medium">
-              {isCritical 
-                ? `Trial hampir berakhir (${Math.ceil(daysRemaining)} hari). Segera lakukan pembayaran agar layanan tidak terhenti.` 
-                : `Mode Trial: Masa aktif tersisa ${Math.ceil(daysRemaining)} hari.`}
+              {isCritical
+                ? 'Trial hampir berakhir. Segera lakukan pembayaran agar layanan tidak terhenti.'
+                : 'Anda sedang menggunakan Mode Trial. Segera lakukan pembayaran sebelum masa trial berakhir.'}
             </span>
             {timeLeft && (
               <div className="inline-flex items-center gap-2 text-xs font-mono tracking-widest bg-black/10 px-3 py-0.5 rounded-full">
