@@ -357,55 +357,63 @@ export default function GuestBookPage() {
                       </td>
                     </tr>
                   ) : (
-                    guests.map((guest) => (
-                      <tr key={guest.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors group">
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            {guest.id_card_photo ? (
-                              <img 
-                                src={getImageUrl(guest.id_card_photo) || ''} 
-                                alt="Foto"
-                                className="w-10 h-10 rounded-full object-cover border border-slate-200 dark:border-slate-700 shadow-sm"
-                              />
+                    guests.map((guest) => {
+                      const visitDate = guest.visit_date ? new Date(guest.visit_date) : null;
+                      const isValidVisitDate = visitDate !== null && !isNaN(visitDate.getTime());
+
+                      return (
+                        <tr key={guest.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors group">
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              {guest.id_card_photo ? (
+                                <img 
+                                  src={getImageUrl(guest.id_card_photo) || ''} 
+                                  alt="Foto"
+                                  className="w-10 h-10 rounded-full object-cover border border-slate-200 dark:border-slate-700 shadow-sm"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-500 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800">
+                                  <User className="w-5 h-5" />
+                                </div>
+                              )}
+                              <div>
+                                <div className="font-bold text-slate-800 dark:text-white text-[15px]">{guest.guest_name}</div>
+                                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                                  <MapPin size={10} />
+                                  {guest.origin || '-'}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            {guest.host ? (
+                              <div>
+                                <div className="text-sm text-slate-700 dark:text-slate-300 font-bold">{guest.host.name}</div>
+                                <div className="text-xs text-slate-500 dark:text-slate-400 font-medium bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded w-fit mt-0.5 border border-slate-200 dark:border-slate-700">
+                                  {guest.host.address || '-'}
+                                </div>
+                              </div>
                             ) : (
-                              <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-500 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800">
-                                <User className="w-5 h-5" />
-                              </div>
+                              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 italic bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700">Tamu Umum</span>
                             )}
-                            <div>
-                              <div className="font-bold text-slate-800 dark:text-white text-[15px]">{guest.guest_name}</div>
-                              <div className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                                <MapPin size={10} />
-                                {guest.origin || '-'}
-                              </div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 truncate max-w-[150px] flex items-center gap-1">
+                              <span className="w-1 h-1 rounded-full bg-emerald-400"></span>
+                              {guest.purpose}
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          {guest.host ? (
-                            <div>
-                              <div className="text-sm text-slate-700 dark:text-slate-300 font-bold">{guest.host.name}</div>
-                              <div className="text-xs text-slate-500 dark:text-slate-400 font-medium bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded w-fit mt-0.5 border border-slate-200 dark:border-slate-700">
-                                {guest.host.address || '-'}
-                              </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                              <Clock size={14} className="text-emerald-500" />
+                              {isValidVisitDate
+                                ? visitDate!.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+                                : '-'}
                             </div>
-                          ) : (
-                            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 italic bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700">Tamu Umum</span>
-                          )}
-                          <div className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 truncate max-w-[150px] flex items-center gap-1">
-                            <span className="w-1 h-1 rounded-full bg-emerald-400"></span>
-                            {guest.purpose}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                            <Clock size={14} className="text-emerald-500" />
-                            {new Date(guest.visit_date).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}
-                          </div>
-                          <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 pl-5">
-                            {new Date(guest.visit_date).toLocaleDateString('id-ID', {day: 'numeric', month: 'short'})}
-                          </div>
-                        </td>
+                            <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 pl-5">
+                              {isValidVisitDate
+                                ? visitDate!.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
+                                : '-'}
+                            </div>
+                          </td>
                         <td className="px-6 py-4">
                           <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
                             guest.status === 'CHECK_IN' 
