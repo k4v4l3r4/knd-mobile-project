@@ -328,8 +328,19 @@ export default function GuestBookPage() {
         id_card_photo: null
       });
       fetchGuests();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Gagal menyimpan data');
+    } catch (error: unknown) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'response' in error &&
+        typeof (error as { response?: { data?: { message?: string } } }).response?.data?.message === 'string'
+      ) {
+        toast.error(
+          (error as { response?: { data?: { message?: string } } }).response?.data?.message || 'Gagal menyimpan data'
+        );
+      } else {
+        toast.error('Gagal menyimpan data');
+      }
     } finally {
       setSubmitting(false);
     }

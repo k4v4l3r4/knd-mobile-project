@@ -18,6 +18,16 @@ import { formatRole } from '@/lib/utils';
 import { DemoLabel } from '@/components/TenantStatusComponents';
 import { useTenant } from '@/context/TenantContext';
 
+type SidebarUser = {
+  name?: string;
+  role?: string;
+  rt?: {
+    rt_name?: string;
+    logo_url?: string | null;
+    complex_name?: string | null;
+  } | null;
+} | null;
+
 const menus = [
   { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
   { name: 'Langganan & Billing', icon: CreditCard, href: '/dashboard/billing' },
@@ -45,10 +55,10 @@ const superAdminMenus = [
   { name: 'Payment Settings', icon: CreditCard, href: '/dashboard/super-admin/payment-settings' },
 ];
 
-export default function Sidebar({ isOpen, setIsOpen }: { isOpen?: boolean, setIsOpen?: (v: boolean) => void }) {
+export default function Sidebar({ isOpen, setIsOpen }: { isOpen?: boolean; setIsOpen?: (v: boolean) => void }) {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<SidebarUser>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [rtName, setRtName] = useState('RT Online');
   const [isLoggingOut, setIsLoggingOut] = useState(false);
