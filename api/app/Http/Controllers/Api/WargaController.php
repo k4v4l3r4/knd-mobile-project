@@ -550,7 +550,7 @@ class WargaController extends Controller
     public function show(string $id)
     {
         $warga = User::with('family')
-            ->whereIn('role', ['WARGA', 'WARGA_TETAP', 'WARGA_KOST'])
+            ->whereIn('role', ['WARGA', 'WARGA_TETAP', 'WARGA_KOST', 'ADMIN_RT', 'RT'])
             ->find($id);
 
         if (!$warga) {
@@ -582,7 +582,7 @@ class WargaController extends Controller
      */
     public function update(WargaRequest $request, string $id)
     {
-        $warga = User::whereIn('role', ['WARGA', 'WARGA_TETAP', 'WARGA_KOST'])
+        $warga = User::whereIn('role', ['WARGA', 'WARGA_TETAP', 'WARGA_KOST', 'ADMIN_RT', 'RT'])
             ->find($id);
 
         if (!$warga) {
@@ -633,7 +633,7 @@ class WargaController extends Controller
      */
     public function destroy(string $id)
     {
-        $warga = User::whereIn('role', ['WARGA', 'WARGA_TETAP', 'WARGA_KOST'])
+        $warga = User::whereIn('role', ['WARGA', 'WARGA_TETAP', 'WARGA_KOST', 'ADMIN_RT', 'RT'])
             ->find($id);
 
         if (!$warga) {

@@ -121,6 +121,8 @@ const BUDGET_DATA = [
   { name: 'Pembangunan', value: 1000, color: '#ec4899' }, // pink-500
 ];
 
+const REAL_BUDGET_COLORS = ['#10b981', '#6366f1', '#f59e0b', '#ec4899', '#22c55e', '#0ea5e9', '#a855f7'];
+
 const RECENT_TRANSACTIONS = [
   { id: 1, date: '25 Jul 12:30', amount: -50000, name: 'Iuran Kebersihan', method: 'Transfer BCA', category: 'Wajib', icon: Coffee, iconColor: 'text-amber-500', iconBg: 'bg-amber-100' },
   { id: 2, date: '26 Jul 15:00', amount: -150000, name: 'Sumbangan 17an', method: 'Tunai', category: 'Donasi', icon: ShoppingBag, iconColor: 'text-rose-500', iconBg: 'bg-rose-100' },
@@ -148,6 +150,14 @@ export default function DashboardPage() {
   const [editingAction, setEditingAction] = useState<QuickAction | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<Partial<QuickAction>>({});
+
+  const [financeSummary, setFinanceSummary] = useState({
+    total_in: 0,
+    total_out: 0,
+    balance: 0,
+    breakdown: {} as Record<string, number>,
+  });
+  const [financeTransactions, setFinanceTransactions] = useState<any[]>([]);
 
   const CustomBarTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -184,23 +194,98 @@ export default function DashboardPage() {
     return null;
   };
 
-  const moneyFlowData = isDemo ? MONEY_FLOW_DATA : [];
-  const budgetData = isDemo ? BUDGET_DATA : [];
-  const recentTransactions = isDemo ? RECENT_TRANSACTIONS : [];
-  const totalBalanceAmount = isDemo ? 'Rp 15.7jt' : 'Rp 0';
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(value);
+  };
+
+  const moneyFlowData = isDemo
+    ? MONEY_FLOW_DATA
+    : [
+        {
+          month: 'Bulan ini',
+          income: financeSummary.total_in,
+          expense: financeSummary.total_out,
+        },
+      ];
+
+  const budgetData = isDemo
+    ? BUDGET_DATA
+    : Object.entries(financeSummary.breakdown || {}).map(([name, value], index) => ({
+        name,
+        value,
+        color: REAL_BUDGET_COLORS[index % REAL_BUDGET_COLORS.length],
+      }));
+
+  const recentTransactions = isDemo
+    ? RECENT_TRANSACTIONS
+    : financeTransactions.map((tx) => {
+        const isIn = tx.direction === 'IN';
+        const amount = typeof tx.amount === 'number' ? tx.amount : parseInt(tx.amount, 10) || 0;
+        const value = isIn ? amount : -amount;
+        const icon = isIn ? Wallet : ShoppingBag;
+        const iconBg = isIn ? 'bg-emerald-100' : 'bg-rose-100';
+        const iconColor = isIn ? 'text-emerald-500' : 'text-rose-500';
+
+        return {
+          id: tx.id,
+          date: new Date(tx.created_at).toLocaleString('id-ID', {
+            day: '2-digit',
+            month: 'short',
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+          amount: value,
+          name: tx.description || tx.source_type || 'Transaksi Kas',
+          method: tx.origin === 'KAS' ? 'Kas RT' : 'Transaksi',
+          category: tx.source_type || '-',
+          icon,
+          iconBg,
+          iconColor,
+        };
+      });
+
+  const totalBalanceAmount = isDemo ? 'Rp 15.7jt' : formatCurrency(financeSummary.balance);
   const totalBalanceChange = isDemo ? '12.1%' : '0%';
-  const incomeAmount = isDemo ? 'Rp 8.5jt' : 'Rp 0';
+  const incomeAmount = isDemo ? 'Rp 8.5jt' : formatCurrency(financeSummary.total_in);
   const incomeChange = isDemo ? '6.3%' : '0%';
-  const expenseAmount = isDemo ? 'Rp 6.2jt' : 'Rp 0';
+  const expenseAmount = isDemo ? 'Rp 6.2jt' : formatCurrency(financeSummary.total_out);
   const expenseChange = isDemo ? '2.4%' : '0%';
-  const emergencyFundAmount = isDemo ? 'Rp 32.9jt' : 'Rp 0';
+  const emergencyFundAmount = isDemo ? 'Rp 32.9jt' : formatCurrency(0);
   const emergencyFundChange = isDemo ? '12.1%' : '0%';
-  const budgetTotalAmount = isDemo ? 'Rp 10jt' : 'Rp 0';
+  const budgetTotalAmount = isDemo
+    ? 'Rp 10jt'
+    : formatCurrency(
+        Object.values(financeSummary.breakdown || {}).reduce(
+          (total, value) => total + (typeof value === 'number' ? value : 0),
+          0
+        )
+      );
 
   useEffect(() => {
     if (!status) return;
     fetchTodaySchedule();
+    loadQuickActions();
+    fetchFinanceData();
   }, [status]);
+
+  const syncQuickActions = async (actions: QuickAction[]) => {
+    setQuickActions(actions);
+    const token = Cookies.get('admin_token');
+    if (isDemo || !token) {
+      return;
+    }
+    try {
+      await api.post('/settings/dashboard-quick-actions', { actions });
+      toast.success('Shortcut dashboard berhasil disimpan');
+    } catch (error) {
+      console.error('Failed to save dashboard quick actions:', error);
+      toast.error('Gagal menyimpan shortcut dashboard');
+    }
+  };
 
   const handleEditClick = (action: QuickAction) => {
     setEditingAction(action);
@@ -228,19 +313,46 @@ export default function DashboardPage() {
     if (!formData.title || !formData.href) return;
     
     if (editingAction) {
-      setQuickActions(prev => prev.map(a => a.id === editingAction.id ? { ...a, ...formData } as QuickAction : a));
+      const updated = quickActions.map(a =>
+        a.id === editingAction.id ? ({ ...a, ...formData } as QuickAction) : a
+      );
+      syncQuickActions(updated);
     } else {
       const newAction = {
         ...formData,
         id: Math.random().toString(36).substr(2, 9),
       } as QuickAction;
-      setQuickActions(prev => [...prev, newAction]);
+      const updated = [...quickActions, newAction];
+      syncQuickActions(updated);
     }
     setIsModalOpen(false);
   };
 
   const handleDelete = (id: string) => {
-    setQuickActions(prev => prev.filter(a => a.id !== id));
+    if (isDemo) {
+      toast.error('Mode Demo: Tidak dapat mengubah shortcut dashboard');
+      return;
+    }
+    const updated = quickActions.filter(a => a.id !== id);
+    syncQuickActions(updated);
+  };
+
+  const loadQuickActions = async () => {
+    const token = Cookies.get('admin_token');
+    if (isDemo || !token) {
+      return;
+    }
+    try {
+      const response = await api.get('/settings/dashboard-quick-actions');
+      const data = response.data?.data;
+      if (Array.isArray(data) && data.length > 0) {
+        setQuickActions(data);
+      }
+    } catch (error) {
+      if (!isDemo) {
+        console.error('Failed to load dashboard quick actions:', error);
+      }
+    }
   };
 
   const fetchTodaySchedule = async () => {
@@ -276,6 +388,29 @@ export default function DashboardPage() {
       }
     } finally {
       setLoadingSchedule(false);
+    }
+  };
+
+  const fetchFinanceData = async () => {
+    const token = Cookies.get('admin_token');
+    if (isDemo || !token) {
+      return;
+    }
+    try {
+      const [summaryRes, transactionsRes] = await Promise.all([
+        api.get('/rt/kas/summary'),
+        api.get('/rt/kas/transactions'),
+      ]);
+      if (summaryRes.data && summaryRes.data.data) {
+        setFinanceSummary(summaryRes.data.data);
+      }
+      if (transactionsRes.data && transactionsRes.data.data && transactionsRes.data.data.data) {
+        setFinanceTransactions(transactionsRes.data.data.data.slice(0, 5));
+      }
+    } catch (error) {
+      if (!isDemo) {
+        console.error('Failed to fetch finance data for dashboard:', error);
+      }
     }
   };
 

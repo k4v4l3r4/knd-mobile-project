@@ -7,8 +7,43 @@ import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
 
 export const TrialBanner = () => {
-  const { isTrial, daysRemaining, isExpired } = useTenant();
+  const { isTrial, daysRemaining, isExpired, status } = useTenant();
   const router = useRouter();
+  const [timeLeft, setTimeLeft] = React.useState<string | null>(null);
+  
+  React.useEffect(() => {
+    if (!status?.trial_end_at || !isTrial || isExpired) {
+      setTimeLeft(null);
+      return;
+    }
+
+    const updateTime = () => {
+      const end = new Date(status.trial_end_at as string).getTime();
+      const now = Date.now();
+      const diff = end - now;
+
+      if (diff <= 0) {
+        setTimeLeft('00:00:00');
+        return;
+      }
+
+      const totalSeconds = Math.floor(diff / 1000);
+      const days = Math.floor(totalSeconds / (24 * 60 * 60));
+      const hours = Math.floor((totalSeconds % (24 * 60 * 60)) / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+
+      const pad = (v: number) => v.toString().padStart(2, '0');
+      const dayPart = days > 0 ? `${days} hari ` : '';
+
+      setTimeLeft(`${dayPart}${pad(hours)}:${pad(minutes)}:${pad(seconds)}`);
+    };
+
+    updateTime();
+    const interval = window.setInterval(updateTime, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [status?.trial_end_at, isTrial, isExpired]);
   
   if (!isTrial || isExpired) return null;
 
@@ -24,18 +59,28 @@ export const TrialBanner = () => {
       <div className="container mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-sm">
         <div className="flex items-center gap-2">
           <AlertTriangle size={18} className="shrink-0" />
-          <span className="font-medium">
-            {isCritical 
-              ? `Trial hampir berakhir (${Math.ceil(daysRemaining)} hari). Segera lakukan pembayaran agar layanan tidak terhenti.` 
-              : `Mode Trial: Masa aktif tersisa ${Math.ceil(daysRemaining)} hari.`}
-          </span>
+          <div className="flex flex-col gap-0.5">
+            <span className="font-medium">
+              {isCritical 
+                ? `Trial hampir berakhir (${Math.ceil(daysRemaining)} hari). Segera lakukan pembayaran agar layanan tidak terhenti.` 
+                : `Mode Trial: Masa aktif tersisa ${Math.ceil(daysRemaining)} hari.`}
+            </span>
+            {timeLeft && (
+              <div className="inline-flex items-center gap-2 text-xs font-mono tracking-widest bg-black/10 px-3 py-0.5 rounded-full">
+                <span className="uppercase text-[10px] font-semibold opacity-80">Sisa waktu</span>
+                <span className="text-sm font-semibold">{timeLeft}</span>
+              </div>
+            )}
+          </div>
         </div>
-        <button
-          onClick={handleUpgradeClick}
-          className="bg-white/20 hover:bg-white/30 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap"
-        >
-          Upgrade Sekarang
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleUpgradeClick}
+            className="bg-white/20 hover:bg-white/30 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap"
+          >
+            Upgrade Sekarang
+          </button>
+        </div>
       </div>
     </div>
   );

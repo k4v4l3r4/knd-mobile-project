@@ -29,9 +29,8 @@ class PollController extends Controller
         if ($request->has('status')) {
             $query->where('status', $request->status);
         } else {
-            // Default show OPEN and CLOSED (exclude DRAFT for users usually, but let's show all for now or filter in frontend)
-            // For mobile app "List voting aktif", frontend will likely filter or we can default to OPEN
-            // Let's return all non-DRAFT for users, or handle in frontend.
+            // Default: hide DRAFT from listing (show only OPEN/CLOSED)
+            $query->whereIn('status', ['OPEN', 'CLOSED']);
         }
 
         $polls = $query->latest()->get();
@@ -130,6 +129,13 @@ class PollController extends Controller
         ]);
 
         $user = $request->user();
+        $role = strtoupper((string) $user->role);
+
+        // Only RT/Admin roles are allowed to create polls
+        if (!in_array($role, ['RT', 'ADMIN_RT', 'RW', 'ADMIN_RW', 'SUPER_ADMIN', 'SEKRETARIS_RT', 'BENDAHARA_RT'])) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
         // Allow Admin RT or Super Admin. If Admin RT, use their rt_id.
         $rtId = $user->rt_id; 
         if (!$rtId && $request->rt_id) {
@@ -179,7 +185,8 @@ class PollController extends Controller
     public function vote(Request $request, $id)
     {
         $request->validate([
-            'poll_option_id' => 'required|exists:poll_options,id'
+            'poll_option_id' => 'required_without:option_id|exists:poll_options,id',
+            'option_id' => 'required_without:poll_option_id|exists:poll_options,id',
         ]);
 
         $poll = Poll::findOrFail($id);
@@ -210,6 +217,9 @@ class PollController extends Controller
             return response()->json(['message' => 'You have already voted'], 400);
         }
 
+        // Normalize option ID for backward compatibility (mobile uses option_id)
+        $optionId = $request->poll_option_id ?? $request->option_id;
+
         try {
             DB::beginTransaction();
 
@@ -217,11 +227,11 @@ class PollController extends Controller
             PollVote::create([
                 'poll_id' => $id,
                 'user_id' => $user->id,
-                'poll_option_id' => $request->poll_option_id
+                'poll_option_id' => $optionId
             ]);
 
             // Increment Count
-            $option = PollOption::find($request->poll_option_id);
+            $option = PollOption::find($optionId);
             $option->increment('vote_count');
 
             DB::commit();

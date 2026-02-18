@@ -530,6 +530,7 @@ export const id = {
     selectBillTitle: 'Pilih Tagihan',
     selectBillMsg: 'Silakan pilih minimal satu tagihan untuk dibayar.',
     totalPayment: 'Total Pembayaran',
+    infoVerification: 'Setelah dikirim, pembayaran akan dicek dan diverifikasi oleh pengurus RT.',
     payButton: 'Bayar',
     paymentDescription: 'Pembayaran {{count}} Tagihan',
     billFor: 'Tagihan',

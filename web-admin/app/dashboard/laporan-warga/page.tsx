@@ -144,7 +144,7 @@ export default function LaporanWargaPage() {
         return;
       }
       const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '') || '';
-      let url = `${baseUrl}/api/admin/issues`;
+      let url = `${baseUrl}/api/reports`;
       if (activeTab) {
         url += `?status=${activeTab}`;
       }
@@ -188,8 +188,8 @@ export default function LaporanWargaPage() {
     try {
       const token = Cookies.get('token') || localStorage.getItem('token');
       const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '') || '';
-      const response = await fetch(`${baseUrl}/api/issues/${selectedReport.id}/status`, {
-        method: 'PATCH',
+      const response = await fetch(`${baseUrl}/api/reports/${selectedReport.id}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
@@ -237,7 +237,7 @@ export default function LaporanWargaPage() {
     try {
       const token = Cookies.get('token') || localStorage.getItem('token');
       const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '') || '';
-      const response = await fetch(`${baseUrl}/api/issues/${reportToDelete.id}`, {
+      const response = await fetch(`${baseUrl}/api/reports/${reportToDelete.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -17,6 +17,7 @@ class WilayahRt extends Model
         'rw_id',
         'rt_number',
         'rt_name',
+        'complex_name',
         'address',
         'province',
         'city',

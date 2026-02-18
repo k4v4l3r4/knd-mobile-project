@@ -764,6 +764,12 @@ export default function MarketScreen({ onNavigate }: MarketScreenProps) {
             />
           </View>
 
+          <View style={styles.scopeHintContainer}>
+            <Text style={styles.scopeHintText}>
+              Catatan: Scope UMKM dapat diatur oleh Super Admin menjadi global lintas RW atau hanya RW tertentu. Hal ini mempengaruhi produk yang tampil di sini.
+            </Text>
+          </View>
+
           {/* Categories */}
           <View style={styles.categoryContainer}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryContent}>
@@ -918,6 +924,14 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     borderWidth: 1,
     borderColor: colors.border,
     height: 48,
+  },
+  scopeHintContainer: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+  },
+  scopeHintText: {
+    fontSize: 11,
+    color: colors.textSecondary,
   },
   searchIcon: {
     marginRight: 8,

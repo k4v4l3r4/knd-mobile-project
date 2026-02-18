@@ -137,13 +137,10 @@ export default function GuestBookPage() {
     
     setProcessing(true);
     try {
-      await api.put(`/guest-books/${selectedGuestId}`, { status: 'CHECKED' });
-      
-      // Optimistic update
+      await api.put(`/guest-books/${selectedGuestId}`, { status: 'CHECK_OUT' });
       setGuests(guests.map(g => 
-        g.id === selectedGuestId ? { ...g, status: 'CHECKED' } : g
+        g.id === selectedGuestId ? { ...g, status: 'CHECK_OUT' } : g
       ));
-      
       toast.success('Status tamu diperbarui');
       setShowConfirmModal(false);
     } catch (error) {

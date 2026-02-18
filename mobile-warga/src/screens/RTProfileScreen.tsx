@@ -32,6 +32,7 @@ export default function RTProfileScreen({ onNavigate }: RTProfileScreenProps) {
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<any>({
     rt_name: '',
+    complex_name: '',
     address: '',
     province: '',
     city: '',
@@ -156,6 +157,17 @@ export default function RTProfileScreen({ onNavigate }: RTProfileScreenProps) {
               value={profile.rt_name}
               onChangeText={(text) => setProfile({ ...profile, rt_name: text })}
               placeholder="Contoh: RT 001 / RW 002"
+              placeholderTextColor={colors.textSecondary}
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Nama Perumahan (opsional)</Text>
+            <TextInput
+              style={styles.input}
+              value={profile.complex_name}
+              onChangeText={(text) => setProfile({ ...profile, complex_name: text })}
+              placeholder="Contoh: Perumahan Griya Asri"
               placeholderTextColor={colors.textSecondary}
             />
           </View>

@@ -135,7 +135,7 @@ export default function BillsScreen({ initialTab = 'bills', onNavigate }: { init
     if (onNavigate) {
       onNavigate('PAYMENT', {
         amount: selectedTotal,
-        fee_ids: selectedFees,
+        feeIds: selectedFees,
         description: t('bills.paymentDescription', { count: selectedFees.length })
       });
     }
@@ -376,15 +376,12 @@ export default function BillsScreen({ initialTab = 'bills', onNavigate }: { init
       {activeTab === 'bills' && data.unpaid.length > 0 && !loading && (
         <View style={{ 
             position: 'absolute',
-            bottom: Platform.OS === 'ios' ? 90 : 80, // Lift above Bottom Tab Bar
+            bottom: Platform.OS === 'ios' ? 90 : 80,
             left: 16,
             right: 16,
             backgroundColor: colors.card, 
             borderRadius: 20,
             padding: 16,
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 4 },
             shadowOpacity: 0.15,
@@ -394,26 +391,31 @@ export default function BillsScreen({ initialTab = 'bills', onNavigate }: { init
             borderWidth: 1,
             borderColor: isDarkMode ? '#334155' : '#e2e8f0',
         }}>
-            <View>
-                <Text style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 4 }}>{t('bills.totalPayment')}</Text>
-                <Text style={{ color: colors.text, fontSize: 18, fontWeight: 'bold' }}>{formatRupiah(selectedTotal)}</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <View>
+                  <Text style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 4 }}>{t('bills.totalPayment')}</Text>
+                  <Text style={{ color: colors.text, fontSize: 18, fontWeight: 'bold' }}>{formatRupiah(selectedTotal)}</Text>
+              </View>
+              <TouchableOpacity
+                  style={{ 
+                      backgroundColor: selectedFees.length > 0 ? colors.primary : '#94a3b8', 
+                      borderRadius: 14, 
+                      paddingHorizontal: 20,
+                      height: 44,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      minWidth: 100
+                  }}
+                  onPress={handlePayPress}
+              >
+                  <Text style={styles.payButtonText}>
+                    {selectedFees.length > 0 ? `${t('bills.payButton')} (${selectedFees.length})` : t('bills.payButton')}
+                  </Text>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity
-                style={{ 
-                    backgroundColor: selectedFees.length > 0 ? colors.primary : '#94a3b8', 
-                    borderRadius: 14, 
-                    paddingHorizontal: 20,
-                    height: 44,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    minWidth: 100
-                }}
-                onPress={handlePayPress}
-            >
-                <Text style={styles.payButtonText}>
-                  {selectedFees.length > 0 ? `${t('bills.payButton')} (${selectedFees.length})` : t('bills.payButton')}
-                </Text>
-            </TouchableOpacity>
+            <Text style={{ marginTop: 8, fontSize: 11, color: colors.textSecondary }}>
+              {t('bills.infoVerification')}
+            </Text>
         </View>
       )}
 

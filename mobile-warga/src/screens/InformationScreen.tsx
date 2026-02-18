@@ -219,6 +219,7 @@ export default function InformationScreen() {
       const form = new FormData();
       form.append('title', formData.title);
       form.append('content', formData.content);
+      form.append('status', 'PUBLISHED');
       if (formData.image && formData.image.uri && !formData.image.uri.startsWith('http')) {
         // @ts-ignore
         form.append('image', {
@@ -253,6 +254,7 @@ export default function InformationScreen() {
       form.append('_method', 'PUT');
       form.append('title', formData.title);
       form.append('content', formData.content);
+      form.append('status', 'PUBLISHED');
       if (formData.image && formData.image.uri && !formData.image.uri.startsWith('http')) {
         // @ts-ignore
         form.append('image', {

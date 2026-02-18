@@ -69,17 +69,45 @@ class IssueReportController extends Controller
      */
     public function store(Request $request)
     {
+        $rawCategory = $request->input('category');
+        $mappedCategory = null;
+
+        if ($rawCategory) {
+            $normalized = strtoupper($rawCategory);
+
+            $mapping = [
+                'KEBERSIHAN' => 'KEBERSIHAN',
+                'KEAMANAN' => 'KEAMANAN',
+                'INFRASTRUKTUR' => 'INFRASTRUKTUR',
+                'LAINNYA' => 'LAINNYA',
+            ];
+
+            if (isset($mapping[$normalized])) {
+                $mappedCategory = $mapping[$normalized];
+            }
+        }
+
         $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'required|string',
-            'category' => 'required|in:KEBERSIHAN,KEAMANAN,INFRASTRUKTUR,LAINNYA',
-            'image' => 'nullable|image|max:5120', // Max 5MB
+            'category' => 'required|string',
+            'photo' => 'nullable|image|max:5120',
+            'image' => 'nullable|image|max:5120',
         ]);
+
+        if (!$mappedCategory) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kategori laporan tidak valid',
+            ], 422);
+        }
 
         $user = Auth::user();
         $photoUrl = null;
 
-        if ($request->hasFile('image')) {
+        if ($request->hasFile('photo')) {
+            $photoUrl = $request->file('photo')->store('issue_reports', 'public');
+        } elseif ($request->hasFile('image')) {
             $photoUrl = $request->file('image')->store('issue_reports', 'public');
         }
 
@@ -88,7 +116,7 @@ class IssueReportController extends Controller
             'user_id' => $user->id,
             'title' => $request->title,
             'description' => $request->description,
-            'category' => $request->category,
+            'category' => $mappedCategory,
             'photo_url' => $photoUrl,
             'status' => 'PENDING',
         ]);
@@ -136,6 +164,41 @@ class IssueReportController extends Controller
             'success' => true,
             'message' => 'Status laporan berhasil diperbarui',
             'data' => $issue
+        ]);
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(string $id)
+    {
+        $user = Auth::user();
+
+        if (!in_array(strtoupper($user->role), ['ADMIN_RT', 'RT', 'ADMIN_RW', 'SUPER_ADMIN'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized access'
+            ], 403);
+        }
+
+        $issue = IssueReport::where('rt_id', $user->rt_id)->find($id);
+
+        if (!$issue) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Laporan tidak ditemukan'
+            ], 404);
+        }
+
+        if ($issue->photo_url) {
+            Storage::disk('public')->delete($issue->photo_url);
+        }
+
+        $issue->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Laporan berhasil dihapus'
         ]);
     }
 }

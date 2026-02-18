@@ -14,13 +14,13 @@ class GuestBookController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
+        $role = strtoupper($user->role ?? '');
+        $isResident = in_array($role, ['WARGA', 'WARGA_TETAP', 'WARGA_KOST']);
         $query = GuestBook::query();
 
-        if ($user->role === 'warga') {
-            // Warga sees guests visiting them
+        if ($isResident) {
             $query->where('host_user_id', $user->id);
         } else {
-            // Admin/Security sees all guests in their RT
             if ($user->rt_id) {
                 $query->where('rt_id', $user->rt_id);
             }
@@ -54,11 +54,11 @@ class GuestBookController extends Controller
         ]);
 
         $user = Auth::user();
+        $role = strtoupper($user->role ?? '');
+        $isResident = in_array($role, ['WARGA', 'WARGA_TETAP', 'WARGA_KOST']);
         $rtId = $user->rt_id; // Default to user's RT
-        
-        // If host_user_id is not provided and user is warga, assume they are the host
         $hostUserId = $request->host_user_id;
-        if (!$hostUserId && $user->role === 'warga') {
+        if (!$hostUserId && $isResident) {
             $hostUserId = $user->id;
         }
 
@@ -102,9 +102,10 @@ class GuestBookController extends Controller
     {
         $guest = GuestBook::findOrFail($id);
         $user = Auth::user();
+        $role = strtoupper($user->role ?? '');
+        $isResident = in_array($role, ['WARGA', 'WARGA_TETAP', 'WARGA_KOST']);
 
-        // Authorization check
-        if ($user->role === 'warga' && $guest->host_user_id !== $user->id) {
+        if ($isResident && $guest->host_user_id !== $user->id) {
              return response()->json(['message' => 'Unauthorized'], 403);
         }
         if ($user->rt_id && $guest->rt_id !== $user->rt_id) {
@@ -129,10 +130,10 @@ class GuestBookController extends Controller
     {
         $guest = GuestBook::findOrFail($id);
         $user = Auth::user();
+        $role = strtoupper($user->role ?? '');
+        $isResident = in_array($role, ['WARGA', 'WARGA_TETAP', 'WARGA_KOST']);
 
-        // Authorization check (Only Admin/Security can update status generally, or host can update details?)
-        // For now, let's assume Admin/Security or the Host (if allowed)
-        if ($user->role === 'warga' && $guest->host_user_id !== $user->id) {
+        if ($isResident && $guest->host_user_id !== $user->id) {
              return response()->json(['message' => 'Unauthorized'], 403);
         }
         if ($user->rt_id && $guest->rt_id !== $user->rt_id) {

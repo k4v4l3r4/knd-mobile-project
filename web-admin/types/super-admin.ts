@@ -29,6 +29,7 @@ export interface PaymentSettings {
   subscription_mode: 'CENTRALIZED';
   iuran_warga_mode: 'CENTRALIZED' | 'SPLIT';
   umkm_mode: 'CENTRALIZED' | 'SPLIT';
+  umkm_scope: 'GLOBAL' | 'RW';
   
   iuran_warga_config: {
     platform_fee_percent: number;

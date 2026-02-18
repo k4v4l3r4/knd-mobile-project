@@ -493,6 +493,9 @@ export default function UmkmPage() {
            <p className="text-slate-500 dark:text-slate-400 font-medium max-w-lg">
              Kelola produk UMKM yang dijual oleh warga. Monitor aktivitas jual beli dan kategori produk.
            </p>
+           <p className="text-xs text-slate-400 dark:text-slate-500 mt-2 max-w-xl">
+             Catatan: Scope UMKM dapat diatur oleh Super Admin menjadi global lintas RW atau hanya RW tertentu. Pengaturan ini mempengaruhi produk yang tampil di marketplace.
+           </p>
          </div>
       </div>
 

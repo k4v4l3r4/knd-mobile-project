@@ -15,13 +15,13 @@ class SuperAdminPaymentSettingsController extends Controller
         if (Storage::disk('local')->exists($this->settingsFile)) {
             $settings = json_decode(Storage::disk('local')->get($this->settingsFile), true);
         } else {
-            // Default Settings matching Frontend PaymentSettings interface
             $settings = [
                 'subscription_mode' => 'CENTRALIZED',
                 'iuran_warga_mode' => 'SPLIT',
                 'umkm_mode' => 'SPLIT',
+                'umkm_scope' => 'GLOBAL',
                 'iuran_warga_config' => [
-                    'platform_fee_percent' => 5, // Default 5% fee
+                    'platform_fee_percent' => 5,
                 ],
                 'umkm_config' => [
                     'umkm_share_percent' => 90,
@@ -44,6 +44,7 @@ class SuperAdminPaymentSettingsController extends Controller
             'subscription_mode' => 'required|string|in:CENTRALIZED',
             'iuran_warga_mode' => 'required|string|in:CENTRALIZED,SPLIT',
             'umkm_mode' => 'required|string|in:CENTRALIZED,SPLIT',
+            'umkm_scope' => 'required|string|in:GLOBAL,RW',
             'iuran_warga_config.platform_fee_percent' => 'required|numeric|min:0|max:100',
             'umkm_config.umkm_share_percent' => 'required|numeric|min:0|max:100',
             'umkm_config.platform_fee_percent' => 'required|numeric|min:0|max:100',

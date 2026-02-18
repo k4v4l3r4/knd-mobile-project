@@ -20,24 +20,20 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $user = $request->user('sanctum');
+        $scope = $this->getUmkmScope();
         
-        // Base Query: Products from Verified Stores Only
         $query = Product::with(['user:id,name,phone,photo_url', 'store'])
             ->where('is_available', true)
             ->whereHas('store', function($q) {
                 $q->where('status', 'verified');
             });
 
-        // SCOPE: RW (Marketplace Rule)
-        // Ensure we only show products from the user's RW
-        if ($user && $user->rw_id) {
-             // Filter by Store's RT's RW via relationship
-             $query->whereHas('store.rt', function($q) use ($user) {
-                 $q->where('rw_id', $user->rw_id);
-             });
+        if ($scope === 'RW' && $user && $user->rw_id) {
+            $query->whereHas('store.rt', function($q) use ($user) {
+                $q->where('rw_id', $user->rw_id);
+            });
         }
         
-        // Search functionality
         if ($request->filled('search')) {
             $search = trim((string) $request->input('search'));
 
@@ -65,6 +61,20 @@ class ProductController extends Controller
             'message' => 'Data produk berhasil diambil',
             'data' => ProductResource::collection($products)
         ]);
+    }
+
+    protected function getUmkmScope(): string
+    {
+        $file = 'payment_settings.json';
+
+        if (Storage::disk('local')->exists($file)) {
+            $settings = json_decode(Storage::disk('local')->get($file), true);
+            if (is_array($settings) && isset($settings['umkm_scope']) && in_array($settings['umkm_scope'], ['GLOBAL', 'RW'], true)) {
+                return $settings['umkm_scope'];
+            }
+        }
+
+        return 'GLOBAL';
     }
 
     /**

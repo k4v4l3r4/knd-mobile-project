@@ -113,7 +113,7 @@ export default function GuestBookPage() {
       if (formData.host_user_id) data.append('host_user_id', formData.host_user_id);
       if (formData.id_card_photo) data.append('id_card_photo', formData.id_card_photo);
 
-      await axios.post('/api/guest-books', data, {
+      await axios.post('/guest-books', data, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
@@ -152,7 +152,7 @@ export default function GuestBookPage() {
     if (!guestToCheckout) return;
     setIsCheckingOut(true);
     try {
-      await axios.post(`/api/guest-books/${guestToCheckout}/checkout`);
+      await axios.post(`/guest-books/${guestToCheckout}/checkout`);
       toast.success('Tamu berhasil di-checkout');
       fetchGuests();
       setCheckoutModalOpen(false);

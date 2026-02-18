@@ -195,9 +195,13 @@ class ReportController extends Controller
      */
     public function duesRecap(Request $request)
     {
-        $user = Auth::user();
+        $user = $request->user('sanctum');
+        if (!$user) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
         $year = $request->input('year', date('Y'));
-        $block = $request->input('block'); // Optional filter by block
+        $block = $request->input('block');
 
         if (!$user->rt_id) {
             return response()->json(['message' => 'User not assigned to RT'], 400);

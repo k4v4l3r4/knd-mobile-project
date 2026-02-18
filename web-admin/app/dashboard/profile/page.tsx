@@ -335,8 +335,10 @@ export default function ProfilePage() {
                       </div>
                       <span className="text-sm font-semibold text-slate-700">Auto Text</span>
                     </div>
-                    <div className="h-16 flex items-center justify-center bg-white rounded border border-slate-100">
-                       <span className="text-2xl text-slate-800" style={{ fontFamily: 'cursive' }}>{name || 'Nama Anda'}</span>
+                    <div className="h-20 flex items-center justify-center bg-slate-50 rounded-xl border border-slate-200">
+                      <span className="text-lg font-semibold tracking-wide text-slate-700">
+                        {(name || 'Nama Anda').toUpperCase()}
+                      </span>
                     </div>
                   </div>
 

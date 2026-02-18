@@ -272,8 +272,9 @@ class LetterController extends Controller
         }
 
         $user = Auth::user();
+        $role = strtoupper($user->role);
 
-        if ($letter->user_id !== $user->id && !in_array($user->role, ['super_admin', 'admin_rt', 'admin_rw'])) {
+        if ($letter->user_id !== $user->id && !in_array($role, ['SUPER_ADMIN', 'ADMIN_RT', 'ADMIN_RW', 'RT'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized'

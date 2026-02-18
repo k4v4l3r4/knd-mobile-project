@@ -37,6 +37,7 @@ export default function PaymentSettingsPage() {
         subscription_mode: 'CENTRALIZED',
         iuran_warga_mode: 'SPLIT',
         umkm_mode: 'SPLIT',
+        umkm_scope: 'GLOBAL',
         iuran_warga_config: {
           platform_fee_percent: 5,
         },
@@ -166,6 +167,23 @@ export default function PaymentSettingsPage() {
                   ? 'Dana dibagi ke Penjual, RT, dan Platform' 
                   : 'Dana ditampung Platform sepenuhnya'}
               </p>
+
+              <div className="mt-4">
+                <Label className="text-slate-500 text-xs uppercase tracking-wider font-bold">Scope UMKM Marketplace</Label>
+                <select 
+                  className="mt-2 w-full p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent font-bold text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none"
+                  value={settings.umkm_scope}
+                  onChange={(e) => updateSetting('umkm_scope', '', e.target.value)}
+                >
+                  <option value="GLOBAL">GLOBAL (Lintas RW)</option>
+                  <option value="RW">Hanya RW Saya</option>
+                </select>
+                <p className="text-xs text-slate-500 mt-1">
+                  {settings.umkm_scope === 'GLOBAL' 
+                    ? 'Warga dapat melihat UMKM dari semua RW selama toko sudah terverifikasi.' 
+                    : 'Warga hanya melihat UMKM dari RW mereka sendiri.'}
+                </p>
+              </div>
             </div>
           </div>
         </CardContent>

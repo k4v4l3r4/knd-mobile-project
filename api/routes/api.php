@@ -195,6 +195,8 @@ Route::middleware(['auth:sanctum', 'tenant.status', 'tenant.feature'])->group(fu
     Route::get('/schedules', [RondaController::class, 'index']); // Alias for PatrolScreen
     Route::post('/ronda-schedules/{id}/assign', [RondaController::class, 'assignWarga']);
     Route::delete('/ronda-schedules/{id}/users/{userId}', [RondaController::class, 'removeWarga']);
+    Route::post('/ronda-schedules/clone', [RondaController::class, 'clone']);
+    Route::put('/ronda-schedules/{scheduleId}/attendance/{userId}', [RondaController::class, 'updateAttendance']);
     Route::apiResource('ronda-schedules', RondaController::class);
     
     // Restored Resource Routes
@@ -202,14 +204,30 @@ Route::middleware(['auth:sanctum', 'tenant.status', 'tenant.feature'])->group(fu
     Route::post('announcements/{id}/comments', [AnnouncementController::class, 'comment']);
     Route::post('announcements/{id}/like', [AnnouncementController::class, 'like']);
     Route::apiResource('announcements', AnnouncementController::class);
+
+    // Inventaris & Peminjaman Aset
     Route::apiResource('assets', AssetController::class);
+    Route::post('/assets/loan', [AssetController::class, 'borrow']);
+    Route::get('/assets/loans/my', [AssetController::class, 'myLoans']);
+    Route::get('/assets/loans/requests', [AssetController::class, 'loanRequests']);
+    Route::post('/assets/loans/{id}/approve', [AssetController::class, 'approveLoan']);
+    Route::post('/assets/loans/{id}/reject', [AssetController::class, 'rejectLoan']);
+    Route::post('/assets/loans/{id}/return', [AssetController::class, 'returnAsset']);
+
     Route::apiResource('asset-loans', AssetLoanController::class);
     Route::apiResource('guest-books', GuestBookController::class);
+    Route::post('guest-books/{guest_book}/checkout', [GuestBookController::class, 'checkout']);
+
+    // Voting Warga
     Route::apiResource('polls', PollController::class);
+    Route::post('/polls/{poll}/vote', [PollController::class, 'vote']);
     
     // Emergency
+    Route::get('/emergency/contacts', [EmergencyController::class, 'getContacts']);
+    Route::post('/emergency/panic', [EmergencyController::class, 'triggerPanic']);
     Route::apiResource('emergencies', EmergencyController::class); 
     Route::apiResource('emergency-alerts', EmergencyAlertController::class);
+    Route::post('/emergency-alerts/{emergency_alert}/resolve', [EmergencyAlertController::class, 'resolve']);
     Route::apiResource('emergency-contacts', EmergencyContactController::class);
     
     // Boarding House
@@ -257,6 +275,9 @@ Route::middleware(['auth:sanctum', 'tenant.status', 'tenant.feature'])->group(fu
         Route::post('/roles', [SettingController::class, 'storeRole']);
         Route::put('/roles/{id}', [SettingController::class, 'updateRole']);
         Route::delete('/roles/{id}', [SettingController::class, 'deleteRole']);
+
+        Route::get('/dashboard-quick-actions', [SettingController::class, 'getDashboardQuickActions']);
+        Route::post('/dashboard-quick-actions', [SettingController::class, 'saveDashboardQuickActions']);
     });
     
     // Bansos
@@ -290,8 +311,10 @@ Route::middleware(['auth:sanctum', 'tenant.status', 'tenant.feature'])->group(fu
     
     // Ronda Fines & Settings
     Route::apiResource('ronda-fines', RondaFineController::class); // Added
+    Route::post('/ronda-fines/{fine}/pay', [RondaFineController::class, 'markAsPaid']);
     Route::apiResource('ronda-fine-settings', RondaFineSettingController::class); // Added
     Route::apiResource('ronda-locations', RondaLocationController::class); // Added
+    Route::post('/ronda-locations/{location}/refresh-qr', [RondaLocationController::class, 'refreshQr']);
 
     // Support Tickets
     Route::get('support/tickets', [SupportTicketController::class, 'index']);

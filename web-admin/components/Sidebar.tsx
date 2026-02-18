@@ -32,7 +32,7 @@ const menus = [
   { name: 'Voting Warga', icon: CheckSquare, href: '/dashboard/voting' },
   { name: 'Jadwal Ronda', icon: CalendarClock, href: '/dashboard/jadwal-ronda' },
   { name: 'Monitoring CCTV', icon: Cctv, href: '/dashboard/cctv' },
-  { name: 'Buku Tamu', icon: BookOpen, href: '/dashboard/tamu' },
+  { name: 'Buku Tamu', icon: BookOpen, href: '/dashboard/buku-tamu' },
   { name: 'Emergency / SOS', icon: ShieldAlert, href: '/dashboard/darurat' },
   { name: 'Laporan Warga', icon: MessageSquareWarning, href: '/dashboard/laporan-warga' },
   { name: 'UMKM Warga', icon: ShoppingCart, href: '/dashboard/umkm' },
@@ -172,7 +172,11 @@ export default function Sidebar({ isOpen, setIsOpen }: { isOpen?: boolean, setIs
               </span>
               <DemoLabel />
             </div>
-            <span className="text-[11px] font-bold tracking-widest text-emerald-600 dark:text-emerald-400 uppercase mt-1">Super App</span>
+            {(user?.rt?.complex_name) && (
+              <span className="text-[11px] font-semibold tracking-wide text-slate-500 dark:text-slate-400 mt-1">
+                {user.rt.complex_name}
+              </span>
+            )}
           </div>
         </div>
         <button className="lg:hidden p-2 text-slate-400 dark:text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-xl transition-all" onClick={() => setIsOpen && setIsOpen(false)}>

@@ -272,7 +272,9 @@ export default function BoardingScreen() {
   };
 
   const handleAddKost = async () => {
-    if (!kostFormData.name || !kostFormData.address || !kostFormData.total_rooms) {
+    const rooms = parseInt(kostFormData.total_rooms || '0');
+    const floors = parseInt(kostFormData.total_floors || '0');
+    if (!kostFormData.name || !kostFormData.address || rooms < 1 || floors < 1) {
       Alert.alert(t('common.error'), t('boarding.alert.validationKost'));
       return;
     }

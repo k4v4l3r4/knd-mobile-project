@@ -53,6 +53,7 @@ class SettingController extends Controller {
         
         $validated = $request->validate([
             'rt_name' => 'nullable|string',
+            'complex_name' => 'nullable|string|max:255',
             'address' => 'nullable|string',
             'province' => 'nullable|string',
             'city' => 'nullable|string',
@@ -256,6 +257,66 @@ class SettingController extends Controller {
         $role->delete();
         return response()->json(['message' => 'Deleted']);
     }
+
+    // --- Admins ---
+    public function getDashboardQuickActions(Request $request)
+    {
+        $user = $request->user('sanctum');
+        if (!$user) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+        if (!$user->rt_id) {
+            return response()->json(['message' => 'User not assigned to RT'], 403);
+        }
+
+        $path = 'rt_dashboard_quick_actions/rt_' . $user->rt_id . '.json';
+
+        if (!Storage::disk('local')->exists($path)) {
+            return response()->json([
+                'success' => true,
+                'data' => []
+            ]);
+        }
+
+        $content = Storage::disk('local')->get($path);
+        $data = json_decode($content, true) ?: [];
+
+        return response()->json([
+            'success' => true,
+            'data' => $data
+        ]);
+    }
+
+    public function saveDashboardQuickActions(Request $request)
+    {
+        $user = $request->user('sanctum');
+        if (!$user) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+        if (!$user->rt_id) {
+            return response()->json(['message' => 'User not assigned to RT'], 403);
+        }
+
+        $validated = $request->validate([
+            'actions' => 'required|array',
+            'actions.*.id' => 'required|string',
+            'actions.*.title' => 'required|string',
+            'actions.*.subtitle' => 'nullable|string',
+            'actions.*.href' => 'required|string',
+            'actions.*.iconName' => 'required|string',
+            'actions.*.color' => 'required|string',
+        ]);
+
+        $path = 'rt_dashboard_quick_actions/rt_' . $user->rt_id . '.json';
+        Storage::disk('local')->put($path, json_encode($validated['actions']));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Dashboard quick actions saved',
+            'data' => $validated['actions']
+        ]);
+    }
+    // --- Admins ---
 
     // --- Admins ---
     public function getAdmins(Request $request) {

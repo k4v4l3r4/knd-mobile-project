@@ -138,35 +138,31 @@ class StoreController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
+        $scope = $this->getUmkmScope();
         $query = Store::with(['user', 'products']);
         
-        // Mapping Status: PENDING_RT=pending, APPROVED_RT=verified, REJECTED_RT=rejected
-
         if ($user->role === 'ADMIN_RT') {
-            // ADMIN RT: Scope RT Only
             $query->where('rt_id', $user->rt_id);
             
-            // Optional filter status for Admin Management
             if ($request->has('status')) {
                 $query->where('status', $request->status);
             }
         } 
         elseif ($user->role === 'ADMIN_RW') {
-            // ADMIN RW: Scope RW Only (Read Only View)
             $query->whereHas('rt', function($q) use ($user) {
                 $q->where('rw_id', $user->rw_id);
             });
 
-            // Optional filter status
             if ($request->has('status')) {
                 $query->where('status', $request->status);
             }
         } 
         else {
-            // WARGA / PUBLIC: Scope RW, Status APPROVED_RT (verified) Only
-            $query->whereHas('rt', function($q) use ($user) {
-                $q->where('rw_id', $user->rw_id);
-            });
+            if ($scope === 'RW') {
+                $query->whereHas('rt', function($q) use ($user) {
+                    $q->where('rw_id', $user->rw_id);
+                });
+            }
             $query->where('status', 'verified');
         }
         
@@ -176,6 +172,20 @@ class StoreController extends Controller
             'message' => 'Data toko berhasil diambil',
             'data' => $stores
         ]);
+    }
+
+    protected function getUmkmScope(): string
+    {
+        $file = 'payment_settings.json';
+
+        if (Storage::disk('local')->exists($file)) {
+            $settings = json_decode(Storage::disk('local')->get($file), true);
+            if (is_array($settings) && isset($settings['umkm_scope']) && in_array($settings['umkm_scope'], ['GLOBAL', 'RW'], true)) {
+                return $settings['umkm_scope'];
+            }
+        }
+
+        return 'GLOBAL';
     }
 
     /**

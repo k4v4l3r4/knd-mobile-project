@@ -483,6 +483,7 @@ export const en = {
     selectBillTitle: 'Select Bill',
     selectBillMsg: 'Please select at least one bill to pay.',
     totalPayment: 'Total Payment',
+    infoVerification: 'After you submit, your payment will be reviewed and verified by the RT admin.',
     payButton: 'Pay',
     paymentDescription: 'Payment for {{count}} bills',
     billFor: 'Bill for',

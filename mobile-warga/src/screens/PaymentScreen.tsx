@@ -33,7 +33,7 @@ export default function PaymentScreen({ initialData, onSuccess }: { initialData?
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Extract feeIds from initialData if present
-  const feeIds: number[] = initialData?.feeIds || [];
+  const feeIds: number[] = initialData?.feeIds || initialData?.fee_ids || [];
 
   useEffect(() => {
     if (initialData) {
@@ -107,7 +107,9 @@ export default function PaymentScreen({ initialData, onSuccess }: { initialData?
       return;
     }
 
-    if (!amount) {
+    const hasFeeIds = feeIds && feeIds.length > 0;
+
+    if (!hasFeeIds && !amount) {
       Alert.alert('Error', 'Mohon isi nominal pembayaran');
       return;
     }
@@ -122,7 +124,9 @@ export default function PaymentScreen({ initialData, onSuccess }: { initialData?
       const formData = new FormData();
       const cleanAmount = amount.replace(/[^0-9]/g, '');
       
-      formData.append('amount', cleanAmount);
+      if (!hasFeeIds) {
+        formData.append('amount', cleanAmount);
+      }
       
       // Append payment method
       formData.append('payment_method', activeTab);
@@ -131,7 +135,7 @@ export default function PaymentScreen({ initialData, onSuccess }: { initialData?
       const methodText = activeTab === 'BANK' ? 'Transfer Bank' : activeTab === 'QRIS' ? 'QRIS' : 'Tunai';
       formData.append('description', `${methodText} - ${description || 'Iuran Warga'}`);
 
-      if (feeIds && feeIds.length > 0) {
+      if (hasFeeIds) {
         feeIds.forEach((id: number) => {
           formData.append('fee_ids[]', String(id));
         });
@@ -148,8 +152,9 @@ export default function PaymentScreen({ initialData, onSuccess }: { initialData?
         type: type,
       });
 
-      // Use api.post for consistent token handling
-      const response = await api.post('/transactions/confirm', formData, {
+      const endpoint = hasFeeIds ? '/warga/pay' : '/transactions/confirm';
+
+      const response = await api.post(endpoint, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

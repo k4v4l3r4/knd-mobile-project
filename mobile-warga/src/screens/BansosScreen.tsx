@@ -269,6 +269,7 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
       setLoading(true);
       await api.post(`/bansos-recipients/${distributeForm.recipient_id}/distribute`, {
         program_name: distributeForm.program_name,
+        date_received: new Date().toISOString().split('T')[0],
         amount: parseInt(distributeForm.amount),
         // evidence_photo logic would go here
       });

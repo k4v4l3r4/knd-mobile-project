@@ -98,6 +98,7 @@ const PERMISSION_GROUPS = [
 
 interface ProfileData {
   rt_name: string;
+  complex_name?: string;
   address: string;
   province: string;
   city: string;
@@ -124,7 +125,17 @@ export default function SettingsPage() {
 
   // Data States
   const [profile, setProfile] = useState<ProfileData>({
-    rt_name: '', address: '', province: '', city: '', district: '', subdistrict: '', postal_code: '', contact_phone: '', logo_url: null, structure_image_url: null
+    rt_name: '',
+    complex_name: '',
+    address: '',
+    province: '',
+    city: '',
+    district: '',
+    subdistrict: '',
+    postal_code: '',
+    contact_phone: '',
+    logo_url: null,
+    structure_image_url: null,
   });
 
   // RT/RW Split State
@@ -1245,6 +1256,16 @@ export default function SettingsPage() {
                                     />
                                 </div>
                             </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Nama Perumahan (opsional)</label>
+                            <input
+                              type="text"
+                              value={profile.complex_name || ''}
+                              onChange={(e) => setProfile({ ...profile, complex_name: e.target.value })}
+                              className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none text-slate-800 dark:text-slate-100"
+                              placeholder="Contoh: Perumahan Griya Asri"
+                            />
                           </div>
                           <div>
                             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Alamat Lengkap <span className="text-red-500">*</span></label>
