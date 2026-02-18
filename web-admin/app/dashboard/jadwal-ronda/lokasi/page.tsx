@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/api';
 import { toast } from 'react-hot-toast';
 import { 
@@ -55,12 +55,7 @@ export default function RondaLokasiPage() {
   const [showQrModal, setShowQrModal] = useState(false);
   const [selectedQrLocation, setSelectedQrLocation] = useState<RondaLocation | null>(null);
 
-  useEffect(() => {
-    if (!status) return;
-    void fetchLocations();
-  }, [status, fetchLocations]);
-
-  const fetchLocations = async () => {
+  const fetchLocations = useCallback(async () => {
     setLoading(true);
     try {
       const adminToken = Cookies.get('admin_token');
@@ -105,7 +100,12 @@ export default function RondaLokasiPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isDemo]);
+
+  useEffect(() => {
+    if (!status) return;
+    void fetchLocations();
+  }, [status, fetchLocations]);
 
   const handleOpenCreate = () => {
     setModalMode('create');
