@@ -34,6 +34,20 @@ interface Warga {
   address: string;
 }
 
+const formatVisitTime = (value: string | null | undefined) => {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+};
+
+const formatVisitDate = (value: string | null | undefined) => {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+};
+
 export default function GuestBookPage() {
   const { isDemo, isExpired } = useTenant();
   const { user } = useAuth();
@@ -357,11 +371,7 @@ export default function GuestBookPage() {
                       </td>
                     </tr>
                   ) : (
-                    guests.map((guest) => {
-                      const visitDate = guest.visit_date ? new Date(guest.visit_date) : null;
-                      const isValidVisitDate = visitDate !== null && !isNaN(visitDate.getTime());
-
-                      return (
+                    guests.map((guest) => (
                         <tr key={guest.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors group">
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
@@ -404,14 +414,10 @@ export default function GuestBookPage() {
                           <td className="px-6 py-4">
                             <div className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                               <Clock size={14} className="text-emerald-500" />
-                              {isValidVisitDate
-                                ? visitDate!.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
-                                : '-'}
+                              {formatVisitTime(guest.visit_date)}
                             </div>
                             <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 pl-5">
-                              {isValidVisitDate
-                                ? visitDate!.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
-                                : '-'}
+                              {formatVisitDate(guest.visit_date)}
                             </div>
                           </td>
                         <td className="px-6 py-4">
