@@ -48,6 +48,179 @@ const formatVisitDate = (value: string | null | undefined) => {
   return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
 };
 
+const getImageUrl = (path: string | null) => {
+  if (!path) return null;
+  if (path.startsWith('http')) return path;
+  return `${process.env.NEXT_PUBLIC_API_URL}/storage/${path}`;
+};
+
+const renderGuestRows = (
+  loading: boolean,
+  guests: Guest[],
+  confirmCheckout: (id: number) => void
+) => {
+  try {
+    if (loading) {
+      return [...Array(5)].map((_, i) => (
+        <tr key={i} className="animate-pulse">
+          <td className="px-6 py-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700" />
+              <div className="space-y-2">
+                <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-24" />
+                <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-16" />
+              </div>
+            </div>
+          </td>
+          <td className="px-6 py-4">
+            <div className="space-y-2">
+              <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-20" />
+              <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-32" />
+            </div>
+          </td>
+          <td className="px-6 py-4">
+            <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-16" />
+          </td>
+          <td className="px-6 py-4">
+            <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded-full w-20" />
+          </td>
+          <td className="px-6 py-4">
+            <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded w-24 ml-auto" />
+          </td>
+        </tr>
+      ));
+    }
+
+    if (!Array.isArray(guests) || guests.length === 0) {
+      return (
+        <tr>
+          <td
+            colSpan={5}
+            className="px-6 py-16 text-center text-slate-500 dark:text-slate-400"
+          >
+            <div className="flex flex-col items-center justify-center">
+              <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-3 text-slate-300 dark:text-slate-600">
+                <Users size={32} />
+              </div>
+              <p className="font-medium">Belum ada data tamu hari ini.</p>
+            </div>
+          </td>
+        </tr>
+      );
+    }
+
+    const safeGuests = guests.filter(Boolean);
+
+    return safeGuests.map((guest) => (
+      <tr
+        key={guest.id}
+        className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors group"
+      >
+        <td className="px-6 py-4">
+          <div className="flex items-center gap-3">
+            {guest.id_card_photo ? (
+              <img
+                src={getImageUrl(guest.id_card_photo) || ''}
+                alt="Foto"
+                className="w-10 h-10 rounded-full object-cover border border-slate-200 dark:border-slate-700 shadow-sm"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-500 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800">
+                <User className="w-5 h-5" />
+              </div>
+            )}
+            <div>
+              <div className="font-bold text-slate-800 dark:text-white text-[15px]">
+                {guest.guest_name}
+              </div>
+              <div className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                <MapPin size={10} />
+                {guest.origin || '-'}
+              </div>
+            </div>
+          </div>
+        </td>
+        <td className="px-6 py-4">
+          {guest.host ? (
+            <div>
+              <div className="text-sm text-slate-700 dark:text-slate-300 font-bold">
+                {guest.host.name}
+              </div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 font-medium bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded w-fit mt-0.5 border border-slate-200 dark:border-slate-700">
+                {guest.host.address || '-'}
+              </div>
+            </div>
+          ) : (
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 italic bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
+              Tamu Umum
+            </span>
+          )}
+          <div className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 truncate max-w-[150px] flex items-center gap-1">
+            <span className="w-1 h-1 rounded-full bg-emerald-400" />
+            {guest.purpose}
+          </div>
+        </td>
+        <td className="px-6 py-4">
+          <div className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+            <Clock size={14} className="text-emerald-500" />
+            {formatVisitTime(guest.visit_date)}
+          </div>
+          <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 pl-5">
+            {formatVisitDate(guest.visit_date)}
+          </div>
+        </td>
+        <td className="px-6 py-4">
+          <span
+            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
+              guest.status === 'CHECK_IN'
+                ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+            }`}
+          >
+            {guest.status === 'CHECK_IN' ? (
+              <>
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                </span>
+                Berkunjung
+              </>
+            ) : (
+              <>
+                <CheckCircle2 size={12} />
+                Selesai
+              </>
+            )}
+          </span>
+        </td>
+        <td className="px-6 py-4 text-right">
+          {guest.status === 'CHECK_IN' && (
+            <button
+              onClick={() => confirmCheckout(guest.id)}
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/50 hover:text-rose-700 dark:hover:text-rose-300 rounded-lg transition-colors font-bold text-xs border border-rose-100 dark:border-rose-800 shadow-sm"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              Check Out
+            </button>
+          )}
+        </td>
+      </tr>
+    ));
+  } catch (error) {
+    console.error('GuestBookPage render error', error, guests);
+    return (
+      <tr>
+        <td
+          colSpan={5}
+          className="px-6 py-16 text-center text-slate-500 dark:text-slate-400"
+        >
+          Terjadi kesalahan saat menampilkan data tamu
+        </td>
+      </tr>
+    );
+  }
+};
+
 export default function GuestBookPage() {
   const { isDemo, isExpired } = useTenant();
   const { user } = useAuth();
@@ -176,12 +349,6 @@ export default function GuestBookPage() {
       setIsCheckingOut(false);
       setGuestToCheckout(null);
     }
-  };
-
-  const getImageUrl = (path: string | null) => {
-    if (!path) return null;
-    if (path.startsWith('http')) return path;
-    return `${process.env.NEXT_PUBLIC_API_URL}/storage/${path}`;
   };
 
   return (
@@ -349,113 +516,7 @@ export default function GuestBookPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {loading ? (
-                    [...Array(5)].map((_, i) => (
-                        <tr key={i} className="animate-pulse">
-                            <td className="px-6 py-4"><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700"></div><div className="space-y-2"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-24"></div><div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-16"></div></div></div></td>
-                            <td className="px-6 py-4"><div className="space-y-2"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-20"></div><div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-32"></div></div></td>
-                            <td className="px-6 py-4"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-16"></div></td>
-                            <td className="px-6 py-4"><div className="h-6 bg-slate-200 dark:bg-slate-700 rounded-full w-20"></div></td>
-                            <td className="px-6 py-4"><div className="h-8 bg-slate-200 dark:bg-slate-700 rounded w-24 ml-auto"></div></td>
-                        </tr>
-                    ))
-                  ) : guests.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="px-6 py-16 text-center text-slate-500 dark:text-slate-400">
-                        <div className="flex flex-col items-center justify-center">
-                            <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-3 text-slate-300 dark:text-slate-600">
-                                <Users size={32} />
-                            </div>
-                            <p className="font-medium">Belum ada data tamu hari ini.</p>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : (
-                    guests.map((guest) => (
-                        <tr key={guest.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors group">
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              {guest.id_card_photo ? (
-                                <img 
-                                  src={getImageUrl(guest.id_card_photo) || ''} 
-                                  alt="Foto"
-                                  className="w-10 h-10 rounded-full object-cover border border-slate-200 dark:border-slate-700 shadow-sm"
-                                />
-                              ) : (
-                                <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-500 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800">
-                                  <User className="w-5 h-5" />
-                                </div>
-                              )}
-                              <div>
-                                <div className="font-bold text-slate-800 dark:text-white text-[15px]">{guest.guest_name}</div>
-                                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                                  <MapPin size={10} />
-                                  {guest.origin || '-'}
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            {guest.host ? (
-                              <div>
-                                <div className="text-sm text-slate-700 dark:text-slate-300 font-bold">{guest.host.name}</div>
-                                <div className="text-xs text-slate-500 dark:text-slate-400 font-medium bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded w-fit mt-0.5 border border-slate-200 dark:border-slate-700">
-                                  {guest.host.address || '-'}
-                                </div>
-                              </div>
-                            ) : (
-                              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 italic bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700">Tamu Umum</span>
-                            )}
-                            <div className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 truncate max-w-[150px] flex items-center gap-1">
-                              <span className="w-1 h-1 rounded-full bg-emerald-400"></span>
-                              {guest.purpose}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                              <Clock size={14} className="text-emerald-500" />
-                              {formatVisitTime(guest.visit_date)}
-                            </div>
-                            <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 pl-5">
-                              {formatVisitDate(guest.visit_date)}
-                            </div>
-                          </td>
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
-                            guest.status === 'CHECK_IN' 
-                              ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' 
-                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
-                          }`}>
-                            {guest.status === 'CHECK_IN' ? (
-                                <>
-                                    <span className="relative flex h-2 w-2">
-                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                                    </span>
-                                    Berkunjung
-                                </>
-                            ) : (
-                                <>
-                                    <CheckCircle2 size={12} />
-                                    Selesai
-                                </>
-                            )}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          {guest.status === 'CHECK_IN' && (
-                            <button
-                              onClick={() => confirmCheckout(guest.id)}
-                              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/50 hover:text-rose-700 dark:hover:text-rose-300 rounded-lg transition-colors font-bold text-xs border border-rose-100 dark:border-rose-800 shadow-sm"
-                            >
-                              <LogOut className="w-3.5 h-3.5" />
-                              Check Out
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))
-                  )}
+                  {renderGuestRows(loading, guests, confirmCheckout)}
                 </tbody>
               </table>
             </div>
