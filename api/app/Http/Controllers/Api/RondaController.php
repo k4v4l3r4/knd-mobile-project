@@ -321,84 +321,92 @@ class RondaController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'rt_id' => 'nullable|exists:wilayah_rt,id',
-            'schedule_type' => 'required|in:DAILY,WEEKLY',
-            'start_date' => 'required|date',
-            'start_time' => 'required|date_format:H:i',
-            'end_time' => 'required|date_format:H:i',
-            'officers' => 'array',
-            'officers.*' => 'exists:users,id',
-            'status' => 'nullable|in:ACTIVE,INACTIVE',
-            'shift_name' => 'nullable|string|max:100'
-        ]);
+        try {
+            $validated = $request->validate([
+                'rt_id' => 'nullable|exists:wilayah_rt,id',
+                'schedule_type' => 'required|in:DAILY,WEEKLY',
+                'start_date' => 'required|date',
+                'start_time' => 'required|date_format:H:i',
+                'end_time' => 'required|date_format:H:i',
+                'officers' => 'array',
+                'officers.*' => 'exists:users,id',
+                'status' => 'nullable|in:ACTIVE,INACTIVE',
+                'shift_name' => 'nullable|string|max:100'
+            ]);
 
-        $rtId = $validated['rt_id'] ?? (Auth::user()->rt_id ?? null);
-        if (!$rtId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'RT tidak diketahui'
-            ], 422);
-        }
-
-        $startDate = \Carbon\Carbon::parse($validated['start_date']);
-        $scheduleType = $validated['schedule_type'];
-        
-        // Calculate end date based on type
-        if ($scheduleType === 'DAILY') {
-            $endDate = $startDate->copy()->format('Y-m-d');
-            $shiftName = $validated['shift_name'] ?? ('Ronda Harian (' . $startDate->isoFormat('dddd') . ')');
-        } else {
-            // WEEKLY: start + 6 days
-            $endDate = $startDate->copy()->addDays(6)->format('Y-m-d');
-            $shiftName = $validated['shift_name'] ?? 'Ronda Mingguan';
-        }
-
-        // Check overlap
-        $overlap = RondaSchedule::where('rt_id', $rtId)
-            ->where('start_date', '<=', $endDate)
-            ->where('end_date', '>=', $validated['start_date'])
-            ->where('status', 'ACTIVE')
-            ->where('shift_name', $shiftName)
-            ->exists();
-
-        if ($overlap) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Jadwal bertabrakan dengan jadwal aktif lain'
-            ], 422);
-        }
-
-        $schedule = RondaSchedule::create([
-            'rt_id' => $rtId,
-            'schedule_type' => $scheduleType,
-            'shift_name' => $shiftName,
-            'start_date' => $validated['start_date'],
-            'end_date' => $endDate,
-            'start_time' => $validated['start_time'],
-            'end_time' => $validated['end_time'],
-            'status' => $validated['status'] ?? 'ACTIVE',
-        ]);
-
-        if (!empty($validated['officers'])) {
-            foreach ($validated['officers'] as $userId) {
-                RondaParticipant::create([
-                    'schedule_id' => $schedule->id,
-                    'user_id' => $userId,
-                    'status' => 'PENDING'
-                ]);
+            $rtId = $validated['rt_id'] ?? (Auth::user()->rt_id ?? null);
+            if (!$rtId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'RT tidak diketahui'
+                ], 422);
             }
+
+            $startDate = \Carbon\Carbon::parse($validated['start_date']);
+            $scheduleType = $validated['schedule_type'];
+            
+            if ($scheduleType === 'DAILY') {
+                $endDate = $startDate->copy()->format('Y-m-d');
+                $shiftName = $validated['shift_name'] ?? ('Ronda Harian (' . $startDate->isoFormat('dddd') . ')');
+            } else {
+                $endDate = $startDate->copy()->addDays(6)->format('Y-m-d');
+                $shiftName = $validated['shift_name'] ?? 'Ronda Mingguan';
+            }
+
+            $overlap = RondaSchedule::where('rt_id', $rtId)
+                ->where('start_date', '<=', $endDate)
+                ->where('end_date', '>=', $validated['start_date'])
+                ->where('status', 'ACTIVE')
+                ->where('shift_name', $shiftName)
+                ->exists();
+
+            if ($overlap) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Jadwal bertabrakan dengan jadwal aktif lain'
+                ], 422);
+            }
+
+            $schedule = RondaSchedule::create([
+                'rt_id' => $rtId,
+                'schedule_type' => $scheduleType,
+                'shift_name' => $shiftName,
+                'start_date' => $validated['start_date'],
+                'end_date' => $endDate,
+                'start_time' => $validated['start_time'],
+                'end_time' => $validated['end_time'],
+                'status' => $validated['status'] ?? 'ACTIVE',
+            ]);
+
+            if (!empty($validated['officers'])) {
+                foreach ($validated['officers'] as $userId) {
+                    RondaParticipant::create([
+                        'schedule_id' => $schedule->id,
+                        'user_id' => $userId,
+                        'status' => 'PENDING'
+                    ]);
+                }
+            }
+
+            $schedule->load(['participants.user' => function($query) {
+                $query->select('id', 'name', 'phone');
+            }]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Jadwal berhasil dibuat',
+                'data' => $schedule
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to create ronda schedule', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan pada server saat menyimpan jadwal ronda.',
+            ], 500);
         }
-
-        $schedule->load(['participants.user' => function($query) {
-            $query->select('id', 'name', 'phone');
-        }]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Jadwal berhasil dibuat',
-            'data' => $schedule
-        ]);
     }
 
     /**
@@ -503,6 +511,7 @@ class RondaController extends Controller
             'start_time' => 'nullable|date_format:H:i',
             'end_time' => 'nullable|date_format:H:i',
             'status' => 'nullable|in:ACTIVE,INACTIVE',
+            'shift_name' => 'nullable|string|max:100',
             'officers' => 'array',
             'officers.*' => 'exists:users,id',
         ]);
@@ -515,6 +524,9 @@ class RondaController extends Controller
         }
         if (isset($validated['status'])) {
             $schedule->status = $validated['status'];
+        }
+        if (array_key_exists('shift_name', $validated)) {
+            $schedule->shift_name = $validated['shift_name'];
         }
         $schedule->save();
 

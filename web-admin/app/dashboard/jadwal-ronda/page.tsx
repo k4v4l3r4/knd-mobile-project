@@ -161,7 +161,9 @@ export default function JadwalRondaPage() {
         setSchedules(schedRes.data.all_schedules || (schedRes.data.data ? [schedRes.data.data] : []));
       }
       if (wargaRes.data.success) {
-        setWargaList(wargaRes.data.data);
+        const raw = wargaRes.data.data;
+        const list = Array.isArray(raw) ? raw : (raw?.data ?? []);
+        setWargaList(Array.isArray(list) ? list : []);
       }
     } catch (error) {
       if (!isDemo) {
