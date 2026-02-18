@@ -9,7 +9,8 @@ import {
   ActivityIndicator,
   Modal,
   TextInput,
-  ScrollView
+  ScrollView,
+  Linking
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialIcons, FontAwesome5, Feather } from '@expo/vector-icons';
@@ -173,47 +174,71 @@ export default function RondaLocationScreen({ navigation }: any) {
     setQrModalVisible(true);
   };
 
-  const renderItem = ({ item }: { item: RondaLocation }) => (
-    <View style={styles.card}>
-      <View style={styles.cardContent}>
-        <View style={styles.iconContainer}>
-          <FontAwesome5 name="map-marker-alt" size={24} color={colors.primary} />
+  const renderItem = ({ item }: { item: RondaLocation }) => {
+    const openInMaps = () => {
+      const lat = parseFloat(item.latitude);
+      const lng = parseFloat(item.longitude);
+      if (Number.isNaN(lat) || Number.isNaN(lng)) {
+        Alert.alert('Lokasi tidak valid', 'Koordinat latitude/longitude tidak valid.');
+        return;
+      }
+      const url = `https://www.google.com/maps?q=${lat},${lng}`;
+      Linking.openURL(url).catch(() => {
+        Alert.alert('Error', 'Gagal membuka aplikasi peta');
+      });
+    };
+
+    return (
+      <View style={styles.card}>
+        <View style={styles.cardContent}>
+          <View style={styles.iconContainer}>
+            <FontAwesome5 name="map-marker-alt" size={24} color={colors.primary} />
+          </View>
+          <View style={styles.textContainer}>
+            <Text style={styles.cardTitle}>{item.name}</Text>
+            <Text style={styles.cardSubtitle}>
+              Lat: {item.latitude}, Long: {item.longitude}
+            </Text>
+            <Text style={styles.radiusText}>Radius: {item.radius_meters}m</Text>
+          </View>
         </View>
-        <View style={styles.textContainer}>
-          <Text style={styles.cardTitle}>{item.name}</Text>
-          <Text style={styles.cardSubtitle}>
-            Lat: {item.latitude}, Long: {item.longitude}
-          </Text>
-          <Text style={styles.radiusText}>Radius: {item.radius_meters}m</Text>
-        </View>
-      </View>
-      
-      <View style={styles.actions}>
-        <TouchableOpacity 
-          style={styles.qrButton}
-          onPress={() => handleShowQR(item)}
-        >
-          <MaterialIcons name="qr-code" size={20} color="#fff" />
-          <Text style={styles.qrButtonText}>Lihat QR</Text>
-        </TouchableOpacity>
         
-        <View style={styles.editActions}>
-          <TouchableOpacity 
-            style={styles.iconButton}
-            onPress={() => handleEdit(item)}
-          >
-            <Feather name="edit-2" size={20} color={colors.textSecondary} />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.iconButton}
-            onPress={() => handleDelete(item.id)}
-          >
-            <Feather name="trash-2" size={20} color="#ef4444" />
-          </TouchableOpacity>
+        <View style={styles.actions}>
+          <View style={styles.actionLeft}>
+            <TouchableOpacity 
+              style={styles.qrButton}
+              onPress={() => handleShowQR(item)}
+            >
+              <MaterialIcons name="qr-code" size={20} color="#fff" />
+              <Text style={styles.qrButtonText}>Lihat QR</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.mapButton}
+              onPress={openInMaps}
+            >
+              <Ionicons name="map-outline" size={18} color={colors.primary} />
+              <Text style={styles.mapButtonText}>Buka di Maps</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.editActions}>
+            <TouchableOpacity 
+              style={styles.iconButton}
+              onPress={() => handleEdit(item)}
+            >
+              <Feather name="edit-2" size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.iconButton}
+              onPress={() => handleDelete(item.id)}
+            >
+              <Feather name="trash-2" size={20} color="#ef4444" />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -463,6 +488,11 @@ const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
     borderTopColor: isDarkMode ? '#334155' : '#e2e8f0',
     paddingTop: 12,
   },
+  actionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   qrButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -475,6 +505,22 @@ const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
   qrButtonText: {
     color: '#fff',
     fontSize: 14,
+    fontWeight: '600',
+  },
+  mapButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.primary + '60',
+    backgroundColor: isDarkMode ? '#0f172a' : '#f1f5f9',
+    gap: 6,
+  },
+  mapButtonText: {
+    color: colors.primary,
+    fontSize: 12,
     fontWeight: '600',
   },
   editActions: {

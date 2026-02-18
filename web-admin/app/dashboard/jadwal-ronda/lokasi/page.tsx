@@ -14,7 +14,8 @@ import {
   Save,
   X,
   Download,
-  Printer
+  Printer,
+  MapPinned
 } from 'lucide-react';
 import Link from 'next/link';
 import { QRCodeCanvas } from 'qrcode.react';
@@ -56,8 +57,8 @@ export default function RondaLokasiPage() {
 
   useEffect(() => {
     if (!status) return;
-    fetchLocations();
-  }, [status]);
+    void fetchLocations();
+  }, [status, fetchLocations]);
 
   const fetchLocations = async () => {
     setLoading(true);
@@ -166,9 +167,20 @@ export default function RondaLokasiPage() {
       }
       setShowModal(false);
       fetchLocations();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving location:', error);
-      toast.error(error.response?.data?.message || 'Gagal menyimpan lokasi');
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'response' in error &&
+        typeof (error as { response?: { data?: { message?: string } } }).response?.data?.message === 'string'
+      ) {
+        toast.error(
+          (error as { response?: { data?: { message?: string } } }).response?.data?.message || 'Gagal menyimpan lokasi'
+        );
+      } else {
+        toast.error('Gagal menyimpan lokasi');
+      }
     } finally {
       setSaving(false);
     }
@@ -402,17 +414,34 @@ export default function RondaLokasiPage() {
                 <p>Radius: {loc.radius_meter} meter</p>
               </div>
 
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center">
-                <div className="text-xs text-slate-400">
-                  QR Expired: {new Date(loc.token_expires_at).toLocaleDateString()}
-                </div>
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-700 flex flex-col gap-3">
                 <button
-                  onClick={() => handleRefreshQr(loc.id)}
-                  className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 hover:text-emerald-700 transition-colors"
+                  type="button"
+                  onClick={() =>
+                    window.open(
+                      `https://www.google.com/maps?q=${loc.latitude},${loc.longitude}`,
+                      '_blank',
+                      'noopener,noreferrer'
+                    )
+                  }
+                  className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-semibold hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
                 >
-                  <RefreshCw size={14} />
-                  Refresh Token
+                  <MapPinned size={14} />
+                  <span>Lihat di Google Maps</span>
                 </button>
+
+                <div className="flex justify-between items-center text-xs">
+                  <div className="text-slate-400">
+                    QR Expired: {new Date(loc.token_expires_at).toLocaleDateString()}
+                  </div>
+                  <button
+                    onClick={() => handleRefreshQr(loc.id)}
+                    className="flex items-center gap-1.5 font-medium text-emerald-600 hover:text-emerald-700 transition-colors"
+                  >
+                    <RefreshCw size={14} />
+                    Refresh Token
+                  </button>
+                </div>
               </div>
             </div>
           ))
