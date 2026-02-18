@@ -156,6 +156,9 @@ export default function Sidebar({ isOpen, setIsOpen }: { isOpen?: boolean; setIs
 
   const isSettingsActive = pathname === '/dashboard/pengaturan';
 
+  const logoSrc: string | undefined =
+    (user?.rt?.logo_url as string | null | undefined) ?? logoUrl ?? undefined;
+
   return (
     <aside className={`
       fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-slate-900 border-r border-slate-200/60 dark:border-slate-800
@@ -169,11 +172,11 @@ export default function Sidebar({ isOpen, setIsOpen }: { isOpen?: boolean; setIs
       <div className="h-24 shrink-0 flex items-center justify-between px-6 border-b border-slate-100/50 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
         <div className="flex items-center gap-3 group cursor-pointer" onClick={() => router.push('/dashboard')}>
           <div className="relative w-11 h-11 flex items-center justify-center rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 shadow-lg shadow-emerald-500/20 group-hover:shadow-emerald-500/30 group-hover:scale-105 transition-all duration-300">
-             {(user?.rt?.logo_url || logoUrl) ? (
-                <img src={user?.rt?.logo_url || logoUrl} alt="Logo" className="w-full h-full object-cover rounded-2xl" />
-             ) : (
-                <div className="text-white font-bold text-xl tracking-tighter">RT</div>
-             )}
+            {logoSrc ? (
+              <img src={logoSrc} alt="Logo" className="w-full h-full object-cover rounded-2xl" />
+            ) : (
+              <div className="text-white font-bold text-xl tracking-tighter">RT</div>
+            )}
           </div>
           <div className="flex flex-col justify-center">
             <div className="flex items-center gap-2">
