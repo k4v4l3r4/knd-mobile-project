@@ -253,7 +253,14 @@ export default function GuestBookPage() {
     try {
       setLoading(true);
       const response = await axios.get('/guest-books');
-      setGuests(response.data.data);
+      const raw = response?.data?.data;
+      const list = Array.isArray(raw) ? raw : [];
+
+      if (!Array.isArray(raw)) {
+        console.error('Unexpected /guest-books payload', response?.data);
+      }
+
+      setGuests(list as Guest[]);
     } catch (error) {
       console.error('Error fetching guests:', error);
       toast.error('Gagal memuat data tamu');
@@ -265,7 +272,14 @@ export default function GuestBookPage() {
   const fetchWargas = async () => {
     try {
       const response = await axios.get('/warga?per_page=1000'); // Get all warga
-      setWargas(response.data.data);
+      const raw = response?.data?.data;
+      const list = Array.isArray(raw) ? raw : [];
+
+      if (!Array.isArray(raw)) {
+        console.error('Unexpected /warga payload', response?.data);
+      }
+
+      setWargas(list as Warga[]);
     } catch (error) {
       console.error('Error fetching warga:', error);
     }
@@ -426,7 +440,7 @@ export default function GuestBookPage() {
                   onChange={e => setFormData({...formData, host_user_id: e.target.value})}
                 >
                   <option value="">-- Tamu Umum / Pos Satpam --</option>
-                  {wargas.map(w => (
+                  {(Array.isArray(wargas) ? wargas : []).map((w) => (
                     <option key={w.id} value={w.id}>
                       {w.name} ({w.address || '-'})
                     </option>
@@ -499,7 +513,7 @@ export default function GuestBookPage() {
               </h2>
               <div className="flex gap-2">
                  <div className="text-sm font-medium text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
-                    Total: <span className="text-slate-800 dark:text-white font-bold">{guests.length}</span>
+                    Total: <span className="text-slate-800 dark:text-white font-bold">{Array.isArray(guests) ? guests.length : 0}</span>
                  </div>
               </div>
             </div>
