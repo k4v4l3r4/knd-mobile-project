@@ -1,18 +1,15 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { 
-  Megaphone, 
-  Plus, 
-  Pencil, 
-  Trash2, 
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Megaphone,
+  Plus,
+  Pencil,
+  Trash2,
   Image as ImageIcon,
   Loader2,
   X,
-  FileText,
-  Eye,
   Calendar,
-  MoreVertical
 } from 'lucide-react';
 import api from '@/lib/api';
 import Cookies from 'js-cookie';
@@ -55,12 +52,7 @@ export default function PengumumanPage() {
   const [itemToDelete, setItemToDelete] = useState<{id: number, title: string} | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
-    if (!status) return;
-    fetchAnnouncements();
-  }, [status]);
-
-  const fetchAnnouncements = async () => {
+  const fetchAnnouncements = useCallback(async () => {
     setLoading(true);
     try {
       const token = Cookies.get('admin_token');
@@ -115,7 +107,12 @@ export default function PengumumanPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isDemo]);
+
+  useEffect(() => {
+    if (!status) return;
+    fetchAnnouncements();
+  }, [status, fetchAnnouncements]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -164,9 +161,40 @@ export default function PengumumanPage() {
         fetchAnnouncements();
         closeModal();
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error submitting:', error);
-      toast.error('Gagal menyimpan pengumuman');
+      let message = 'Gagal menyimpan pengumuman';
+
+      type ErrorResponse = {
+        data?: {
+          message?: string;
+          errors?: Record<string, string[]>;
+        };
+      };
+
+      const hasResponse =
+        typeof error === 'object' &&
+        error !== null &&
+        'response' in error &&
+        (error as { response?: ErrorResponse }).response;
+
+      if (hasResponse) {
+        const response = (error as { response?: ErrorResponse }).response;
+        const data = response?.data;
+
+        if (data?.message) {
+          message = data.message;
+        } else if (data?.errors) {
+          const errors = data.errors;
+          const firstField = Object.keys(errors)[0];
+          const firstMessage = firstField && errors[firstField]?.[0];
+          if (firstMessage) {
+            message = firstMessage;
+          }
+        }
+      }
+
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }
@@ -195,7 +223,7 @@ export default function PengumumanPage() {
       toast.success('Pengumuman berhasil dihapus');
       setAnnouncements(prev => prev.filter(a => a.id !== itemToDelete.id));
       setIsDeleteModalOpen(false);
-    } catch (error) {
+    } catch {
       toast.error('Gagal menghapus pengumuman');
     } finally {
       setIsDeleting(false);
@@ -312,13 +340,9 @@ export default function PengumumanPage() {
               {/* Image Section */}
               <div className="h-52 bg-slate-100 dark:bg-slate-800 relative overflow-hidden">
                 {item.image_url ? (
-                  <img 
-                    src={getImageUrl(item.image_url) || ''} 
-                    alt={item.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = 'https://placehold.co/600x400?text=No+Image';
-                    }}
+                  <div
+                    className="w-full h-full bg-center bg-cover group-hover:scale-105 transition-transform duration-700"
+                    style={{ backgroundImage: `url(${getImageUrl(item.image_url) || ''})` }}
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-slate-300 dark:text-slate-600 bg-slate-50 dark:bg-slate-800 pattern-grid">
@@ -416,15 +440,14 @@ export default function PengumumanPage() {
                     
                     {previewUrl ? (
                       <div className="relative h-64 w-full rounded-xl overflow-hidden shadow-sm">
-                        <img 
-                          src={previewUrl} 
-                          alt="Preview" 
-                          className="h-full w-full object-cover"
+                        <div
+                          className="h-full w-full bg-center bg-cover"
+                          style={{ backgroundImage: `url(${previewUrl})` }}
                         />
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                           <p className="text-white font-bold flex items-center gap-2">
-                             <ImageIcon className="w-5 h-5" /> Ganti Gambar
-                           </p>
+                          <p className="text-white font-bold flex items-center gap-2">
+                            <ImageIcon className="w-5 h-5" /> Ganti Gambar
+                          </p>
                         </div>
                       </div>
                     ) : (
@@ -575,8 +598,10 @@ export default function PengumumanPage() {
             </div>
             <h3 className="text-xl font-bold text-center text-slate-800 dark:text-white mb-2">Hapus Pengumuman?</h3>
             <p className="text-center text-slate-500 dark:text-slate-400 mb-8 leading-relaxed text-sm">
-              Apakah Anda yakin ingin menghapus <span className="font-bold text-slate-800 dark:text-white">"{itemToDelete.title}"</span>? 
-              <br/>Tindakan ini tidak dapat dibatalkan.
+              Apakah Anda yakin ingin menghapus{' '}
+              <span className="font-bold text-slate-800 dark:text-white">{itemToDelete.title}</span>?
+              <br />
+              Tindakan ini tidak dapat dibatalkan.
             </p>
             <div className="flex gap-3">
               <button
