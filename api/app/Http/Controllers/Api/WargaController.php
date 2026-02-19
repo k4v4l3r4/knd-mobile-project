@@ -51,6 +51,11 @@ class WargaController extends Controller
             }
         }
 
+        $query->orderByRaw("CASE WHEN kk_number IS NULL OR kk_number = '' THEN 1 ELSE 0 END")
+              ->orderBy('kk_number')
+              ->orderByRaw("FIELD(status_in_family, 'KEPALA_KELUARGA', 'SUAMI', 'ISTRI', 'ANAK')")
+              ->orderBy('name');
+
         $perPage = $request->input('per_page', 10);
         // If per_page is 'all', get all results
         if ($request->input('all') === 'true') {
@@ -239,7 +244,12 @@ class WargaController extends Controller
             $query->where('rt_id', $admin->rt_id);
         }
 
-        $wargas = $query->orderBy('name')->get();
+        $wargas = $query
+            ->orderByRaw("CASE WHEN kk_number IS NULL OR kk_number = '' THEN 1 ELSE 0 END")
+            ->orderBy('kk_number')
+            ->orderByRaw("FIELD(status_in_family, 'KEPALA_KELUARGA', 'SUAMI', 'ISTRI', 'ANAK')")
+            ->orderBy('name')
+            ->get();
 
         $headers = [
             "Content-type"        => "text/csv",
@@ -321,11 +331,25 @@ class WargaController extends Controller
             }
 
             $query = User::whereIn('role', ['WARGA', 'WARGA_TETAP', 'WARGA_KOST'])
-                ->where('rt_id', $admin->rt_id)
-                ->orderBy('kk_number')
-                ->orderBy('name');
+                ->where('rt_id', $admin->rt_id);
 
             $wargas = $query->get();
+
+            $statusPriority = [
+                'KEPALA_KELUARGA' => 0,
+                'SUAMI' => 0,
+                'ISTRI' => 1,
+                'ANAK' => 2,
+            ];
+
+            $wargas = $wargas->sortBy(function ($warga) use ($statusPriority) {
+                $kk = $warga->kk_number ?? '';
+                $status = strtoupper($warga->status_in_family ?? '');
+                $priority = $statusPriority[$status] ?? 99;
+                $name = $warga->name ?? '';
+
+                return sprintf('%s-%02d-%s', $kk, $priority, $name);
+            })->values();
 
             if ($wargas->count() > 1500) {
                 return response()->json([

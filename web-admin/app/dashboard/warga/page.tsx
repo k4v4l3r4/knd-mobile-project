@@ -931,7 +931,7 @@ export default function WargaPage() {
             <thead className="bg-slate-50/50 dark:bg-slate-800/50">
               <tr>
                 <th className="px-8 py-5 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Warga</th>
-                <th className="px-8 py-5 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">NIK / KK</th>
+                <th className="px-8 py-5 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Blok / Gang</th>
                 <th className="px-8 py-5 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Info Kontak</th>
                 <th className="px-8 py-5 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
                 <th className="px-8 py-5 text-right text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Aksi</th>
@@ -1011,15 +1011,14 @@ export default function WargaPage() {
                       </div>
                     </td>
                     <td className="px-8 py-5">
-                        <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300 font-mono bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded w-fit">
-                                <CreditCard size={14} className="text-slate-400 dark:text-slate-500" />
-                                {warga.nik}
+                        <div className="flex flex-col gap-1 text-sm text-slate-700 dark:text-slate-300">
+                            <div className="flex items-center gap-2">
+                                <MapPin size={14} className="text-emerald-500 dark:text-emerald-400" />
+                                <span>{warga.block ? `Blok ${warga.block}` : ''}</span>
                             </div>
-                            {warga.kk_number && (
-                                <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-mono px-2">
-                                    <Users size={12} className="text-slate-400 dark:text-slate-500" />
-                                    {warga.kk_number}
+                            {warga.gang && (
+                                <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                                    <span>Gang {warga.gang}</span>
                                 </div>
                             )}
                         </div>
