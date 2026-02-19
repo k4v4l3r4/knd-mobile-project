@@ -108,16 +108,26 @@
                     <td>{{ $warga->status_in_family }}</td>
                     <td class="text-center">{{ $warga->gender }}</td>
                     <td>{{ $warga->place_of_birth }}</td>
+                    @php
+                        $birth = null;
+                        if (!empty($warga->date_of_birth)) {
+                            try {
+                                $birth = \Carbon\Carbon::parse($warga->date_of_birth);
+                            } catch (\Exception $e) {
+                                $birth = null;
+                            }
+                        }
+                    @endphp
                     <td class="text-center">
-                        @if($warga->date_of_birth)
-                            {{ \Carbon\Carbon::parse($warga->date_of_birth)->format('d/m/Y') }}
+                        @if($birth)
+                            {{ $birth->format('d/m/Y') }}
                         @else
                             -
                         @endif
                     </td>
                     <td class="text-center">
-                        @if($warga->date_of_birth)
-                            {{ \Carbon\Carbon::parse($warga->date_of_birth)->age }} Tahun
+                        @if($birth)
+                            {{ $birth->age }} Tahun
                         @else
                             -
                         @endif
