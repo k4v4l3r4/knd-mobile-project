@@ -13,6 +13,7 @@ export default function CctvPlayer({ label, location, isMini = false, src, statu
   const [isMuted, setIsMuted] = React.useState(true);
   const [time, setTime] = React.useState<string>('');
   const [hasError, setHasError] = React.useState(false);
+  const videoRef = React.useRef<HTMLVideoElement | null>(null);
 
   React.useEffect(() => {
     setTime(new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }));
@@ -22,16 +23,86 @@ export default function CctvPlayer({ label, location, isMini = false, src, statu
     return () => clearInterval(timer);
   }, []);
 
+  React.useEffect(() => {
+    let hlsInstance: any = null;
+
+    const setupPlayer = async () => {
+      if (!src || !videoRef.current) return;
+
+      setHasError(false);
+
+      const video = videoRef.current;
+      const isHls = src.includes('.m3u8');
+
+      try {
+        if (isHls) {
+          if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = src;
+          } else {
+            const hlsModule = await import('hls.js');
+            const Hls = hlsModule.default;
+
+            if (Hls.isSupported()) {
+              hlsInstance = new Hls();
+              hlsInstance.loadSource(src);
+              hlsInstance.attachMedia(video);
+              hlsInstance.on(Hls.Events.ERROR, () => {
+                setHasError(true);
+              });
+            } else {
+              setHasError(true);
+              return;
+            }
+          }
+        } else {
+          video.src = src;
+        }
+
+        const playPromise = video.play();
+        if (playPromise && typeof playPromise.then === 'function') {
+          playPromise.catch(() => {});
+        }
+      } catch {
+        setHasError(true);
+      }
+    };
+
+    setupPlayer();
+
+    return () => {
+      if (hlsInstance) {
+        hlsInstance.destroy();
+      }
+    };
+  }, [src]);
+
+  const handleToggleMute = () => {
+    setIsMuted((prev) => {
+      const next = !prev;
+      const video = videoRef.current;
+      if (video) {
+        video.muted = next;
+        const playPromise = video.play();
+        if (playPromise && typeof playPromise.then === 'function') {
+          playPromise.catch(() => {});
+        }
+      }
+      return next;
+    });
+  };
+
   return (
     <div className={`relative overflow-hidden bg-slate-900 rounded-2xl group ${isMini ? 'aspect-video' : 'aspect-video shadow-lg'}`}>
       {/* Video Placeholder / Image */}
       <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
         {src && !hasError ? (
-          <img 
-            src={src} 
-            alt={label} 
+          <video
+            ref={videoRef}
+            muted={isMuted}
+            playsInline
+            loop
+            className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
             onError={() => setHasError(true)}
-            className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" 
           />
         ) : (
           <div className="text-slate-600 flex flex-col items-center gap-2">
@@ -72,7 +143,7 @@ export default function CctvPlayer({ label, location, isMini = false, src, statu
           {!isMini && (
             <div className="flex items-center gap-2">
               <button 
-                onClick={() => setIsMuted(!isMuted)}
+                onClick={handleToggleMute}
                 className="p-2 rounded-lg bg-black/40 hover:bg-white/20 text-white transition-colors backdrop-blur-sm"
               >
                 {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
