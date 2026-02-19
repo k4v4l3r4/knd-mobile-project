@@ -342,7 +342,7 @@ class WargaController extends Controller
             ];
 
             $pdf = Pdf::loadView('reports.warga_pdf', $data)
-                ->setPaper('a4', 'portrait');
+                ->setPaper('a4', 'landscape');
 
             return $pdf->stream('data-warga-' . date('Ymd') . '.pdf');
         } catch (\Throwable $e) {
