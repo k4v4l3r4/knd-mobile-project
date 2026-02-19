@@ -462,8 +462,13 @@ class WargaController extends Controller
             }
 
             if ($dateOfBirthRaw !== '') {
+                $normalizedDate = $dateOfBirthRaw;
+                if (preg_match('/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})$/', $dateOfBirthRaw, $matches)) {
+                    $normalizedDate = $matches[3] . '-' . $matches[2] . '-' . $matches[1];
+                }
                 try {
-                    Carbon::parse($dateOfBirthRaw);
+                    Carbon::parse($normalizedDate);
+                    $dateOfBirthRaw = $normalizedDate;
                 } catch (\Exception $e) {
                     $rowErrors[] = "Kolom 'Tanggal Lahir' tidak valid. Gunakan format YYYY-MM-DD (contoh 1990-02-17)";
                 }
@@ -532,7 +537,7 @@ class WargaController extends Controller
                     'address_rt' => $row[14] ?? null,
                     'address_rw' => $row[15] ?? null,
                     'postal_code' => $row[16] ?? null,
-                    'role' => 'WARGA',
+                    'role' => 'WARGA_TETAP',
                     'rt_id' => $rtId,
                     'rw_id' => $rwId,
                     'tenant_id' => $tenantId,
