@@ -1,5 +1,5 @@
 import React from 'react';
-import { Maximize2, Volume2, VolumeX, AlertCircle, Play } from 'lucide-react';
+import { Maximize2, Volume2, VolumeX, AlertCircle, Play, Square } from 'lucide-react';
 import Hls from 'hls.js';
 
 interface CctvPlayerProps {
@@ -115,6 +115,20 @@ export default function CctvPlayer({ label, location, isMini = false, src, statu
     });
   };
 
+  const stopPlayback = () => {
+    const video = videoRef.current;
+    if (video) {
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+    }
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
+    setIsPlaying(false);
+  };
+
   return (
     <div className={`relative overflow-hidden bg-slate-900 rounded-2xl group ${isMini ? 'aspect-video' : 'aspect-video shadow-lg'}`}>
       {/* Video Placeholder / Image */}
@@ -166,14 +180,23 @@ export default function CctvPlayer({ label, location, isMini = false, src, statu
 
           <div className="flex items-center gap-2">
             {src && !hasError && (
-              <button 
-                onClick={startPlayback}
-                disabled={isPlaying}
-                className="p-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800/60 text-white transition-colors backdrop-blur-sm flex items-center gap-1 text-xs font-bold"
-              >
-                <Play size={14} />
-                <span>{isPlaying ? 'Playing' : 'Play'}</span>
-              </button>
+              isPlaying ? (
+                <button 
+                  onClick={stopPlayback}
+                  className="p-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white transition-colors backdrop-blur-sm flex items-center gap-1 text-xs font-bold"
+                >
+                  <Square size={14} />
+                  <span>Stop</span>
+                </button>
+              ) : (
+                <button 
+                  onClick={startPlayback}
+                  className="p-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors backdrop-blur-sm flex items-center gap-1 text-xs font-bold"
+                >
+                  <Play size={14} />
+                  <span>Play</span>
+                </button>
+              )
             )}
             {!isMini && (
               <>
