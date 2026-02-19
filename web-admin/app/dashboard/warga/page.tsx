@@ -747,7 +747,9 @@ export default function WargaPage() {
         toast.success('PDF berhasil diunduh');
     } catch (err: unknown) {
         console.error('Export PDF error:', err);
-        toast.error('Gagal mengexport PDF');
+        const apiError = (err as { response?: { data?: { message?: string } } })?.response?.data;
+        const msg = apiError?.message || 'Gagal mengexport PDF';
+        toast.error(msg);
     }
   };
 

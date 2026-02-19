@@ -306,6 +306,9 @@ class WargaController extends Controller
 
     public function exportPdf(Request $request)
     {
+        ini_set('memory_limit', '512M');
+        set_time_limit(120);
+
         try {
             $admin = $request->user();
 
@@ -320,6 +323,12 @@ class WargaController extends Controller
                 ->orderBy('name');
 
             $wargas = $query->get();
+
+            if ($wargas->count() > 1500) {
+                return response()->json([
+                    'message' => 'Data warga terlalu banyak untuk dibuat PDF. Silakan gunakan Export CSV.',
+                ], 422);
+            }
 
             $rt = $admin->rt;
             $rtName = $rt ? ('RT ' . $rt->rt_number . ' / RW ' . $rt->rw_number) : 'RT Online';
