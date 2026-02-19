@@ -10,8 +10,7 @@ class SuperAdminTenantController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Tenant::with(['activeSubscription', 'wilayah_rt', 'wilayah_rw'])
-            ->where('tenant_type', '!=', 'DEMO'); // Usually super admin wants to see real tenants
+        $query = Tenant::with(['activeSubscription', 'wilayah_rt', 'wilayah_rw']);
 
         // Filters
         if ($request->has('status') && $request->status) {
