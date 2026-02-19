@@ -24,6 +24,7 @@ class WilayahRt extends Model
         'district', // Kecamatan
         'subdistrict', // Kelurahan
         'postal_code',
+        'contact_phone',
         'logo_url',
         'structure_image_url',
         'kas_balance',

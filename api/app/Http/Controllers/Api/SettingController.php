@@ -60,6 +60,7 @@ class SettingController extends Controller {
             'district' => 'nullable|string',
             'subdistrict' => 'nullable|string',
             'postal_code' => 'nullable|string',
+            'contact_phone' => 'nullable|string',
             'logo' => 'nullable|image|max:2048',
             'structure_image' => 'nullable|image|max:2048',
         ]);
