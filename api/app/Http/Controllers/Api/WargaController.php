@@ -322,7 +322,7 @@ class WargaController extends Controller
 
         $rt = $admin->rt;
         $rtName = $rt ? ('RT ' . $rt->rt_number . ' / RW ' . $rt->rw_number) : 'RT Online';
-        $city = $rt->city ?? 'Indonesia';
+        $city = $rt && $rt->city ? $rt->city : 'Indonesia';
 
         $data = [
             'rt_name' => $rtName,
