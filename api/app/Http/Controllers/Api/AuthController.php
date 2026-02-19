@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Models\PasswordOtp;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -208,12 +209,22 @@ class AuthController extends Controller
             ], 404);
         }
 
-        // Mock sending OTP logic here
-        // In a real app, we would generate OTP, save to DB/Cache, and call WhatsApp API
+        $plainCode = (string) random_int(100000, 999999);
+
+        PasswordOtp::forPhone($validated['phone'])->delete();
+
+        PasswordOtp::create([
+            'phone' => $validated['phone'],
+            'code' => $plainCode,
+            'expires_at' => now()->addMinutes(10),
+        ]);
 
         return response()->json([
             'success' => true,
             'message' => 'OTP sent successfully',
+            'debug' => [
+                'otp' => app()->environment('production') ? null : $plainCode,
+            ],
         ]);
     }
 
@@ -233,17 +244,37 @@ class AuthController extends Controller
             ], 404);
         }
 
-        // Mock OTP verification logic
-        // In reality, check against DB/Cache
-        if ($validated['otp'] !== '123456') { // Mock OTP
+        $otp = PasswordOtp::forPhone($validated['phone'])->latest()->first();
+
+        if (!$otp || $otp->expires_at->isPast()) {
+            if ($otp) {
+                $otp->delete();
+            }
+            return response()->json([
+                'success' => false,
+                'message' => 'Kode verifikasi sudah kadaluarsa. Mohon minta kode baru.',
+            ], 422);
+        }
+
+        if (!hash_equals($otp->code, $validated['otp'])) {
+            $otp->increment('attempts');
+
+            if ($otp->attempts >= 5) {
+                $otp->delete();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Percobaan kode verifikasi terlalu sering. Mohon minta kode baru.',
+                ], 422);
+            }
+
             return response()->json([
                 'success' => false,
                 'message' => 'Kode yang dimasukkan kurang tepat. Coba cek lagi WhatsApp Anda.',
             ], 422);
         }
 
-        // Create a temporary token for password reset or just return success
-        // For this flow, we might return a token that allows password reset
+        $otp->delete();
+
         $token = $user->createToken('reset_token')->plainTextToken;
 
         return response()->json([
@@ -260,7 +291,7 @@ class AuthController extends Controller
         $validated = $request->validate([
             'phone' => 'required|string',
             'password' => 'required|string|min:6',
-            'token' => 'required|string', // In real app, verify this token
+            'token' => 'required|string',
         ]);
 
         $user = User::where('phone', $validated['phone'])->first();
@@ -272,13 +303,23 @@ class AuthController extends Controller
             ], 404);
         }
 
-        // Update password
+        $resetToken = $user->tokens()
+            ->where('name', 'reset_token')
+            ->where('token', hash('sha256', $validated['token']))
+            ->first();
+
+        if (!$resetToken) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Token reset tidak valid atau sudah digunakan.',
+            ], 422);
+        }
+
         $user->password = Hash::make($validated['password']);
         $user->save();
-        
-        // Revoke all tokens to force re-login everywhere else? 
-        // Or keep the current session. 
-        // For this flow, we'll return a new auth token for immediate login.
+
+        $resetToken->delete();
+
         $user->tokens()->delete();
         $newToken = $user->createToken('auth_token')->plainTextToken;
 
