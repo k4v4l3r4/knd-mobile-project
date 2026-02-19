@@ -306,35 +306,47 @@ class WargaController extends Controller
 
     public function exportPdf(Request $request)
     {
-        $admin = $request->user();
+        try {
+            $admin = $request->user();
 
-        if (!$admin || !$admin->rt_id) {
+            if (!$admin || !$admin->rt_id) {
+                return response()->json([
+                    'message' => 'User tidak memiliki RT'
+                ], 403);
+            }
+
+            $query = User::whereIn('role', ['WARGA', 'WARGA_TETAP', 'WARGA_KOST'])
+                ->where('rt_id', $admin->rt_id)
+                ->orderBy('name');
+
+            $wargas = $query->get();
+
+            $rt = $admin->rt;
+            $rtName = $rt ? ('RT ' . $rt->rt_number . ' / RW ' . $rt->rw_number) : 'RT Online';
+            $city = $rt && $rt->city ? $rt->city : 'Indonesia';
+
+            $data = [
+                'rt_name' => $rtName,
+                'city' => $city,
+                'wargas' => $wargas,
+                'generated_at' => now(),
+            ];
+
+            $pdf = Pdf::loadView('reports.warga_pdf', $data)
+                ->setPaper('a4', 'portrait');
+
+            return $pdf->stream('data-warga-' . date('Ymd') . '.pdf');
+        } catch (\Throwable $e) {
+            Log::error('Export PDF Warga gagal', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'user_id' => optional($request->user())->id,
+            ]);
+
             return response()->json([
-                'message' => 'User tidak memiliki RT'
-            ], 403);
+                'message' => 'Terjadi kesalahan saat membuat PDF data warga.',
+            ], 500);
         }
-
-        $query = User::whereIn('role', ['WARGA', 'WARGA_TETAP', 'WARGA_KOST'])
-            ->where('rt_id', $admin->rt_id)
-            ->orderBy('name');
-
-        $wargas = $query->get();
-
-        $rt = $admin->rt;
-        $rtName = $rt ? ('RT ' . $rt->rt_number . ' / RW ' . $rt->rw_number) : 'RT Online';
-        $city = $rt && $rt->city ? $rt->city : 'Indonesia';
-
-        $data = [
-            'rt_name' => $rtName,
-            'city' => $city,
-            'wargas' => $wargas,
-            'generated_at' => now(),
-        ];
-
-        $pdf = Pdf::loadView('reports.warga_pdf', $data)
-            ->setPaper('a4', 'portrait');
-
-        return $pdf->stream('data-warga-' . date('Ymd') . '.pdf');
     }
 
     public function exportTemplate(Request $request)
