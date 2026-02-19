@@ -322,6 +322,7 @@ class WargaController extends Controller
 
             $query = User::whereIn('role', ['WARGA', 'WARGA_TETAP', 'WARGA_KOST'])
                 ->where('rt_id', $admin->rt_id)
+                ->orderBy('kk_number')
                 ->orderBy('name');
 
             $wargas = $query->get();
