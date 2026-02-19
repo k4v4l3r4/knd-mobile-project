@@ -522,6 +522,17 @@ class WargaController extends Controller
                 $phoneRaw = isset($row[3]) ? trim((string) $row[3]) : '';
                 $phone = $phoneRaw !== '' ? $phoneRaw : null;
 
+                if ($phone !== null) {
+                    $phoneQuery = User::where('phone', $phone);
+                    if ($user) {
+                        $phoneQuery->where('id', '!=', $user->id);
+                    }
+                    if ($phoneQuery->exists()) {
+                        $errors[] = "Baris $rowNumber: Nomor HP {$phone} sudah digunakan pengguna lain, dikosongkan pada import.";
+                        $phone = null;
+                    }
+                }
+
                 $userData = [
                     'name' => $name,
                     'nik' => $nik,
