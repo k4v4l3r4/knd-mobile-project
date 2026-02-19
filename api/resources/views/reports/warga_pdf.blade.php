@@ -75,6 +75,10 @@
             <td><strong>Jumlah Warga:</strong> {{ $wargas->count() }}</td>
             <td class="text-right"><strong>Tanggal Cetak:</strong> {{ $generated_at->format('d/m/Y H:i') }}</td>
         </tr>
+        <tr>
+            <td><strong>Jumlah Jiwa (berdasarkan KK):</strong> {{ $total_members }}</td>
+            <td class="text-right"><strong>Jumlah KK:</strong> {{ $total_households }}</td>
+        </tr>
     </table>
 
     <table class="data">
@@ -90,9 +94,8 @@
                 <th style="width: 80px;">Tempat Lahir</th>
                 <th style="width: 70px;">Tanggal Lahir</th>
                 <th style="width: 55px;">Umur</th>
-                <th style="width: 60px;">Agama</th>
-                <th>Alamat</th>
-                <th style="width: 40px;">Blok</th>
+                <th style="width: 70px;">Agama</th>
+                <th style="width: 60px;">Blok</th>
                 <th style="width: 30px;">RT</th>
                 <th style="width: 30px;">RW</th>
             </tr>
@@ -133,14 +136,13 @@
                         @endif
                     </td>
                     <td>{{ $warga->religion }}</td>
-                    <td>{{ $warga->address }}</td>
                     <td class="text-center">{{ $warga->block }}</td>
                     <td class="text-center">{{ $warga->address_rt }}</td>
                     <td class="text-center">{{ $warga->address_rw }}</td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="15" class="text-center">Tidak ada data warga.</td>
+                    <td colspan="14" class="text-center">Tidak ada data warga.</td>
                 </tr>
             @endforelse
         </tbody>

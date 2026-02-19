@@ -856,8 +856,8 @@ export default function WargaPage() {
       </div>
 
       {/* --- TOOLBAR --- */}
-      <div className="flex flex-col md:flex-row justify-between gap-4">
-        <div className="relative flex-1 max-w-md group">
+      <div className="flex flex-col md:flex-row md:flex-wrap md:items-center gap-4">
+        <div className="relative w-full md:flex-1 max-w-xl group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 group-focus-within:text-emerald-500 dark:group-focus-within:text-emerald-400 transition-colors" size={20} />
             <input
                 type="text"
@@ -867,7 +867,7 @@ export default function WargaPage() {
                 className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl focus:ring-2 focus:ring-emerald-500/20 dark:focus:ring-emerald-500/10 focus:border-emerald-500 dark:focus:border-emerald-500 outline-none transition-all shadow-sm text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
             />
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 justify-start md:justify-end w-full md:w-auto">
             <button
                 onClick={handleExport}
                 className="flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 rounded-2xl font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-emerald-200 dark:hover:border-emerald-800 transition-all shadow-sm"

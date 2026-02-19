@@ -330,6 +330,13 @@ class WargaController extends Controller
                 ], 422);
             }
 
+            $withKk = $wargas->whereNotNull('kk_number');
+            $groupedByKk = $withKk->groupBy('kk_number');
+            $totalHouseholds = $groupedByKk->count();
+            $totalMembers = $groupedByKk->sum(function ($group) {
+                return $group->count();
+            });
+
             $rt = $admin->rt;
             $rtName = $rt ? ('RT ' . $rt->rt_number . ' / RW ' . $rt->rw_number) : 'RT Online';
             $city = $rt && $rt->city ? $rt->city : 'Indonesia';
@@ -338,6 +345,8 @@ class WargaController extends Controller
                 'rt_name' => $rtName,
                 'city' => $city,
                 'wargas' => $wargas,
+                'total_households' => $totalHouseholds,
+                'total_members' => $totalMembers,
                 'generated_at' => now(),
             ];
 
