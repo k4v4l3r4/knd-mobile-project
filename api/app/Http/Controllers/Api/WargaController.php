@@ -53,7 +53,15 @@ class WargaController extends Controller
 
         $query->orderByRaw("CASE WHEN kk_number IS NULL OR kk_number = '' THEN 1 ELSE 0 END")
               ->orderBy('kk_number')
-              ->orderByRaw("FIELD(status_in_family, 'KEPALA_KELUARGA', 'SUAMI', 'ISTRI', 'ANAK')")
+              ->orderByRaw("
+                CASE status_in_family
+                    WHEN 'KEPALA_KELUARGA' THEN 0
+                    WHEN 'SUAMI' THEN 1
+                    WHEN 'ISTRI' THEN 2
+                    WHEN 'ANAK' THEN 3
+                    ELSE 99
+                END
+              ")
               ->orderBy('name');
 
         $perPage = $request->input('per_page', 10);
@@ -98,7 +106,15 @@ class WargaController extends Controller
         }
 
         $family = User::where('kk_number', $user->kk_number)
-                        ->orderByRaw("FIELD(status_in_family, 'KEPALA_KELUARGA', 'ISTRI', 'ANAK', 'FAMILI_LAIN')")
+                        ->orderByRaw("
+                            CASE status_in_family
+                                WHEN 'KEPALA_KELUARGA' THEN 0
+                                WHEN 'SUAMI' THEN 1
+                                WHEN 'ISTRI' THEN 2
+                                WHEN 'ANAK' THEN 3
+                                ELSE 99
+                            END
+                        ")
                         ->get();
 
           // Make NIK visible for family view
@@ -247,7 +263,15 @@ class WargaController extends Controller
         $wargas = $query
             ->orderByRaw("CASE WHEN kk_number IS NULL OR kk_number = '' THEN 1 ELSE 0 END")
             ->orderBy('kk_number')
-            ->orderByRaw("FIELD(status_in_family, 'KEPALA_KELUARGA', 'SUAMI', 'ISTRI', 'ANAK')")
+            ->orderByRaw("
+                CASE status_in_family
+                    WHEN 'KEPALA_KELUARGA' THEN 0
+                    WHEN 'SUAMI' THEN 1
+                    WHEN 'ISTRI' THEN 2
+                    WHEN 'ANAK' THEN 3
+                    ELSE 99
+                END
+            ")
             ->orderBy('name')
             ->get();
 
