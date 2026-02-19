@@ -25,7 +25,7 @@ export interface Invoice {
   payment_mode: PaymentMode;
   payment_channel: PaymentChannel | null;
   payment_code: string | null;
-  payment_instruction: any | null; // JSON structure depends on provider
+  payment_instruction: PaymentInstruction | null;
   created_at: string;
   due_date: string;
   items?: InvoiceItem[];
@@ -57,6 +57,8 @@ export interface Plan {
   type: SubscriptionType;
   description: string;
   features: string[];
+  originalPrice?: number | null;
+  discountPercent?: number | null;
 }
 
 export interface PaymentInstruction {

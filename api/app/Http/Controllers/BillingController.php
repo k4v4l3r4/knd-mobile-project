@@ -9,6 +9,7 @@ use App\Models\Role;
 use App\Services\RWJoinService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 
 use App\Models\Invoice;
@@ -175,6 +176,61 @@ class BillingController extends Controller
             DB::rollBack();
             return response()->json(['message' => 'Subscription failed: ' . $e->getMessage()], 500);
         }
+    }
+
+    public function plans(Request $request)
+    {
+        $defaultPlans = [
+            'BASIC_RW_MONTHLY' => [
+                'price' => 150000,
+                'discount_percent' => 0,
+            ],
+            'BASIC_RW_YEARLY' => [
+                'price' => 1500000,
+                'discount_percent' => 0,
+            ],
+            'LIFETIME_RW' => [
+                'price' => 5000000,
+                'discount_percent' => 0,
+            ],
+        ];
+
+        $storedPlans = [];
+
+        if (Storage::disk('local')->exists('payment_settings.json')) {
+            $settings = json_decode(Storage::disk('local')->get('payment_settings.json'), true);
+            if (isset($settings['plans']) && is_array($settings['plans'])) {
+                $storedPlans = $settings['plans'];
+            }
+        }
+
+        $plans = [];
+
+        foreach ($defaultPlans as $code => $planDefaults) {
+            $config = isset($storedPlans[$code]) && is_array($storedPlans[$code]) ? $storedPlans[$code] : [];
+
+            $price = isset($config['price']) ? (float) $config['price'] : $planDefaults['price'];
+            $discountPercent = isset($config['discount_percent']) ? (float) $config['discount_percent'] : $planDefaults['discount_percent'];
+
+            if ($discountPercent < 0) {
+                $discountPercent = 0;
+            }
+
+            if ($discountPercent > 100) {
+                $discountPercent = 100;
+            }
+
+            $plans[] = [
+                'id' => $code,
+                'price' => $price,
+                'discount_percent' => $discountPercent,
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $plans,
+        ]);
     }
 
     public function hierarchy(Request $request)

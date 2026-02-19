@@ -25,12 +25,41 @@ export default function PaymentSettingsPage() {
   }, []);
 
   const withDefaults = (data: PaymentSettings): PaymentSettings => {
+    const defaultPlans = {
+      BASIC_RW_MONTHLY: {
+        price: 150000,
+        discount_percent: 0,
+      },
+      BASIC_RW_YEARLY: {
+        price: 1500000,
+        discount_percent: 0,
+      },
+      LIFETIME_RW: {
+        price: 5000000,
+        discount_percent: 0,
+      },
+    };
+
     return {
       ...data,
       gateways: {
         subscription: data.gateways?.subscription || 'MANUAL',
         iuran_warga: data.gateways?.iuran_warga || 'MANUAL',
         umkm: data.gateways?.umkm || 'MANUAL',
+      },
+      plans: {
+        BASIC_RW_MONTHLY: {
+          price: data.plans?.BASIC_RW_MONTHLY?.price ?? defaultPlans.BASIC_RW_MONTHLY.price,
+          discount_percent: data.plans?.BASIC_RW_MONTHLY?.discount_percent ?? defaultPlans.BASIC_RW_MONTHLY.discount_percent,
+        },
+        BASIC_RW_YEARLY: {
+          price: data.plans?.BASIC_RW_YEARLY?.price ?? defaultPlans.BASIC_RW_YEARLY.price,
+          discount_percent: data.plans?.BASIC_RW_YEARLY?.discount_percent ?? defaultPlans.BASIC_RW_YEARLY.discount_percent,
+        },
+        LIFETIME_RW: {
+          price: data.plans?.LIFETIME_RW?.price ?? defaultPlans.LIFETIME_RW.price,
+          discount_percent: data.plans?.LIFETIME_RW?.discount_percent ?? defaultPlans.LIFETIME_RW.discount_percent,
+        },
       },
     };
   };
@@ -57,6 +86,20 @@ export default function PaymentSettingsPage() {
           platform_fee_percent: 5,
           rt_share_percent: 5,
           is_rt_share_enabled: true,
+        },
+        plans: {
+          BASIC_RW_MONTHLY: {
+            price: 150000,
+            discount_percent: 0,
+          },
+          BASIC_RW_YEARLY: {
+            price: 1500000,
+            discount_percent: 0,
+          },
+          LIFETIME_RW: {
+            price: 5000000,
+            discount_percent: 0,
+          },
         },
         gateways: {
           subscription: 'MANUAL',
@@ -125,6 +168,132 @@ export default function PaymentSettingsPage() {
           Konfigurasi metode pembayaran, pembagian hasil (split), dan provider gateway.
         </p>
       </div>
+
+      <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Calculator className="w-5 h-5 text-emerald-500" />
+            Paket Langganan SaaS
+          </CardTitle>
+          <CardDescription>
+            Atur harga dan diskon paket berlangganan yang akan tampil di halaman Billing tenant.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              {
+                key: 'BASIC_RW_MONTHLY' as const,
+                label: 'Paket Basic Bulanan',
+                suffix: '/ bulan',
+              },
+              {
+                key: 'BASIC_RW_YEARLY' as const,
+                label: 'Paket Basic Tahunan',
+                suffix: '/ tahun',
+              },
+              {
+                key: 'LIFETIME_RW' as const,
+                label: 'Paket Lifetime',
+                suffix: '/ selamanya',
+              },
+            ].map((plan) => {
+              const config = settings.plans[plan.key];
+              const discount = config.discount_percent || 0;
+              const finalPrice = config.price;
+              const originalPrice =
+                discount > 0 ? Math.round(finalPrice / (1 - discount / 100)) : null;
+
+              return (
+                <div
+                  key={plan.key}
+                  className="p-4 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3"
+                >
+                  <div>
+                    <Label className="text-slate-500 text-xs uppercase tracking-wider font-bold">
+                      {plan.label}
+                    </Label>
+                  </div>
+                  <div className="space-y-2">
+                    <div>
+                      <Label>Harga Paket {plan.suffix}</Label>
+                      <div className="relative mt-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">
+                          Rp
+                        </span>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={config.price}
+                          onChange={(e) =>
+                            setSettings((prev) =>
+                              prev
+                                ? {
+                                    ...prev,
+                                    plans: {
+                                      ...prev.plans,
+                                      [plan.key]: {
+                                        ...prev.plans[plan.key],
+                                        price: Number(e.target.value || 0),
+                                      },
+                                    },
+                                  }
+                                : prev
+                            )
+                          }
+                          className="pl-8"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Diskon (%)</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={config.discount_percent}
+                        onChange={(e) =>
+                          setSettings((prev) =>
+                            prev
+                              ? {
+                                  ...prev,
+                                  plans: {
+                                    ...prev.plans,
+                                    [plan.key]: {
+                                      ...prev.plans[plan.key],
+                                      discount_percent: Number(e.target.value || 0),
+                                    },
+                                  },
+                                }
+                              : prev
+                          )
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-sm">
+                    <div className="text-slate-500 mb-1">Preview tampilan harga</div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-bold text-lg text-slate-900 dark:text-slate-100">
+                        {formatCurrency(finalPrice)}
+                      </span>
+                      <span className="text-xs text-slate-400">{plan.suffix}</span>
+                    </div>
+                    {originalPrice && (
+                      <div className="flex items-center gap-2 mt-1 text-xs text-emerald-600">
+                        <span className="line-through text-slate-400">
+                          {formatCurrency(originalPrice)}
+                        </span>
+                        <span className="font-semibold">Hemat {discount}%</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* GLOBAL PAYMENT MODE */}
       <Card className="border-slate-200 dark:border-slate-800 shadow-sm">

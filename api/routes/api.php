@@ -96,6 +96,7 @@ Route::middleware(['auth:sanctum', 'tenant.status', 'tenant.feature'])->group(fu
         Route::post('/subscribe', [BillingController::class, 'subscribe'])->name('subscribe');
         Route::get('/current', [BillingController::class, 'current'])->name('current');
         Route::get('/hierarchy', [BillingController::class, 'hierarchy'])->name('hierarchy');
+        Route::get('/plans', [BillingController::class, 'plans'])->name('plans');
     });
 
     // Payments Routes

@@ -15,12 +15,43 @@ class SuperAdminPaymentSettingsController extends Controller
         if (Storage::disk('local')->exists($this->settingsFile)) {
             $settings = json_decode(Storage::disk('local')->get($this->settingsFile), true);
 
+            $defaultPlans = [
+                'BASIC_RW_MONTHLY' => [
+                    'price' => 150000,
+                    'discount_percent' => 0,
+                ],
+                'BASIC_RW_YEARLY' => [
+                    'price' => 1500000,
+                    'discount_percent' => 0,
+                ],
+                'LIFETIME_RW' => [
+                    'price' => 5000000,
+                    'discount_percent' => 0,
+                ],
+            ];
+
             if (!isset($settings['gateways']) || !is_array($settings['gateways'])) {
                 $settings['gateways'] = [
                     'subscription' => 'MANUAL',
                     'iuran_warga' => 'MANUAL',
                     'umkm' => 'MANUAL',
                 ];
+            }
+
+            if (!isset($settings['plans']) || !is_array($settings['plans'])) {
+                $settings['plans'] = $defaultPlans;
+            } else {
+                foreach ($defaultPlans as $code => $planDefaults) {
+                    if (!isset($settings['plans'][$code]) || !is_array($settings['plans'][$code])) {
+                        $settings['plans'][$code] = $planDefaults;
+                    } else {
+                        foreach ($planDefaults as $key => $value) {
+                            if (!array_key_exists($key, $settings['plans'][$code])) {
+                                $settings['plans'][$code][$key] = $value;
+                            }
+                        }
+                    }
+                }
             }
         } else {
             $settings = [
@@ -36,6 +67,20 @@ class SuperAdminPaymentSettingsController extends Controller
                     'platform_fee_percent' => 5,
                     'rt_share_percent' => 5,
                     'is_rt_share_enabled' => true,
+                ],
+                'plans' => [
+                    'BASIC_RW_MONTHLY' => [
+                        'price' => 150000,
+                        'discount_percent' => 0,
+                    ],
+                    'BASIC_RW_YEARLY' => [
+                        'price' => 1500000,
+                        'discount_percent' => 0,
+                    ],
+                    'LIFETIME_RW' => [
+                        'price' => 5000000,
+                        'discount_percent' => 0,
+                    ],
                 ],
                 'gateways' => [
                     'subscription' => 'MANUAL',
@@ -63,9 +108,15 @@ class SuperAdminPaymentSettingsController extends Controller
             'umkm_config.platform_fee_percent' => 'required|numeric|min:0|max:100',
             'umkm_config.rt_share_percent' => 'required|numeric|min:0|max:100',
             'umkm_config.is_rt_share_enabled' => 'required|boolean',
-            'gateways.subscription' => 'required|string|in:MANUAL,FLIP',
-            'gateways.iuran_warga' => 'required|string|in:MANUAL,FLIP',
-            'gateways.umkm' => 'required|string|in:MANUAL,FLIP',
+            'plans.BASIC_RW_MONTHLY.price' => 'required|numeric|min:0',
+            'plans.BASIC_RW_MONTHLY.discount_percent' => 'nullable|numeric|min:0|max:100',
+            'plans.BASIC_RW_YEARLY.price' => 'required|numeric|min:0',
+            'plans.BASIC_RW_YEARLY.discount_percent' => 'nullable|numeric|min:0|max:100',
+            'plans.LIFETIME_RW.price' => 'required|numeric|min:0',
+            'plans.LIFETIME_RW.discount_percent' => 'nullable|numeric|min:0|max:100',
+            'gateways.subscription' => 'required|string|in:MANUAL,DANA',
+            'gateways.iuran_warga' => 'required|string|in:MANUAL,DANA',
+            'gateways.umkm' => 'required|string|in:MANUAL,DANA',
         ]);
 
         Storage::disk('local')->put($this->settingsFile, json_encode($data));

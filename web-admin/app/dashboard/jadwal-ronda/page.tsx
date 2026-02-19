@@ -71,10 +71,18 @@ export default function JadwalRondaPage() {
     fine_amount: 0
   });
 
-  const filteredWarga = wargaList.filter(warga => 
-    warga.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    warga.phone.includes(searchTerm)
-  );
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+
+  const filteredWarga = wargaList.filter(warga => {
+    const name = (warga.name || '').toLowerCase();
+    const phone = warga.phone || '';
+
+    if (!normalizedSearch) {
+      return true;
+    }
+
+    return name.includes(normalizedSearch) || phone.includes(normalizedSearch);
+  });
 
   useEffect(() => {
     if (!status) return;

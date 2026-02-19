@@ -36,10 +36,7 @@ export const BillingService = {
 
   // Get available plans
   getPlans: async (): Promise<Plan[]> => {
-    // This might be static or from API. Assuming API or static for now.
-    // Since backend instructions didn't specify a plans endpoint, we might mock this 
-    // or use a convention. For now, let's return static plans as per requirements.
-    return [
+    const basePlans: Plan[] = [
       {
         id: 'BASIC_RW_MONTHLY',
         name: 'Paket Basic Bulanan',
@@ -65,6 +62,39 @@ export const BillingService = {
         features: ['Akses Seumur Hidup', 'Bebas Biaya Bulanan', 'Semua Update Masa Depan']
       }
     ];
+
+    try {
+      const response = await api.get('/billing/plans');
+      const remotePlans: { id: string; price: number; discount_percent?: number | null }[] =
+        response.data?.data || [];
+
+      const map = new Map(remotePlans.map((p) => [p.id, p]));
+
+      return basePlans.map((plan) => {
+        const override = map.get(plan.id);
+        if (!override) {
+          return plan;
+        }
+
+        const price = override.price ?? plan.price;
+        const discountPercent =
+          typeof override.discount_percent === 'number' ? override.discount_percent : 0;
+
+        let originalPrice: number | null = null;
+        if (discountPercent > 0 && discountPercent < 100) {
+          originalPrice = Math.round(price / (1 - discountPercent / 100));
+        }
+
+        return {
+          ...plan,
+          price,
+          discountPercent: discountPercent || null,
+          originalPrice,
+        };
+      });
+    } catch (error) {
+      return basePlans;
+    }
   },
 
   // Subscribe to a plan
@@ -89,10 +119,10 @@ export const BillingService = {
 
   // Initiate payment (get instruction)
   pay: async (invoiceId: number, channel: 'MANUAL' | 'DANA'): Promise<{ 
-    status: string, 
-    payment_mode: string, 
-    provider: string, 
-    instruction: any 
+    status: string; 
+    payment_mode: string; 
+    provider: string; 
+    instruction: PaymentInstruction; 
   }> => {
     const response = await api.post('/payments/pay', { 
       invoice_id: invoiceId,
@@ -114,7 +144,7 @@ export const BillingService = {
   },
 
   // Get all invoices (Admin view)
-  getAllInvoices: async (params?: any): Promise<any> => {
+  getAllInvoices: async (params?: Record<string, string | number | undefined>): Promise<unknown> => {
     const response = await api.get('/invoices', { params });
     return response.data;
   }

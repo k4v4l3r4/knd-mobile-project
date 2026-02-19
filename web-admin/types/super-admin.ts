@@ -13,6 +13,11 @@ export interface MonthlyRevenue {
   revenue: number;
 }
 
+export interface PlanConfig {
+  price: number;
+  discount_percent: number;
+}
+
 export interface TenantBilling {
   id: number;
   tenant_name: string;
@@ -40,6 +45,12 @@ export interface PaymentSettings {
     platform_fee_percent: number;
     rt_share_percent: number;
     is_rt_share_enabled: boolean;
+  };
+
+  plans: {
+    BASIC_RW_MONTHLY: PlanConfig;
+    BASIC_RW_YEARLY: PlanConfig;
+    LIFETIME_RW: PlanConfig;
   };
 
   gateways: {

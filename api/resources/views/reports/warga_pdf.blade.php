@@ -83,12 +83,18 @@
                 <th class="text-center" style="width: 25px;">No</th>
                 <th style="width: 140px;">Nama</th>
                 <th style="width: 90px;">NIK</th>
-                <th style="width: 70px;">No. KK</th>
-                <th style="width: 80px;">No. HP</th>
-                <th style="width: 40px;">Blok</th>
-                <th style="width: 40px;">RT</th>
-                <th style="width: 40px;">RW</th>
+                <th style="width: 90px;">No. KK</th>
+                <th style="width: 80px;">No. Telp</th>
+                <th style="width: 80px;">Hubungan Keluarga</th>
+                <th style="width: 40px;">JK</th>
+                <th style="width: 80px;">Tempat Lahir</th>
+                <th style="width: 70px;">Tanggal Lahir</th>
+                <th style="width: 55px;">Umur</th>
+                <th style="width: 60px;">Agama</th>
                 <th>Alamat</th>
+                <th style="width: 40px;">Blok</th>
+                <th style="width: 30px;">RT</th>
+                <th style="width: 30px;">RW</th>
             </tr>
         </thead>
         <tbody>
@@ -99,14 +105,32 @@
                     <td>{{ $warga->nik }}</td>
                     <td>{{ $warga->kk_number }}</td>
                     <td>{{ $warga->phone }}</td>
+                    <td>{{ $warga->status_in_family }}</td>
+                    <td class="text-center">{{ $warga->gender }}</td>
+                    <td>{{ $warga->place_of_birth }}</td>
+                    <td class="text-center">
+                        @if($warga->date_of_birth)
+                            {{ \Carbon\Carbon::parse($warga->date_of_birth)->format('d/m/Y') }}
+                        @else
+                            -
+                        @endif
+                    </td>
+                    <td class="text-center">
+                        @if($warga->date_of_birth)
+                            {{ \Carbon\Carbon::parse($warga->date_of_birth)->age }} Tahun
+                        @else
+                            -
+                        @endif
+                    </td>
+                    <td>{{ $warga->religion }}</td>
+                    <td>{{ $warga->address }}</td>
                     <td class="text-center">{{ $warga->block }}</td>
                     <td class="text-center">{{ $warga->address_rt }}</td>
                     <td class="text-center">{{ $warga->address_rw }}</td>
-                    <td>{{ $warga->address }}</td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="9" class="text-center">Tidak ada data warga.</td>
+                    <td colspan="15" class="text-center">Tidak ada data warga.</td>
                 </tr>
             @endforelse
         </tbody>
@@ -120,4 +144,3 @@
     </div>
 </body>
 </html>
-

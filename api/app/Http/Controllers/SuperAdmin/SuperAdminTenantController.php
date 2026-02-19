@@ -32,12 +32,15 @@ class SuperAdminTenantController extends Controller
         // Transform data
         $data = $tenants->getCollection()->map(function ($tenant) {
             $sub = $tenant->activeSubscription;
+
+            $rtRwName = $tenant->billing_mode === 'RW'
+                ? ($tenant->wilayah_rw?->name ?? '-')
+                : ($tenant->wilayah_rt?->name ?? '-');
+
             return [
                 'id' => $tenant->id,
                 'tenant_name' => $tenant->name,
-                'rt_rw' => $tenant->billing_mode === 'RW' 
-                    ? ($tenant->wilayah_rw->name ?? '-') 
-                    : ($tenant->wilayah_rt->name ?? '-'),
+                'rt_rw' => $rtRwName,
                 'billing_mode' => $tenant->billing_mode,
                 'status' => $tenant->status,
                 'plan_code' => $sub ? $sub->plan_code : '-',
