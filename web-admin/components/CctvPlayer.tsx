@@ -1,5 +1,6 @@
 import React from 'react';
-import { Maximize2, Volume2, VolumeX, AlertCircle } from 'lucide-react';
+import { Maximize2, Volume2, VolumeX, AlertCircle, Play } from 'lucide-react';
+import Hls from 'hls.js';
 
 interface CctvPlayerProps {
   label: string;
@@ -14,6 +15,8 @@ export default function CctvPlayer({ label, location, isMini = false, src, statu
   const [time, setTime] = React.useState<string>('');
   const [hasError, setHasError] = React.useState(false);
   const videoRef = React.useRef<HTMLVideoElement | null>(null);
+  const [isPlaying, setIsPlaying] = React.useState(false);
+  const hlsRef = React.useRef<Hls | null>(null);
 
   React.useEffect(() => {
     setTime(new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }));
@@ -24,57 +27,82 @@ export default function CctvPlayer({ label, location, isMini = false, src, statu
   }, []);
 
   React.useEffect(() => {
-    let hlsInstance: any = null;
+    const video = videoRef.current;
+    setHasError(false);
+    setIsPlaying(false);
+    if (video) {
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+    }
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
+  }, [src]);
 
-    const setupPlayer = async () => {
-      if (!src || !videoRef.current) return;
-
-      setHasError(false);
-
-      const video = videoRef.current;
-      const isHls = src.includes('.m3u8');
-
-      try {
-        if (isHls) {
-          if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            video.src = src;
-          } else {
-            const hlsModule = await import('hls.js');
-            const Hls = hlsModule.default;
-
-            if (Hls.isSupported()) {
-              hlsInstance = new Hls();
-              hlsInstance.loadSource(src);
-              hlsInstance.attachMedia(video);
-              hlsInstance.on('error', () => {
-                setHasError(true);
-              });
-            } else {
-              setHasError(true);
-              return;
-            }
-          }
-        } else {
-          video.src = src;
-        }
-
-        const playPromise = video.play();
-        if (playPromise && typeof playPromise.then === 'function') {
-          playPromise.catch(() => {});
-        }
-      } catch {
-        setHasError(true);
-      }
-    };
-
-    setupPlayer();
+  React.useEffect(() => {
+    const video = videoRef.current;
+    const hls = hlsRef.current;
 
     return () => {
-      if (hlsInstance) {
-        hlsInstance.destroy();
+      if (video) {
+        video.pause();
+        video.removeAttribute('src');
+      }
+      if (hls) {
+        hls.destroy();
       }
     };
-  }, [src]);
+  }, []);
+
+  const startPlayback = async () => {
+    if (!src || !videoRef.current || isPlaying) return;
+
+    setHasError(false);
+
+    const video = videoRef.current;
+    const isHls = src.includes('.m3u8');
+
+    try {
+      if (isHls) {
+        if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          video.src = src;
+        } else {
+          const hlsModule = await import('hls.js');
+          const Hls = hlsModule.default;
+
+          if (Hls.isSupported()) {
+            if (hlsRef.current) {
+              hlsRef.current.destroy();
+              hlsRef.current = null;
+            }
+            const instance = new Hls();
+            instance.loadSource(src);
+            instance.attachMedia(video);
+            instance.on('error', () => {
+              setHasError(true);
+            });
+            hlsRef.current = instance;
+          } else {
+            setHasError(true);
+            return;
+          }
+        }
+      } else {
+        video.src = src;
+      }
+
+      video.muted = isMuted;
+      const playPromise = video.play();
+      if (playPromise && typeof playPromise.then === 'function') {
+        await playPromise.catch(() => {});
+      }
+      setIsPlaying(true);
+    } catch {
+      setHasError(true);
+    }
+  };
 
   const handleToggleMute = () => {
     setIsMuted((prev) => {
@@ -82,10 +110,6 @@ export default function CctvPlayer({ label, location, isMini = false, src, statu
       const video = videoRef.current;
       if (video) {
         video.muted = next;
-        const playPromise = video.play();
-        if (playPromise && typeof playPromise.then === 'function') {
-          playPromise.catch(() => {});
-        }
       }
       return next;
     });
@@ -140,19 +164,31 @@ export default function CctvPlayer({ label, location, isMini = false, src, statu
             {location && <p className="text-white/70 text-[10px] font-medium">{location}</p>}
           </div>
 
-          {!isMini && (
-            <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            {src && !hasError && (
               <button 
-                onClick={handleToggleMute}
-                className="p-2 rounded-lg bg-black/40 hover:bg-white/20 text-white transition-colors backdrop-blur-sm"
+                onClick={startPlayback}
+                disabled={isPlaying}
+                className="p-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800/60 text-white transition-colors backdrop-blur-sm flex items-center gap-1 text-xs font-bold"
               >
-                {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+                <Play size={14} />
+                <span>{isPlaying ? 'Playing' : 'Play'}</span>
               </button>
-              <button className="p-2 rounded-lg bg-black/40 hover:bg-white/20 text-white transition-colors backdrop-blur-sm">
-                <Maximize2 size={16} />
-              </button>
-            </div>
-          )}
+            )}
+            {!isMini && (
+              <>
+                <button 
+                  onClick={handleToggleMute}
+                  className="p-2 rounded-lg bg-black/40 hover:bg-white/20 text-white transition-colors backdrop-blur-sm"
+                >
+                  {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+                </button>
+                <button className="p-2 rounded-lg bg-black/40 hover:bg-white/20 text-white transition-colors backdrop-blur-sm">
+                  <Maximize2 size={16} />
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
