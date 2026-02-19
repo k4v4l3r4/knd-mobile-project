@@ -708,4 +708,47 @@ class WargaController extends Controller
             'data' => null
         ]);
     }
+
+    /**
+     * Reset all warga data for current RT/tenant.
+     */
+    public function reset(Request $request)
+    {
+        $admin = $request->user();
+
+        if (!$admin || !$admin->rt_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Reset hanya dapat dilakukan oleh Admin RT yang terhubung ke RT tertentu.',
+            ], 422);
+        }
+
+        $query = User::whereIn('role', ['WARGA', 'WARGA_TETAP', 'WARGA_KOST'])
+            ->where('rt_id', $admin->rt_id);
+
+        if (Schema::hasColumn('users', 'tenant_id') && $admin->tenant_id) {
+            $query->where('tenant_id', $admin->tenant_id);
+        }
+
+        $deletedCount = 0;
+
+        $query->chunkById(100, function ($users) use (&$deletedCount) {
+            foreach ($users as $warga) {
+                if ($warga->ktp_image_path) {
+                    Storage::disk('public')->delete($warga->ktp_image_path);
+                }
+                if ($warga->kk_image_path) {
+                    Storage::disk('public')->delete($warga->kk_image_path);
+                }
+                $warga->forceDelete();
+                $deletedCount++;
+            }
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => "Reset data warga berhasil. Total dihapus: {$deletedCount}.",
+            'deleted' => $deletedCount,
+        ]);
+    }
 }

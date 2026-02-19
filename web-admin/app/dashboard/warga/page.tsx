@@ -26,6 +26,7 @@ import { toast } from 'react-hot-toast';
 import Cookies from 'js-cookie';
 import { useTenant } from '@/context/TenantContext';
 import { DemoLabel } from '@/components/TenantStatusComponents';
+import { PaginationControls } from '@/components/ui/pagination-controls';
 
 interface Warga {
   id: number;
@@ -77,6 +78,10 @@ export default function WargaPage() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
+
+  const [page, setPage] = useState(1);
+  const [meta, setMeta] = useState<any | null>(null);
+  const [resetting, setResetting] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -253,19 +258,51 @@ export default function WargaPage() {
     }
   };
 
+  const handleResetWarga = async () => {
+    if (isDemo) {
+      toast.error('Mode Demo: Reset data tidak diizinkan');
+      return;
+    }
+    if (isExpired) {
+      toast.error('Akses Terbatas: Silakan perpanjang langganan');
+      return;
+    }
+    const confirmed = window.confirm('Yakin ingin menghapus SEMUA data warga di RT ini? Tindakan ini tidak dapat dibatalkan.');
+    if (!confirmed) return;
+
+    try {
+      setResetting(true);
+      const response = await api.delete('/warga/reset');
+      if (response.data?.success) {
+        toast.success(response.data.message || 'Data warga berhasil direset');
+        fetchWargas('', 1);
+      } else {
+        toast.error(response.data?.message || 'Gagal mereset data warga');
+      }
+    } catch (err: any) {
+      console.error('Failed to reset warga:', err);
+      const msg = err?.response?.data?.message || 'Gagal mereset data warga';
+      toast.error(msg);
+    } finally {
+      setResetting(false);
+    }
+  };
+
   useEffect(() => {
-    fetchWargas();
+    fetchWargas('', 1);
+    setPage(1);
   }, []);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
-      fetchWargas(search);
+      setPage(1);
+      fetchWargas(search, 1);
     }, 500);
 
     return () => clearTimeout(delayDebounceFn);
   }, [search]);
 
-  const fetchWargas = async (searchTerm = '') => {
+  const fetchWargas = async (searchTerm = '', pageParam?: number) => {
     setLoading(true);
     try {
       const token = Cookies.get('admin_token');
@@ -366,16 +403,37 @@ export default function WargaPage() {
               d.phone.includes(searchTerm)
             )
           : demo;
-        setWargas(filtered);
+        const perPage = 10;
+        const total = filtered.length;
+        const last = Math.max(1, Math.ceil(total / perPage));
+        const targetPage = Math.min(pageParam ?? page, last);
+        const startIndex = (targetPage - 1) * perPage;
+        const paginated = filtered.slice(startIndex, startIndex + perPage);
+        setWargas(paginated);
+        setMeta({
+          current_page: targetPage,
+          last_page: last,
+          total,
+          per_page: perPage,
+        });
+        setPage(targetPage);
         return;
       }
       const response = await api.get('/warga', {
-        params: { search: searchTerm, all: true }
+        params: { search: searchTerm, page: pageParam ?? page, per_page: 10 }
       });
       if (response.data.success) {
         const payload = response.data.data;
-        const list = Array.isArray(payload) ? payload : payload.data;
-        setWargas(list);
+        if (Array.isArray(payload)) {
+          setWargas(payload);
+          setMeta(null);
+        } else {
+          setWargas(payload.data);
+          setMeta(payload);
+          if (typeof payload.current_page === 'number') {
+            setPage(payload.current_page);
+          }
+        }
       }
     } catch (err) {
       if (!isDemo) {
@@ -385,6 +443,12 @@ export default function WargaPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage === page || newPage < 1) return;
+    if (meta && typeof meta.last_page === 'number' && newPage > meta.last_page) return;
+    fetchWargas(search, newPage);
   };
 
   const handleOpenModal = (mode: 'add' | 'edit', warga?: Warga) => {
@@ -788,6 +852,16 @@ export default function WargaPage() {
                 <span className="hidden sm:inline">Template</span>
             </button>
             <button
+                type="button"
+                onClick={handleResetWarga}
+                disabled={resetting || loading}
+                className="flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 rounded-2xl font-semibold hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:border-rose-300 dark:hover:border-rose-700 transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                title="Hapus semua data warga di RT ini"
+            >
+                <Trash2 size={20} />
+                <span className="hidden sm:inline">{resetting ? 'Mereset...' : 'Reset Data'}</span>
+            </button>
+            <button
                 onClick={() => setIsImportModalOpen(true)}
                 className="flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 rounded-2xl font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-200 dark:hover:border-blue-800 transition-all shadow-sm"
                 title="Import CSV"
@@ -960,6 +1034,15 @@ export default function WargaPage() {
             </tbody>
           </table>
         </div>
+        
+        {meta && (
+          <PaginationControls
+            currentPage={meta.current_page || page}
+            lastPage={meta.last_page || 1}
+            onPageChange={handlePageChange}
+            isLoading={loading}
+          />
+        )}
       </div>
 
       {/* --- IMPORT MODAL --- */}

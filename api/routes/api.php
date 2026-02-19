@@ -177,6 +177,7 @@ Route::middleware(['auth:sanctum', 'tenant.status', 'tenant.feature'])->group(fu
     Route::get('/warga/export', [WargaController::class, 'export'])->middleware('permission:laporan.export');
     Route::get('/warga/export-template', [WargaController::class, 'exportTemplate'])->middleware('permission:laporan.export');
     Route::post('/warga/import', [WargaController::class, 'import'])->middleware('permission:warga.create');
+    Route::delete('/warga/reset', [WargaController::class, 'reset'])->middleware('permission:warga.delete');
     
     // Warga Resource Split for Permissions
     Route::get('warga/family', [WargaController::class, 'family']); // Family route must be before {warga}
