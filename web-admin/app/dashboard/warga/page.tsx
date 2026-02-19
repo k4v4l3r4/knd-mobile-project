@@ -370,10 +370,12 @@ export default function WargaPage() {
         return;
       }
       const response = await api.get('/warga', {
-        params: { search: searchTerm }
+        params: { search: searchTerm, all: true }
       });
       if (response.data.success) {
-        setWargas(response.data.data.data);
+        const payload = response.data.data;
+        const list = Array.isArray(payload) ? payload : payload.data;
+        setWargas(list);
       }
     } catch (err) {
       if (!isDemo) {
