@@ -519,11 +519,14 @@ class WargaController extends Controller
                 ];
                 $statusInFamily = $statusInFamilyMap[$statusInFamilyRaw] ?? 'KEPALA_KELUARGA';
 
+                $phoneRaw = isset($row[3]) ? trim((string) $row[3]) : '';
+                $phone = $phoneRaw !== '' ? $phoneRaw : null;
+
                 $userData = [
                     'name' => $name,
                     'nik' => $nik,
                     'kk_number' => $row[2] ?? null,
-                    'phone' => $row[3] ?? null,
+                    'phone' => $phone,
                     'gender' => $genderRaw !== '' ? $genderRaw : 'L',
                     'place_of_birth' => $row[5] ?? null,
                     'date_of_birth' => $dateOfBirthRaw ?: null,
