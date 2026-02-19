@@ -482,8 +482,37 @@ class WargaController extends Controller
                 $nik = $row[1] ?? null;
                 if (!$nik) continue;
 
-                // Check if user exists
                 $user = User::where('nik', $nik)->first();
+
+                $maritalStatusRaw = strtoupper(trim($row[8] ?? ''));
+                $maritalStatusMap = [
+                    'BELUM KAWIN' => 'BELUM_KAWIN',
+                    'BELUM_KAWIN' => 'BELUM_KAWIN',
+                    'KAWIN' => 'KAWIN',
+                    'MENIKAH' => 'KAWIN',
+                    'CERAI HIDUP' => 'CERAI_HIDUP',
+                    'CERAI_HIDUP' => 'CERAI_HIDUP',
+                    'CERAI MATI' => 'CERAI_MATI',
+                    'CERAI_MATI' => 'CERAI_MATI',
+                ];
+                $maritalStatus = $maritalStatusMap[$maritalStatusRaw] ?? 'BELUM_KAWIN';
+
+                $statusInFamilyRaw = strtoupper(trim($row[10] ?? ''));
+                $statusInFamilyMap = [
+                    'KEPALA KELUARGA' => 'KEPALA_KELUARGA',
+                    'KEPALA_KELUARGA' => 'KEPALA_KELUARGA',
+                    'ISTRI' => 'ISTRI',
+                    'SUAMI' => 'KEPALA_KELUARGA',
+                    'ANAK' => 'ANAK',
+                    'ANAK I' => 'ANAK',
+                    'ANAK II' => 'ANAK',
+                    'ANAK III' => 'ANAK',
+                    'ANAK IV' => 'ANAK',
+                    'ANAK V' => 'ANAK',
+                    'FAMILI LAIN' => 'FAMILI_LAIN',
+                    'FAMILI_LAIN' => 'FAMILI_LAIN',
+                ];
+                $statusInFamily = $statusInFamilyMap[$statusInFamilyRaw] ?? 'KEPALA_KELUARGA';
 
                 $userData = [
                     'name' => $name,
@@ -494,9 +523,9 @@ class WargaController extends Controller
                     'place_of_birth' => $row[5] ?? null,
                     'date_of_birth' => $dateOfBirthRaw ?: null,
                     'religion' => $row[7] ?? 'ISLAM',
-                    'marital_status' => $row[8] ?? 'BELUM_KAWIN',
+                    'marital_status' => $maritalStatus,
                     'occupation' => $row[9] ?? null,
-                    'status_in_family' => $row[10] ?? 'ANGGOTA_KELUARGA',
+                    'status_in_family' => $statusInFamily,
                     'address' => $row[11] ?? null,
                     'address_ktp' => $row[12] ?? null,
                     'block' => $row[13] ?? null,
