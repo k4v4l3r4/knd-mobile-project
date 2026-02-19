@@ -43,7 +43,7 @@ export default function PengaturanDendaPage() {
         setLoading(false);
         return;
       }
-      const response = await api.get("/rt/fine-settings");
+      const response = await api.get("/ronda-fine-settings");
       if (response.data.data && response.data.data.length > 0) {
         const fetched = response.data.data as FineSetting[];
         const merged = defaultSettings.map((def) => {
@@ -78,7 +78,7 @@ export default function PengaturanDendaPage() {
     }
     setSaving(true);
     try {
-      await api.post("/rt/fine-settings", { settings });
+      await api.post("/ronda-fine-settings", { settings });
       toast.success("Pengaturan denda berhasil disimpan");
     } catch (error) {
       console.error("Failed to save settings:", error);

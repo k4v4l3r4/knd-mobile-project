@@ -37,6 +37,7 @@ class User extends Authenticatable
         'date_of_birth',
         'address',
         'block',
+        'gang',
         'address_rt',
         'address_rw',
         'address_ktp',

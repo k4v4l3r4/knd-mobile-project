@@ -36,6 +36,7 @@ interface Warga {
   email?: string | null;
   address: string | null;
   block?: string | null;
+  gang?: string | null;
   role: string;
   rt_id: number | null;
   rw_id: number | null;
@@ -91,6 +92,7 @@ export default function WargaPage() {
     email: '',
     address: '',
     block: '',
+    gang: '',
     address_rt: '',
     address_rw: '',
     address_ktp: '',
@@ -479,7 +481,8 @@ export default function WargaPage() {
         phone: warga.phone,
         email: warga.email || '',
         address: warga.address || '',
-        block: '',
+        block: warga.block || '',
+        gang: warga.gang || '',
         address_rt: warga.address_rt || '',
         address_rw: warga.address_rw || '',
         address_ktp: warga.address_ktp || '',
@@ -523,6 +526,7 @@ export default function WargaPage() {
         email: '',
         address: '',
         block: '',
+        gang: '',
         address_rt: '',
         address_rw: '',
         address_ktp: '',
@@ -1342,6 +1346,16 @@ export default function WargaPage() {
                                 onChange={(e) => setFormData({...formData, block: e.target.value})}
                                 className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all dark:text-white"
                                 placeholder="Contoh: A5, B12"
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Gang</label>
+                            <input
+                                type="text"
+                                value={formData.gang}
+                                onChange={(e) => setFormData({...formData, gang: e.target.value})}
+                                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all dark:text-white"
+                                placeholder="Contoh: Gg. Melati"
                             />
                         </div>
                         <div className="md:col-span-2">

@@ -84,6 +84,7 @@ class WargaRequest extends FormRequest
             'is_bansos_eligible' => ['boolean'],
             'address' => ['nullable', 'string'],
             'block' => ['nullable', 'string', 'max:10'],
+            'gang' => ['nullable', 'string', 'max:50'],
             'address_rt' => [$requiredOnCreate, 'string', 'max:5'],
             'address_rw' => [$requiredOnCreate, 'string', 'max:5'],
             'address_ktp' => ['nullable', 'string'],

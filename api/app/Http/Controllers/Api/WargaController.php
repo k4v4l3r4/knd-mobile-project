@@ -264,6 +264,7 @@ class WargaController extends Controller
             'Alamat Domisili',
             'Alamat KTP',
             'Blok',
+            'Gang',
             'RT',
             'RW',
             'Kode Pos'
@@ -290,6 +291,7 @@ class WargaController extends Controller
                     $warga->address,
                     $warga->address_ktp,
                     $warga->block,
+                    $warga->gang,
                     $warga->address_rt,
                     $warga->address_rw,
                     $warga->postal_code,
@@ -332,9 +334,17 @@ class WargaController extends Controller
 
             $withKk = $wargas->whereNotNull('kk_number');
             $groupedByKk = $withKk->groupBy('kk_number');
-            $totalHouseholds = $groupedByKk->count();
-            $totalMembers = $groupedByKk->sum(function ($group) {
+            $kkCounts = $groupedByKk->map(function ($group) {
                 return $group->count();
+            });
+
+            $totalHouseholds = $kkCounts->count();
+            $totalMembers = $kkCounts->sum();
+
+            $wargasWithCounts = $wargas->map(function ($warga) use ($kkCounts) {
+                $kk = $warga->kk_number;
+                $warga->kk_members_count = $kk && isset($kkCounts[$kk]) ? $kkCounts[$kk] : null;
+                return $warga;
             });
 
             $rt = $admin->rt;
@@ -344,7 +354,7 @@ class WargaController extends Controller
             $data = [
                 'rt_name' => $rtName,
                 'city' => $city,
-                'wargas' => $wargas,
+                'wargas' => $wargasWithCounts,
                 'total_households' => $totalHouseholds,
                 'total_members' => $totalMembers,
                 'generated_at' => now(),
@@ -475,9 +485,10 @@ class WargaController extends Controller
             11 => 'Alamat Domisili',
             12 => 'Alamat KTP',
             13 => 'Blok',
-            14 => 'RT',
-            15 => 'RW',
-            16 => 'Kode Pos',
+            14 => 'Gang',
+            15 => 'RT',
+            16 => 'RW',
+            17 => 'Kode Pos',
         ];
 
         $successCount = 0;
@@ -612,9 +623,10 @@ class WargaController extends Controller
                     'address' => $row[11] ?? null,
                     'address_ktp' => $row[12] ?? null,
                     'block' => $row[13] ?? null,
-                    'address_rt' => $row[14] ?? null,
-                    'address_rw' => $row[15] ?? null,
-                    'postal_code' => $row[16] ?? null,
+                    'gang' => $row[14] ?? null,
+                    'address_rt' => $row[15] ?? null,
+                    'address_rw' => $row[16] ?? null,
+                    'postal_code' => $row[17] ?? null,
                     'role' => 'WARGA_TETAP',
                     'rt_id' => $rtId,
                     'rw_id' => $rwId,

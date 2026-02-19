@@ -85,6 +85,7 @@
         <thead>
             <tr>
                 <th class="text-center" style="width: 25px;">No</th>
+                <th class="text-center" style="width: 60px;">Jml Jiwa KK</th>
                 <th style="width: 140px;">Nama</th>
                 <th style="width: 90px;">NIK</th>
                 <th style="width: 90px;">No. KK</th>
@@ -95,7 +96,8 @@
                 <th style="width: 70px;">Tanggal Lahir</th>
                 <th style="width: 55px;">Umur</th>
                 <th style="width: 70px;">Agama</th>
-                <th style="width: 60px;">Blok</th>
+                <th style="width: 50px;">Blok</th>
+                <th style="width: 60px;">Gang</th>
                 <th style="width: 30px;">RT</th>
                 <th style="width: 30px;">RW</th>
             </tr>
@@ -104,6 +106,13 @@
             @forelse($wargas as $index => $warga)
                 <tr>
                     <td class="text-center">{{ $index + 1 }}</td>
+                    <td class="text-center">
+                        @if(!empty($warga->kk_number) && !empty($warga->kk_members_count))
+                            {{ $warga->kk_members_count }}
+                        @else
+                            -
+                        @endif
+                    </td>
                     <td>{{ $warga->name }}</td>
                     <td>{{ $warga->nik }}</td>
                     <td>{{ $warga->kk_number }}</td>
@@ -137,12 +146,19 @@
                     </td>
                     <td>{{ $warga->religion }}</td>
                     <td class="text-center">{{ $warga->block }}</td>
+                    <td class="text-center">
+                        @if(isset($warga->gang) && $warga->gang !== '')
+                            {{ $warga->gang }}
+                        @else
+                            -
+                        @endif
+                    </td>
                     <td class="text-center">{{ $warga->address_rt }}</td>
                     <td class="text-center">{{ $warga->address_rw }}</td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="14" class="text-center">Tidak ada data warga.</td>
+                    <td colspan="16" class="text-center">Tidak ada data warga.</td>
                 </tr>
             @endforelse
         </tbody>

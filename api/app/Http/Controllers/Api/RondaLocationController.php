@@ -40,7 +40,7 @@ class RondaLocationController extends Controller
             'name' => 'required|string|max:255',
             'latitude' => 'required|numeric',
             'longitude' => 'required|numeric',
-            'radius_meters' => 'integer|min:10|max:500', // Reasonable radius
+            'radius_meters' => 'integer|min:5|max:500',
         ]);
 
         $rtId = Auth::user()->rt_id;
@@ -91,7 +91,7 @@ class RondaLocationController extends Controller
             'name' => 'sometimes|string|max:255',
             'latitude' => 'sometimes|numeric',
             'longitude' => 'sometimes|numeric',
-            'radius_meters' => 'sometimes|integer|min:10|max:500',
+            'radius_meters' => 'sometimes|integer|min:5|max:500',
         ]);
 
         $location->update($validated);

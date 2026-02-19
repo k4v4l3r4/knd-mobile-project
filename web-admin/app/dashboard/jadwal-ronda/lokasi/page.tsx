@@ -29,7 +29,7 @@ interface RondaLocation {
   name: string;
   latitude: number;
   longitude: number;
-  radius_meter: number;
+  radius_meters: number;
   qr_token: string;
   token_expires_at: string;
 }
@@ -48,7 +48,7 @@ export default function RondaLokasiPage() {
     name: '',
     latitude: '',
     longitude: '',
-    radius_meter: 50
+    radius_meters: 50
   });
 
   // QR Modal State
@@ -69,7 +69,7 @@ export default function RondaLokasiPage() {
             name: 'Pos Ronda Utama',
             latitude: -6.200000,
             longitude: 106.816666,
-            radius_meter: 50,
+            radius_meters: 50,
             qr_token: 'DEMO_QR_TOKEN_POS_UTAMA',
             token_expires_at: isoNow,
           },
@@ -79,7 +79,7 @@ export default function RondaLokasiPage() {
             name: 'Pos Ronda Blok C',
             latitude: -6.201000,
             longitude: 106.817500,
-            radius_meter: 40,
+            radius_meters: 40,
             qr_token: 'DEMO_QR_TOKEN_BLOK_C',
             token_expires_at: isoNow,
           },
@@ -113,7 +113,7 @@ export default function RondaLokasiPage() {
       name: '',
       latitude: '',
       longitude: '',
-      radius_meter: 50
+      radius_meters: 50
     });
     setShowModal(true);
   };
@@ -125,7 +125,7 @@ export default function RondaLokasiPage() {
       name: loc.name,
       latitude: loc.latitude.toString(),
       longitude: loc.longitude.toString(),
-      radius_meter: loc.radius_meter
+      radius_meters: loc.radius_meters
     });
     setShowModal(true);
   };
@@ -150,7 +150,7 @@ export default function RondaLokasiPage() {
         name: form.name,
         latitude: parseFloat(form.latitude),
         longitude: parseFloat(form.longitude),
-        radius_meter: form.radius_meter
+        radius_meters: form.radius_meters
       };
 
       if (modalMode === 'create') {
@@ -411,7 +411,7 @@ export default function RondaLokasiPage() {
               <div className="text-sm text-slate-500 dark:text-slate-400 space-y-1 mb-4">
                 <p>Lat: {loc.latitude}</p>
                 <p>Long: {loc.longitude}</p>
-                <p>Radius: {loc.radius_meter} meter</p>
+                <p>Radius: {loc.radius_meters} meter</p>
               </div>
 
               <div className="pt-4 border-t border-slate-100 dark:border-slate-700 flex flex-col gap-3">
@@ -502,8 +502,8 @@ export default function RondaLokasiPage() {
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Radius (Meter)</label>
                 <input
                   type="number"
-                  value={form.radius_meter}
-                  onChange={e => setForm({...form, radius_meter: parseInt(e.target.value) || 0})}
+                  value={form.radius_meters}
+                  onChange={e => setForm({...form, radius_meters: parseInt(e.target.value) || 0})}
                   className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                 />
               </div>
