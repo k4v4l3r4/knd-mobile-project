@@ -146,7 +146,7 @@ export const BillingService = {
   // Get all invoices (Admin view)
   getAllInvoices: async (
     params?: Record<string, string | number | (string | number)[] | undefined>
-  ): Promise<unknown> => {
+  ): Promise<Invoice[] | { data: Invoice[] }> => {
     const response = await api.get('/invoices', { params });
     return response.data;
   }

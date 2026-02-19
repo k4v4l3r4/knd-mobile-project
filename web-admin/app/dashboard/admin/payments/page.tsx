@@ -23,7 +23,10 @@ export default function AdminPaymentsPage() {
         status: ['UNPAID', 'PAYMENT_RECEIVED'],
         include: 'tenant' // standard Laravel pattern
       });
-      setInvoices(response.data || response); // Handle pagination or array
+      const normalized = Array.isArray((response as any).data)
+        ? (response as any).data
+        : response;
+      setInvoices(normalized as any[]); // Handle pagination or array
     } catch (err) {
       toast.error('Gagal memuat daftar pembayaran');
     } finally {
