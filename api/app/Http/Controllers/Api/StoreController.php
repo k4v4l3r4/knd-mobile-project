@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Store;
+use App\Support\PaymentSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
@@ -138,7 +139,8 @@ class StoreController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $scope = $this->getUmkmScope();
+        $scope = PaymentSettings::getUmkmScope();
+        $gatewayChannel = PaymentSettings::getGateway('umkm');
         $query = Store::with(['user', 'products']);
         
         if ($user->role === 'ADMIN_RT') {
@@ -170,22 +172,9 @@ class StoreController extends Controller
         
         return response()->json([
             'message' => 'Data toko berhasil diambil',
-            'data' => $stores
+            'data' => $stores,
+            'gateway_channel' => $gatewayChannel
         ]);
-    }
-
-    protected function getUmkmScope(): string
-    {
-        $file = 'payment_settings.json';
-
-        if (Storage::disk('local')->exists($file)) {
-            $settings = json_decode(Storage::disk('local')->get($file), true);
-            if (is_array($settings) && isset($settings['umkm_scope']) && in_array($settings['umkm_scope'], ['GLOBAL', 'RW'], true)) {
-                return $settings['umkm_scope'];
-            }
-        }
-
-        return 'GLOBAL';
     }
 
     /**

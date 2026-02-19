@@ -9,10 +9,12 @@ use App\Services\Payment\CentralizedPaymentInstructionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class PaymentController extends Controller
 {
     protected $instructionService;
+    protected $settingsFile = 'payment_settings.json';
 
     public function __construct(CentralizedPaymentInstructionService $instructionService)
     {
@@ -27,7 +29,7 @@ class PaymentController extends Controller
     {
         $request->validate([
             'invoice_id' => 'required|exists:invoices,id',
-            'payment_channel' => 'required|in:MANUAL,FLIP'
+            'payment_channel' => 'sometimes|in:MANUAL,DANA'
         ]);
 
         $invoice = Invoice::findOrFail($request->invoice_id);
@@ -55,9 +57,20 @@ class PaymentController extends Controller
             return response()->json(['message' => 'DEMO tenants cannot perform payments.'], 403);
         }
 
+        $configuredChannel = $this->getSubscriptionChannel();
+        $requestedChannel = $request->input('payment_channel');
+
+        if ($requestedChannel && $requestedChannel !== $configuredChannel) {
+            return response()->json([
+                'message' => 'Selected payment channel does not match platform configuration.'
+            ], 422);
+        }
+
+        $channel = $configuredChannel;
+
         // 4. Generate Instruction
         try {
-            $instruction = $this->instructionService->generate($invoice, $request->payment_channel);
+            $instruction = $this->instructionService->generate($invoice, $channel);
 
             return response()->json([
                 'success' => true,
@@ -69,6 +82,21 @@ class PaymentController extends Controller
                 'message' => $e->getMessage()
             ], 400);
         }
+    }
+
+    protected function getSubscriptionChannel(): string
+    {
+        try {
+            if (Storage::disk('local')->exists($this->settingsFile)) {
+                $settings = json_decode(Storage::disk('local')->get($this->settingsFile), true);
+                if (isset($settings['gateways']['subscription']) && in_array($settings['gateways']['subscription'], ['MANUAL', 'DANA'], true)) {
+                    return $settings['gateways']['subscription'];
+                }
+            }
+        } catch (\Throwable $e) {
+        }
+
+        return 'MANUAL';
     }
 
     /**

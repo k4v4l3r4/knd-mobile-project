@@ -34,6 +34,8 @@ export default function PaymentScreen({ initialData, onSuccess }: { initialData?
   
   // Extract feeIds from initialData if present
   const feeIds: number[] = initialData?.feeIds || initialData?.fee_ids || [];
+  const hasFeeIds = feeIds && feeIds.length > 0;
+  const [lastInstruction, setLastInstruction] = useState<any | null>(null);
 
   useEffect(() => {
     if (initialData) {
@@ -107,8 +109,6 @@ export default function PaymentScreen({ initialData, onSuccess }: { initialData?
       return;
     }
 
-    const hasFeeIds = feeIds && feeIds.length > 0;
-
     if (!hasFeeIds && !amount) {
       Alert.alert('Error', 'Mohon isi nominal pembayaran');
       return;
@@ -161,9 +161,29 @@ export default function PaymentScreen({ initialData, onSuccess }: { initialData?
       });
 
       if (response.data.success) {
+        const instruction = hasFeeIds ? response.data.instruction : null;
+        let successMessage = 'Pembayaran berhasil dikirim! Menunggu verifikasi admin.';
+
+        if (instruction) {
+          const channelLabel = instruction.channel || 'MANUAL';
+          const amountValue = instruction.amount_total ?? '';
+          const formattedAmount = amountValue !== '' ? formatRupiah(String(amountValue)) : '';
+
+          successMessage += '\n\n';
+          successMessage += `Channel Gateway: ${channelLabel}`;
+          if (formattedAmount) {
+            successMessage += `\nTotal Diproses Gateway: ${formattedAmount}`;
+          }
+
+          if (__DEV__) {
+            console.log('IuranPayment instruction', instruction);
+          }
+          setLastInstruction(instruction);
+        }
+
         Alert.alert(
           'Sukses', 
-          'Pembayaran berhasil dikirim! Menunggu verifikasi admin.',
+          successMessage,
           [{ text: 'OK' }]
         );
       } else {
@@ -388,6 +408,21 @@ export default function PaymentScreen({ initialData, onSuccess }: { initialData?
             )}
           </TouchableOpacity>
         </View>
+
+        {__DEV__ && lastInstruction && (
+          <View style={styles.debugBanner}>
+            <Text style={styles.debugTitle}>Debug Instruction</Text>
+            <Text style={styles.debugText}>
+              Channel: {String(lastInstruction.channel || 'MANUAL')}
+            </Text>
+            <Text style={styles.debugText}>
+              Amount: {lastInstruction.amount_total != null ? formatRupiah(String(lastInstruction.amount_total)) : '-'}
+            </Text>
+            <Text style={styles.debugText} numberOfLines={3}>
+              Meta: {JSON.stringify(lastInstruction.meta || {})}
+            </Text>
+          </View>
+        )}
 
       </ScrollView>
     </View>
@@ -725,5 +760,23 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.5,
+  },
+  debugBanner: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: colors.warning + '10',
+    borderWidth: 1,
+    borderColor: colors.warning + '40',
+  },
+  debugTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.warning,
+    marginBottom: 4,
+  },
+  debugText: {
+    fontSize: 12,
+    color: colors.textSecondary,
   },
 });

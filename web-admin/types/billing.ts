@@ -3,7 +3,7 @@ export type BillingMode = 'RT' | 'RW';
 export type SubscriptionType = 'MONTHLY' | 'YEARLY' | 'LIFETIME';
 export type InvoiceStatus = 'DRAFT' | 'UNPAID' | 'PAYMENT_RECEIVED' | 'PAID' | 'CANCELED' | 'REFUNDED' | 'FAILED' | 'PENDING';
 export type PaymentMode = 'SPLIT' | 'CENTRALIZED';
-export type PaymentChannel = 'MANUAL' | 'FLIP' | 'XENDIT' | 'MIDTRANS';
+export type PaymentChannel = 'MANUAL' | 'DANA' | 'XENDIT' | 'MIDTRANS';
 
 export interface Subscription {
   id: number;

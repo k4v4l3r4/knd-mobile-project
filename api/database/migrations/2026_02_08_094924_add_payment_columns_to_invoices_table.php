@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('invoices', function (Blueprint $table) {
             $table->enum('payment_mode', ['SPLIT', 'CENTRALIZED'])->default('CENTRALIZED')->after('status');
-            $table->enum('payment_provider', ['FLIP', 'XENDIT', 'MIDTRANS', 'MANUAL'])->default('MANUAL')->after('payment_mode');
+            $table->enum('payment_provider', ['FLIP', 'DANA', 'XENDIT', 'MIDTRANS', 'MANUAL'])->default('MANUAL')->after('payment_mode');
         });
 
         Schema::create('invoice_revenue_splits', function (Blueprint $table) {

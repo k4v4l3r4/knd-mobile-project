@@ -88,7 +88,7 @@ export const BillingService = {
   },
 
   // Initiate payment (get instruction)
-  pay: async (invoiceId: number, channel: 'MANUAL' | 'FLIP'): Promise<{ 
+  pay: async (invoiceId: number, channel: 'MANUAL' | 'DANA'): Promise<{ 
     status: string, 
     payment_mode: string, 
     provider: string, 

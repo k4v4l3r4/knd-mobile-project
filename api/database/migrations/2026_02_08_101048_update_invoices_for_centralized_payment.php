@@ -29,7 +29,7 @@ return new class extends Migration
             // "Update invoices table: payment_channel ..." implies I should have this column.
             // I will add 'payment_channel' and we can migrate data from provider if needed, or just use channel going forward.
             // Let's add it to be safe and strictly follow instructions.
-            $table->enum('payment_channel', ['MANUAL', 'FLIP'])->nullable()->after('payment_provider');
+            $table->enum('payment_channel', ['MANUAL', 'FLIP', 'DANA'])->nullable()->after('payment_provider');
         });
 
         // 2. Update Status Enum to include FAILED

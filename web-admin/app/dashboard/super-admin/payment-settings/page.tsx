@@ -24,16 +24,27 @@ export default function PaymentSettingsPage() {
     fetchSettings();
   }, []);
 
+  const withDefaults = (data: PaymentSettings): PaymentSettings => {
+    return {
+      ...data,
+      gateways: {
+        subscription: data.gateways?.subscription || 'MANUAL',
+        iuran_warga: data.gateways?.iuran_warga || 'MANUAL',
+        umkm: data.gateways?.umkm || 'MANUAL',
+      },
+    };
+  };
+
   const fetchSettings = async () => {
     try {
       setLoading(true);
       const data = await SuperAdminService.getPaymentSettings();
-      setSettings(data);
+      setSettings(withDefaults(data));
     } catch (error) {
       console.error('Failed to fetch payment settings:', error);
       toast.error('Gagal memuat pengaturan pembayaran');
       // Fallback for UI development if API fails (since backend might not be ready)
-      setSettings({
+      setSettings(withDefaults({
         subscription_mode: 'CENTRALIZED',
         iuran_warga_mode: 'SPLIT',
         umkm_mode: 'SPLIT',
@@ -46,8 +57,13 @@ export default function PaymentSettingsPage() {
           platform_fee_percent: 5,
           rt_share_percent: 5,
           is_rt_share_enabled: true,
-        }
-      });
+        },
+        gateways: {
+          subscription: 'MANUAL',
+          iuran_warga: 'MANUAL',
+          umkm: 'MANUAL',
+        },
+      }));
     } finally {
       setLoading(false);
     }
@@ -74,7 +90,7 @@ export default function PaymentSettingsPage() {
     setSettings(prev => {
       if (!prev) return null;
       
-      if (section === 'iuran_warga_config' || section === 'umkm_config') {
+      if (section === 'iuran_warga_config' || section === 'umkm_config' || section === 'gateways') {
         return {
           ...prev,
           [section]: {
@@ -184,6 +200,55 @@ export default function PaymentSettingsPage() {
                     : 'Warga hanya melihat UMKM dari RW mereka sendiri.'}
                 </p>
               </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* DEFAULT PAYMENT GATEWAYS */}
+      <Card className="border-slate-200 dark:border-slate-800">
+        <CardHeader>
+          <CardTitle className="text-lg">Default Payment Gateway</CardTitle>
+          <CardDescription>
+            Pilih gateway utama yang akan digunakan untuk setiap jenis transaksi.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <Label className="text-slate-500 text-xs uppercase tracking-wider font-bold">Langganan (Subscription)</Label>
+              <select
+                className="mt-2 w-full p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent font-bold text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none"
+                value={settings.gateways.subscription}
+                onChange={(e) => updateSetting('gateways', 'subscription', e.target.value)}
+              >
+                <option value="MANUAL">Manual Transfer (Bank)</option>
+                <option value="DANA">DANA VA / e-wallet</option>
+              </select>
+            </div>
+
+            <div>
+              <Label className="text-slate-500 text-xs uppercase tracking-wider font-bold">Iuran Warga</Label>
+              <select
+                className="mt-2 w-full p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent font-bold text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none"
+                value={settings.gateways.iuran_warga}
+                onChange={(e) => updateSetting('gateways', 'iuran_warga', e.target.value)}
+              >
+                <option value="MANUAL">Manual Transfer / Rekening RT</option>
+                <option value="DANA">DANA (Otomatis)</option>
+              </select>
+            </div>
+
+            <div>
+              <Label className="text-slate-500 text-xs uppercase tracking-wider font-bold">UMKM Marketplace</Label>
+              <select
+                className="mt-2 w-full p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent font-bold text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none"
+                value={settings.gateways.umkm}
+                onChange={(e) => updateSetting('gateways', 'umkm', e.target.value)}
+              >
+                <option value="MANUAL">Manual / Settlement Internal</option>
+                <option value="DANA">DANA (Otomatis)</option>
+              </select>
             </div>
           </div>
         </CardContent>
@@ -407,7 +472,7 @@ export default function PaymentSettingsPage() {
               <h4 className="font-bold text-slate-700 dark:text-slate-300 mb-3">Centralized Mode</h4>
               <div className="flex flex-wrap gap-2">
                 <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-bold">MANUAL TRANSFER</span>
-                <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-lg text-sm font-bold">FLIP</span>
+                <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-lg text-sm font-bold">DANA</span>
               </div>
             </div>
             <div className="border border-slate-200 dark:border-slate-700 rounded-xl p-4">

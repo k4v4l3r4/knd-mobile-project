@@ -146,7 +146,7 @@ export default function BillingPage() {
           />
           <InfoCard 
             title="Metode Pembayaran" 
-            value="Transfer & Flip"
+            value="Transfer & DANA"
             desc="Verifikasi otomatis & manual"
           />
           <InfoCard 

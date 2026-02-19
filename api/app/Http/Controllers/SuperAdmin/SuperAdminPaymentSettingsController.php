@@ -14,6 +14,14 @@ class SuperAdminPaymentSettingsController extends Controller
     {
         if (Storage::disk('local')->exists($this->settingsFile)) {
             $settings = json_decode(Storage::disk('local')->get($this->settingsFile), true);
+
+            if (!isset($settings['gateways']) || !is_array($settings['gateways'])) {
+                $settings['gateways'] = [
+                    'subscription' => 'MANUAL',
+                    'iuran_warga' => 'MANUAL',
+                    'umkm' => 'MANUAL',
+                ];
+            }
         } else {
             $settings = [
                 'subscription_mode' => 'CENTRALIZED',
@@ -28,6 +36,11 @@ class SuperAdminPaymentSettingsController extends Controller
                     'platform_fee_percent' => 5,
                     'rt_share_percent' => 5,
                     'is_rt_share_enabled' => true,
+                ],
+                'gateways' => [
+                    'subscription' => 'MANUAL',
+                    'iuran_warga' => 'MANUAL',
+                    'umkm' => 'MANUAL',
                 ],
             ];
         }
@@ -50,6 +63,9 @@ class SuperAdminPaymentSettingsController extends Controller
             'umkm_config.platform_fee_percent' => 'required|numeric|min:0|max:100',
             'umkm_config.rt_share_percent' => 'required|numeric|min:0|max:100',
             'umkm_config.is_rt_share_enabled' => 'required|boolean',
+            'gateways.subscription' => 'required|string|in:MANUAL,FLIP',
+            'gateways.iuran_warga' => 'required|string|in:MANUAL,FLIP',
+            'gateways.umkm' => 'required|string|in:MANUAL,FLIP',
         ]);
 
         Storage::disk('local')->put($this->settingsFile, json_encode($data));

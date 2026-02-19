@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Fee;
 use App\Models\Transaction;
 use App\Models\Wallet;
+use App\Support\PaymentSettings;
+use App\Services\Payment\IuranPaymentGatewayService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -66,11 +68,14 @@ class BillController extends Controller
             ->take(10)
             ->get();
 
+        $gatewayChannel = PaymentSettings::getGateway('iuran_warga');
+
         return response()->json([
             'success' => true,
             'data' => [
                 'unpaid' => $unpaid,
-                'history' => $history
+                'history' => $history,
+                'gateway_channel' => $gatewayChannel
             ]
         ]);
     }
@@ -182,10 +187,14 @@ class BillController extends Controller
             'proof_url' => $proofPath, // Save proof URL
         ]);
 
+        $gatewayService = app(IuranPaymentGatewayService::class);
+        $instruction = $gatewayService->createInstruction($transaction);
+
         return response()->json([
             'success' => true,
             'message' => 'Pembayaran berhasil dicatat. Menunggu verifikasi admin.',
-            'data' => $transaction
+            'data' => $transaction,
+            'instruction' => $instruction
         ]);
     }
 }

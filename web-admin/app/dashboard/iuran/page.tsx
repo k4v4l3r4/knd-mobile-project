@@ -53,6 +53,8 @@ export default function LaporanIuranPage() {
   const [year, setYear] = useState(new Date().getFullYear());
   const [selectedBlock, setSelectedBlock] = useState<string>('ALL');
   const [search, setSearch] = useState('');
+  const [instructionJson, setInstructionJson] = useState('');
+  const [instruction, setInstruction] = useState<any | null>(null);
   
   // Popover State
   const [hoveredCell, setHoveredCell] = useState<{userId: number, month: string} | null>(null);
@@ -258,6 +260,23 @@ export default function LaporanIuranPage() {
   }, {} as Record<string, number>);
 
   const grandTotal = filteredUsers.reduce((sum, user) => sum + user.total_year, 0);
+
+  const handleLoadInstruction = () => {
+    if (!instructionJson.trim()) {
+      setInstruction(null);
+      return;
+    }
+    try {
+      const parsed = JSON.parse(instructionJson);
+      setInstruction(parsed);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Dev Iuran instruction (web-admin)', parsed);
+      }
+      toast.success('Instruction loaded (dev only)');
+    } catch (e) {
+      toast.error('JSON tidak valid');
+    }
+  };
 
   return (
     <div className="p-6 min-h-screen bg-slate-50 dark:bg-slate-950 font-sans transition-colors duration-300">
@@ -495,6 +514,67 @@ export default function LaporanIuranPage() {
           </div>
         </div>
       </div>
+
+      {process.env.NODE_ENV === 'development' && (
+        <div className="mt-6 max-w-2xl space-y-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-xl p-4">
+          <div className="flex items-center gap-2">
+            <Info className="w-4 h-4 text-amber-700 dark:text-amber-300" />
+            <span className="text-xs font-semibold text-amber-800 dark:text-amber-200">
+              Dev Only: Iuran Gateway Instruction Debug (Web Admin)
+            </span>
+          </div>
+          <p className="text-xs text-amber-800 dark:text-amber-200">
+            Tempel JSON instruction dari API iuran di bawah untuk melihat preview channel, amount, dan meta.
+          </p>
+          <textarea
+            value={instructionJson}
+            onChange={(e) => setInstructionJson(e.target.value)}
+            rows={4}
+            className="w-full text-xs font-mono rounded-lg border border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-950 p-2 focus:outline-none focus:ring-2 focus:ring-amber-400"
+            placeholder='{"channel":"MANUAL","amount_total":75000,"meta":{"example":"data"}}'
+          />
+          <div className="flex items-center justify-between gap-2">
+            <button
+              onClick={handleLoadInstruction}
+              className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-600 hover:bg-amber-700 text-white transition-colors"
+            >
+              Load Instruction (Dev)
+            </button>
+            {instruction && (
+              <span className="text-[11px] text-amber-800 dark:text-amber-200">
+                Instruction aktif ditampilkan di bawah
+              </span>
+            )}
+          </div>
+          {instruction && (
+            <div className="mt-2 rounded-lg border border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-950 px-3 py-2 text-xs space-y-1">
+              <div className="font-semibold text-amber-900 dark:text-amber-100">
+                Preview Instruction
+              </div>
+              <div className="text-amber-900 dark:text-amber-100">
+                Channel:{' '}
+                <span className="font-mono">
+                  {instruction.channel || 'MANUAL'}
+                </span>
+              </div>
+              <div className="text-amber-900 dark:text-amber-100">
+                Amount:{' '}
+                <span className="font-mono">
+                  {typeof instruction.amount_total === 'number'
+                    ? formatCurrency(instruction.amount_total)
+                    : '-'}
+                </span>
+              </div>
+              <div className="text-amber-900 dark:text-amber-100 truncate">
+                Meta:{' '}
+                <span className="font-mono">
+                  {JSON.stringify(instruction.meta || {})}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

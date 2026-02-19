@@ -11,7 +11,7 @@ class CentralizedPaymentInstructionService
      * Generate Payment Instruction for Centralized Mode.
      *
      * @param Invoice $invoice
-     * @param string $channel 'MANUAL' or 'FLIP'
+     * @param string $channel 'MANUAL' or 'DANA'
      * @return array
      */
     public function generate(Invoice $invoice, string $channel = 'MANUAL')
@@ -51,10 +51,9 @@ class CentralizedPaymentInstructionService
                 'account_holder' => 'PT RT ONLINE INDONESIA',
                 'description' => 'Include Invoice No ' . $invoice->invoice_number . ' in transfer remark.'
             ];
-        } elseif ($channel === 'FLIP') {
-             // Mock Flip Instruction
-             $instruction['flip_link'] = 'https://flip.id/pay/mock/' . $invoice->invoice_number;
-             $instruction['instructions'] = 'Please complete payment via Flip app using the link.';
+        } elseif ($channel === 'DANA') {
+             $instruction['dana_link'] = 'https://dana.id/pay/mock/' . $invoice->invoice_number;
+             $instruction['instructions'] = 'Please complete payment via DANA app using the link.';
         }
 
         // 4. Update Invoice

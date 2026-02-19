@@ -41,4 +41,10 @@ export interface PaymentSettings {
     rt_share_percent: number;
     is_rt_share_enabled: boolean;
   };
+
+  gateways: {
+    subscription: 'MANUAL' | 'DANA';
+    iuran_warga: 'MANUAL' | 'DANA';
+    umkm: 'MANUAL' | 'DANA';
+  };
 }

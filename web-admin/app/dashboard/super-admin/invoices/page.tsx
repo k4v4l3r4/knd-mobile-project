@@ -101,7 +101,7 @@ export default function InvoicesPage() {
             className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm outline-none"
           >
             <option value="">Semua Channel</option>
-            <option value="FLIP">Flip</option>
+            <option value="DANA">DANA</option>
             <option value="MANUAL">Manual</option>
           </select>
           

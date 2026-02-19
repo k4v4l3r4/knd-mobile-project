@@ -130,7 +130,7 @@ export default function AdminPaymentsPage() {
                     </td>
                     <td className="p-6">
                       <span className={`px-2 py-1 rounded text-xs font-bold ${
-                        invoice.payment_channel === 'FLIP' 
+                        invoice.payment_channel === 'DANA' 
                           ? 'bg-orange-100 text-orange-700' 
                           : 'bg-slate-100 text-slate-700'
                       }`}>
