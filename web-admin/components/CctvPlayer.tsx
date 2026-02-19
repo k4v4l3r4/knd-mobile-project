@@ -46,7 +46,7 @@ export default function CctvPlayer({ label, location, isMini = false, src, statu
               hlsInstance = new Hls();
               hlsInstance.loadSource(src);
               hlsInstance.attachMedia(video);
-              hlsInstance.on(Hls.Events.ERROR, () => {
+              hlsInstance.on('error', () => {
                 setHasError(true);
               });
             } else {
