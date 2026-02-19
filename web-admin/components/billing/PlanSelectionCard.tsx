@@ -36,26 +36,26 @@ export const PlanSelectionCard: React.FC<PlanSelectionCardProps> = ({
         <h3 className="text-xl md:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
           {plan.name}
         </h3>
-        <div className="mt-3 flex items-baseline gap-2">
-          <div className="flex items-baseline gap-2">
+        <div className="mt-3 space-y-1">
+          {plan.originalPrice && plan.discountPercent && plan.discountPercent > 0 && (
+            <div className="text-xs md:text-sm text-slate-400 line-through">
+              Rp {plan.originalPrice.toLocaleString('id-ID')}
+            </div>
+          )}
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
             <span className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white leading-none">
               Rp {plan.price.toLocaleString('id-ID')}
             </span>
-            {plan.discountPercent && plan.discountPercent > 0 && plan.originalPrice && (
-              <span className="text-sm text-emerald-600 font-semibold bg-emerald-50 dark:bg-emerald-900/40 px-2 py-0.5 rounded-full">
-                Hemat {plan.discountPercent}%
-              </span>
-            )}
+            <span className="text-sm md:text-base text-slate-500 dark:text-slate-400 font-medium">
+              {plan.type === 'LIFETIME' ? '/ selamanya' : plan.type === 'YEARLY' ? '/ tahun' : '/ bulan'}
+            </span>
           </div>
-          <span className="text-sm md:text-base text-slate-500 dark:text-slate-400 font-medium">
-            {plan.type === 'LIFETIME' ? '/ selamanya' : plan.type === 'YEARLY' ? '/ tahun' : '/ bulan'}
-          </span>
+          {plan.discountPercent && plan.discountPercent > 0 && plan.originalPrice && (
+            <div className="inline-flex items-center text-xs font-semibold text-emerald-700 bg-emerald-50 dark:bg-emerald-900/40 dark:text-emerald-300 px-2.5 py-0.5 rounded-full">
+              Hemat {plan.discountPercent}%
+            </div>
+          )}
         </div>
-        {plan.originalPrice && plan.discountPercent && plan.discountPercent > 0 && (
-          <div className="mt-1 text-xs text-slate-400 line-through">
-            Rp {plan.originalPrice.toLocaleString('id-ID')}
-          </div>
-        )}
         <p className="mt-3 text-sm md:text-base text-slate-500 dark:text-slate-400">
           {plan.description}
         </p>
