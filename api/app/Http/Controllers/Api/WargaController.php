@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class WargaController extends Controller
 {
@@ -301,6 +302,39 @@ class WargaController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    public function exportPdf(Request $request)
+    {
+        $admin = $request->user();
+
+        if (!$admin || !$admin->rt_id) {
+            return response()->json([
+                'message' => 'User tidak memiliki RT'
+            ], 403);
+        }
+
+        $query = User::whereIn('role', ['WARGA', 'WARGA_TETAP', 'WARGA_KOST'])
+            ->where('rt_id', $admin->rt_id)
+            ->orderBy('name');
+
+        $wargas = $query->get();
+
+        $rt = $admin->rt;
+        $rtName = $rt ? ('RT ' . $rt->rt_number . ' / RW ' . $rt->rw_number) : 'RT Online';
+        $city = $rt->city ?? 'Indonesia';
+
+        $data = [
+            'rt_name' => $rtName,
+            'city' => $city,
+            'wargas' => $wargas,
+            'generated_at' => now(),
+        ];
+
+        $pdf = Pdf::loadView('reports.warga_pdf', $data)
+            ->setPaper('a4', 'portrait');
+
+        return $pdf->stream('data-warga-' . date('Ymd') . '.pdf');
     }
 
     public function exportTemplate(Request $request)

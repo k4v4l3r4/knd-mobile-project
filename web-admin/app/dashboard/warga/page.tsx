@@ -720,6 +720,37 @@ export default function WargaPage() {
     }
   };
 
+  const handleExportPdf = async () => {
+    if (isDemo) {
+        toast.error('Mode Demo: Export data tidak diizinkan');
+        return;
+    }
+    if (isExpired) {
+        toast.error('Akses Terbatas: Silakan perpanjang langganan');
+        return;
+    }
+
+    try {
+        const token = Cookies.get('admin_token');
+        const response = await api.get('/warga/export-pdf', {
+            responseType: 'blob',
+            headers: { Authorization: `Bearer ${token}` }
+        });
+
+        const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `data_warga_${new Date().toISOString().slice(0,10)}.pdf`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        toast.success('PDF berhasil diunduh');
+    } catch (err: unknown) {
+        console.error('Export PDF error:', err);
+        toast.error('Gagal mengexport PDF');
+    }
+  };
+
   const handleDownloadTemplate = async () => {
     if (isDemo) {
         toast.error('Mode Demo: Download template tidak diizinkan');
@@ -841,7 +872,15 @@ export default function WargaPage() {
                 title="Export CSV"
             >
                 <Download size={20} />
-                <span className="hidden sm:inline">Export</span>
+                <span className="hidden sm:inline">Export CSV</span>
+            </button>
+            <button
+                onClick={handleExportPdf}
+                className="flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 rounded-2xl font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-emerald-200 dark:hover:border-emerald-800 transition-all shadow-sm"
+                title="Export PDF"
+            >
+                <Download size={20} />
+                <span className="hidden sm:inline">Export PDF</span>
             </button>
             <button
                 onClick={handleDownloadTemplate}
