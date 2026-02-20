@@ -112,29 +112,28 @@ export default function LoginScreen({ onLoginSuccess, onRegisterRT }: LoginScree
   const handleDemoLogin = async (type: 'WARGA' | 'RT') => {
     setLoading(true);
     try {
-        const role = type === 'RT' ? 'ADMIN_RT' : 'WARGA';
-        const response = await api.post('/auth/register-demo', { demo_role: role });
-        
-        if (response.data.token) {
-             const { token, user } = response.data;
-             
-             await AsyncStorage.multiSet([
-               ['user_token', token],
-               ['user_data', JSON.stringify(user)]
-             ]);
-             
-             // Clear remember me if switching to demo
-             await AsyncStorage.multiRemove(['remembered_phone', 'remembered_password']);
-             
-             onLoginSuccess();
-        } else {
-             Alert.alert(t('login.alert.failed'), t('login.demoError'));
-        }
+      const role = type === 'RT' ? 'ADMIN_RT' : 'WARGA';
+      const response = await api.post('/auth/login/demo-mobile', { demo_role: role });
+
+      if (response.data.token) {
+        const { token, user } = response.data;
+
+        await AsyncStorage.multiSet([
+          ['user_token', token],
+          ['user_data', JSON.stringify(user)],
+        ]);
+
+        await AsyncStorage.multiRemove(['remembered_phone', 'remembered_password']);
+
+        onLoginSuccess();
+      } else {
+        Alert.alert(t('login.alert.failed'), t('login.demoError'));
+      }
     } catch (error: any) {
-        console.log('Demo login error:', error);
-        Alert.alert(t('login.alert.failed'), t('login.alert.connectionError'));
+      console.log('Demo login error:', error);
+      Alert.alert(t('login.alert.failed'), t('login.alert.connectionError'));
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 
