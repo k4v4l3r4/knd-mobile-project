@@ -7,6 +7,7 @@ import { BillingSummaryCard } from '@/components/billing/BillingSummaryCard';
 import { Loader2, ShieldCheck, Users, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import axios from '@/lib/axios';
+import { DemoLabel } from '@/components/TenantStatusComponents';
 
 export default function BillingPage() {
   const [summary, setSummary] = useState<BillingSummary | null>(null);
@@ -71,9 +72,12 @@ export default function BillingPage() {
   return (
     <div className="w-full py-8 px-4">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-          Billing & Langganan
-        </h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+            Billing & Langganan
+          </h1>
+          <DemoLabel />
+        </div>
         <p className="text-slate-500 dark:text-slate-400">
           Kelola status langganan dan pembayaran layanan RT Online
         </p>
