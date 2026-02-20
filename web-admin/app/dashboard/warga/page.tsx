@@ -1069,24 +1069,24 @@ export default function WargaPage() {
                         </span>
                     </td>
                     <td className="px-8 py-5 text-right">
-                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => router.push(`/dashboard/warga/${warga.id}`)}
-                            className="p-2.5 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors tooltip border border-transparent hover:border-slate-200 dark:hover:border-slate-700 shadow-sm"
+                            className="p-2.5 text-slate-500 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors border border-slate-200 dark:border-slate-700 shadow-sm"
                             title="Detail Kepala Keluarga"
                           >
                             <Eye size={18} />
                           </button>
                           <button
                             onClick={() => handleOpenModal('edit', warga)}
-                            className="p-2.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-xl transition-colors tooltip border border-transparent hover:border-emerald-100 dark:hover:border-emerald-800 shadow-sm"
+                            className="p-2.5 text-emerald-600 dark:text-emerald-400 bg-emerald-50/70 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 rounded-xl transition-colors border border-emerald-200 dark:border-emerald-800 shadow-sm"
                             title="Edit"
                           >
                             <Edit size={18} />
                           </button>
                           <button
                             onClick={() => handleDelete(warga)}
-                            className="p-2.5 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-colors tooltip border border-transparent hover:border-rose-100 dark:hover:border-rose-800 shadow-sm"
+                            className="p-2.5 text-rose-600 dark:text-rose-400 bg-rose-50/80 dark:bg-rose-900/30 hover:bg-rose-100 dark:hover:bg-rose-900/50 rounded-xl transition-colors border border-rose-200 dark:border-rose-800 shadow-sm"
                             title="Hapus"
                           >
                             <Trash2 size={18} />

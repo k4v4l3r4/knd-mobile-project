@@ -49,6 +49,17 @@ interface Warga {
   family?: Warga[];
 }
 
+const formatBirthDate = (value: string | null) => {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString('id-ID', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+};
+
 export default function WargaDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -355,7 +366,7 @@ export default function WargaDetailPage() {
                                 Tempat, Tanggal Lahir
                             </div>
                             <p className="text-base font-medium text-slate-900 pl-6">
-                                {warga.place_of_birth}, {warga.date_of_birth}
+                                {warga.place_of_birth}, {formatBirthDate(warga.date_of_birth)}
                             </p>
                         </div>
 
@@ -440,7 +451,9 @@ export default function WargaDetailPage() {
                                 <td className="px-6 py-4 text-slate-600">
                                     <span className="capitalize">{member.status_in_family?.toLowerCase().replace('_', ' ')}</span>
                                 </td>
-                                <td className="px-6 py-4 text-slate-600">{member.date_of_birth}</td>
+                                <td className="px-6 py-4 text-slate-600">
+                                    {formatBirthDate(member.date_of_birth)}
+                                </td>
                                 <td className="px-6 py-4 text-right">
                                   {member.id === warga.id ? (
                                     <span className="text-xs text-slate-400 italic">
