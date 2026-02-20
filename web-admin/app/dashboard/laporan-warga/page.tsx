@@ -302,10 +302,9 @@ export default function LaporanWargaPage() {
               <MessageSquareWarning size={24} />
             </div>
             <div className="flex items-center gap-3">
-            <h1 className="text-2xl md:text-3xl font-extrabold text-slate-800 dark:text-white tracking-tight">Laporan Warga</h1>
-            <DemoLabel />
-          </div>
-            <DemoLabel />
+              <h1 className="text-2xl md:text-3xl font-extrabold text-slate-800 dark:text-white tracking-tight">Laporan Warga</h1>
+              <DemoLabel />
+            </div>
           </div>
           <p className="text-slate-500 dark:text-slate-400 font-medium max-w-lg">
             Pantau dan tindak lanjuti laporan serta aduan dari warga lingkungan Anda secara real-time.
