@@ -60,6 +60,20 @@ const formatBirthDate = (value: string | null) => {
   });
 };
 
+const calculateAge = (value: string | null) => {
+  if (!value) return '-';
+  const birth = new Date(value);
+  if (Number.isNaN(birth.getTime())) return '-';
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+  if (age < 0) return '0 Tahun';
+  return `${age} Tahun`;
+};
+
 export default function WargaDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -360,13 +374,16 @@ export default function WargaDetailPage() {
                             <p className="text-base font-medium text-slate-900 pl-6">{warga.kk_number || '-'}</p>
                         </div>
 
-                         <div className="space-y-1">
+                        <div className="space-y-1">
                             <div className="flex items-center text-sm text-slate-500 mb-1">
                                 <Calendar className="w-4 h-4 mr-2 text-emerald-500" />
-                                Tempat, Tanggal Lahir
+                                Tempat, Tanggal Lahir & Umur
                             </div>
                             <p className="text-base font-medium text-slate-900 pl-6">
-                                {warga.place_of_birth}, {formatBirthDate(warga.date_of_birth)}
+                                {warga.place_of_birth}, {formatBirthDate(warga.date_of_birth)}{' '}
+                                <span className="text-sm text-slate-500">
+                                    ({calculateAge(warga.date_of_birth)})
+                                </span>
                             </p>
                         </div>
 
@@ -420,7 +437,7 @@ export default function WargaDetailPage() {
                         <th className="px-6 py-4 font-semibold text-slate-700">NIK</th>
                         <th className="px-6 py-4 font-semibold text-slate-700">L/P</th>
                         <th className="px-6 py-4 font-semibold text-slate-700">Status</th>
-                        <th className="px-6 py-4 font-semibold text-slate-700">Tanggal Lahir</th>
+                        <th className="px-6 py-4 font-semibold text-slate-700">Tanggal Lahir / Umur</th>
                         <th className="px-6 py-4 font-semibold text-slate-700 text-right">Aksi</th>
                     </tr>
                 </thead>
@@ -452,7 +469,10 @@ export default function WargaDetailPage() {
                                     <span className="capitalize">{member.status_in_family?.toLowerCase().replace('_', ' ')}</span>
                                 </td>
                                 <td className="px-6 py-4 text-slate-600">
-                                    {formatBirthDate(member.date_of_birth)}
+                                    <div>{formatBirthDate(member.date_of_birth)}</div>
+                                    <div className="text-xs text-slate-500">
+                                        {calculateAge(member.date_of_birth)}
+                                    </div>
                                 </td>
                                 <td className="px-6 py-4 text-right">
                                   {member.id === warga.id ? (
