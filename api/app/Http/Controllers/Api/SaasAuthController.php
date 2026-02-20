@@ -321,8 +321,64 @@ class SaasAuthController extends Controller
 
     public function mobileDemoLogin(Request $request)
     {
-        // ... existing logic ...
-        return response()->json(['message' => 'Not implemented yet']);
+        $tenant = Tenant::where('tenant_type', Tenant::TYPE_DEMO)
+                        ->where('name', 'SHARED_DEMO_MOBILE')
+                        ->first();
+
+        if (!$tenant) {
+            $tenant = Tenant::create([
+                'name' => 'SHARED_DEMO_MOBILE',
+                'level' => 'RT',
+                'tenant_type' => Tenant::TYPE_DEMO,
+                'status' => Tenant::STATUS_DEMO,
+                'trial_start_at' => now(),
+                'trial_end_at' => now()->addYears(10),
+            ]);
+
+            $rw = WilayahRw::create([
+                'tenant_id' => $tenant->id,
+                'code' => '001',
+                'name' => 'RW 01 Demo',
+                'subscription_status' => 'ACTIVE',
+            ]);
+
+            $rt = WilayahRt::create([
+                'tenant_id' => $tenant->id,
+                'rw_id' => $rw->id,
+                'rt_number' => '001',
+                'rt_name' => 'RT 001 Demo',
+                'kas_balance' => 0,
+                'invite_code' => Str::random(6),
+            ]);
+
+            $this->seederService->seedDemoTenant($tenant, $rt, $rw);
+        }
+
+        $user = User::where('tenant_id', $tenant->id)->first();
+
+        if (!$user) {
+            $rt = $tenant->wilayah_rt()->first();
+
+            $user = User::create([
+                'tenant_id' => $tenant->id,
+                'name' => 'Mobile Demo User',
+                'email' => 'mobile.demo@example.com',
+                'phone' => '080000000000',
+                'password' => Hash::make('password'),
+                'role' => 'WARGA_TETAP',
+                'rt_id' => $rt ? $rt->id : null,
+                'rw_id' => $rt ? $rt->rw_id : null,
+            ]);
+        }
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'message' => 'Login to Mobile Demo successful',
+            'token' => $token,
+            'user' => $user,
+            'tenant' => $tenant,
+        ]);
     }
 
     // 5. CHECK STATUS
