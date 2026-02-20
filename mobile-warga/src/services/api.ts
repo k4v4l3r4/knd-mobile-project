@@ -7,7 +7,7 @@ import { authEvents } from './authEvent';
 const getBaseUrl = () => {
   // Use production URL for release builds
   if (!__DEV__) {
-    return 'https://admin.afnet.my.id/api';
+    return 'https://api.afnet.my.id/api';
   }
 
   // Development: try to infer LAN IP from Expo debugger host
