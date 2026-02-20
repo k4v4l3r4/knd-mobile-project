@@ -173,17 +173,7 @@ const ProfileScreen = () => {
           <Text style={[styles.headerTitle, { color: colors.text }]}>{t('profile.title')}</Text>
           <DemoLabel />
         </View>
-        <TouchableOpacity 
-          onPress={handleSave} 
-          disabled={isLoading}
-          style={[styles.saveButton, { backgroundColor: colors.primary }]}
-        >
-           {isLoading ? (
-             <ActivityIndicator size="small" color="#fff" />
-           ) : (
-             <Text style={styles.saveButtonText}>{t('profile.save')}</Text>
-           )}
-        </TouchableOpacity>
+        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -279,6 +269,24 @@ const ProfileScreen = () => {
             />
           </View>
         </View>
+
+        <View style={styles.footer}>
+          <TouchableOpacity
+            onPress={handleSave}
+            disabled={isLoading}
+            style={[
+              styles.saveButton,
+              { backgroundColor: colors.primary, opacity: isLoading ? 0.7 : 1 },
+            ]}
+            activeOpacity={0.8}
+          >
+            {isLoading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.saveButtonText}>{t('profile.save')}</Text>
+            )}
+          </TouchableOpacity>
+        </View>
       </ScrollView>
 
       {isLoading && (
@@ -306,11 +314,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   saveButton: {
+    width: '100%',
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    minWidth: 80,
+    paddingVertical: 14,
+    borderRadius: 24,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   saveButtonText: {
     color: '#fff',
@@ -319,6 +328,9 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 24,
+  },
+  footer: {
+    marginTop: 32,
   },
   avatarSection: {
     alignItems: 'center',
