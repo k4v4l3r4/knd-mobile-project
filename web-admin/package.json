@@ -30,6 +30,7 @@
     "react-dom": "19.2.3",
     "react-hot-toast": "^2.6.0",
     "react-lottie-player": "^2.1.0",
+    "@react-google-maps/api": "^2.19.3",
     "recharts": "^3.7.0",
     "sweetalert2": "^11.26.17",
     "tailwind-merge": "^3.4.0"
