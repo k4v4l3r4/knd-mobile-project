@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
-export async function GET() {
+export async function GET(request: Request) {
   const cookieStore = cookies();
 
   cookieStore.set('admin_token', 'DEMO_TOKEN_ACCESS_GRANTED', {
@@ -10,5 +10,8 @@ export async function GET() {
     sameSite: 'lax',
   });
 
-  return NextResponse.redirect('/dashboard');
+  const base = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
+  const redirectUrl = new URL('/dashboard', base);
+
+  return NextResponse.redirect(redirectUrl);
 }
