@@ -5,16 +5,19 @@ import { authEvents } from './authEvent';
 
 // Function to dynamically determine the API URL
 const getBaseUrl = () => {
-  // Attempt to get the host URI from Expo constants (works for development)
+  // Use production URL for release builds
+  if (!__DEV__) {
+    return 'https://admin.afnet.my.id/api';
+  }
+
+  // Development: try to infer LAN IP from Expo debugger host
   const debuggerHost = Constants.expoConfig?.hostUri;
-  
   if (debuggerHost) {
     const ip = debuggerHost.split(':')[0];
     return `http://${ip}:8000/api`;
   }
 
-  // Fallback to localhost for Android Emulator (10.0.2.2) if needed
-  // or keep the hardcoded IP as a backup
+  // Fallback to local network IP (adjust if needed)
   return 'http://192.168.1.3:8000/api';
 };
 
