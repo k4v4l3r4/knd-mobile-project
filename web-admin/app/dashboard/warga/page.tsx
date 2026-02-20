@@ -1219,6 +1219,9 @@ export default function WargaPage() {
                                 required
                                 value={formData.name}
                                 onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                autoComplete="off"
+                                autoCorrect="off"
+                                spellCheck={false}
                                 className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all dark:text-white"
                                 placeholder="Sesuai KTP"
                             />

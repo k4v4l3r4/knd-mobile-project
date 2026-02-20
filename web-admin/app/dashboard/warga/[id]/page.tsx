@@ -559,6 +559,9 @@ export default function WargaDetailPage() {
                       required
                       value={formData.name}
                       onChange={(e) => setFormData({...formData, name: e.target.value})}
+                      autoComplete="off"
+                      autoCorrect="off"
+                      spellCheck={false}
                       className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
                       placeholder="Nama Lengkap sesuai KTP"
                     />
