@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\RondaLocation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 class RondaLocationController extends Controller
@@ -36,12 +37,22 @@ class RondaLocationController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'latitude' => 'required|numeric',
-            'longitude' => 'required|numeric',
+            'latitude' => 'required|numeric|between:-90,90',
+            'longitude' => 'required|numeric|between:-180,180',
             'radius_meters' => 'integer|min:5|max:500',
         ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Koordinat GPS tidak valid. Pastikan latitude antara -90 s/d 90 dan longitude antara -180 s/d 180.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $validated = $validator->validated();
 
         $rtId = Auth::user()->rt_id;
         if (!$rtId) {
@@ -87,12 +98,22 @@ class RondaLocationController extends Controller
             ], 404);
         }
 
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'name' => 'sometimes|string|max:255',
-            'latitude' => 'sometimes|numeric',
-            'longitude' => 'sometimes|numeric',
+            'latitude' => 'sometimes|numeric|between:-90,90',
+            'longitude' => 'sometimes|numeric|between:-180,180',
             'radius_meters' => 'sometimes|integer|min:5|max:500',
         ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Koordinat GPS tidak valid. Pastikan latitude antara -90 s/d 90 dan longitude antara -180 s/d 180.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $validated = $validator->validated();
 
         $location->update($validated);
 
