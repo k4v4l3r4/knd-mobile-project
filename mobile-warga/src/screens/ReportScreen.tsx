@@ -673,7 +673,7 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     fontWeight: '500',
   },
   categoryTextActive: {
-    color: colors.primary,
+    color: '#ffffff',
     fontWeight: '700',
   },
   photoButton: {
