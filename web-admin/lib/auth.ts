@@ -34,6 +34,20 @@ export const useAuth = (): UseAuthReturn => {
         return;
       }
 
+      if (token === 'DEMO_TOKEN_ACCESS_GRANTED') {
+        setUser({
+          id: 0,
+          name: 'Demo Admin',
+          email: 'demo@rt-online.local',
+          phone: '000000000000',
+          role: 'ADMIN_RT',
+          rt_id: 0,
+          rw_id: 0,
+        });
+        setLoading(false);
+        return;
+      }
+
       try {
         const response = await axios.get('/me');
         if (response.data && response.data.success) {

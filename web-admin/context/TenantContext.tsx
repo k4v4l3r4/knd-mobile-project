@@ -42,7 +42,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const refreshStatus = async () => {
     try {
       const token = Cookies.get('admin_token');
-      if (!token) {
+      if (!token || token === 'DEMO_TOKEN_ACCESS_GRANTED') {
         setStatus({
           tenant_type: 'DEMO',
           tenant_status: 'DEMO',
