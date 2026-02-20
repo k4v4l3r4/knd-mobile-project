@@ -59,6 +59,8 @@ export default function WargaDetailPage() {
   
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
+  const [editingMember, setEditingMember] = useState<Warga | null>(null);
   const [saving, setSaving] = useState(false);
   
   // Form State for Adding Family Member
@@ -106,6 +108,9 @@ export default function WargaDetailPage() {
   const handleAddFamilyMember = () => {
     if (!warga) return;
 
+    setModalMode('add');
+    setEditingMember(null);
+
     // PRE-FILL DATA from Head of Family
     setFormData({
       name: '',
@@ -133,41 +138,89 @@ export default function WargaDetailPage() {
     setIsModalOpen(true);
   };
 
+  const handleEditFamilyMember = (member: Warga) => {
+    setEditingMember(member);
+    setModalMode('edit');
+
+    setFormData({
+      name: member.name || '',
+      nik: member.nik || '',
+      kk_number: member.kk_number || warga?.kk_number || '',
+      phone: member.phone || '',
+      address: member.address || warga?.address || '',
+      address_ktp: member.address_ktp || member.address || '',
+      gender: member.gender || 'L',
+      place_of_birth: member.place_of_birth || '',
+      date_of_birth: member.date_of_birth || '',
+      religion: member.religion || 'ISLAM',
+      marital_status: member.marital_status || 'BELUM_KAWIN',
+      occupation: member.occupation || '',
+      status_in_family: member.status_in_family || '',
+    });
+
+    if (member.address && member.address_ktp && member.address === member.address_ktp) {
+      setAddressSame(true);
+    } else {
+      setAddressSame(false);
+    }
+
+    setKtpFile(null);
+    setKkFile(null);
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteFamilyMember = async (member: Warga) => {
+    if (!window.confirm(`Hapus anggota keluarga "${member.name}"?`)) return;
+
+    try {
+      await api.delete(`/warga/${member.id}`);
+      toast.success('Anggota keluarga berhasil dihapus');
+      fetchWargaDetail();
+    } catch (err) {
+      console.error('Error deleting family member:', err);
+      toast.error('Gagal menghapus anggota keluarga');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
 
     try {
       const data = new FormData();
-      // Append all text fields
       Object.entries(formData).forEach(([key, value]) => {
         if (key !== 'address_ktp') { 
-             data.append(key, value);
+          data.append(key, value);
         }
       });
       
-      // Handle Address KTP logic
       if (addressSame) {
         data.append('address_ktp', formData.address);
       } else {
         data.append('address_ktp', formData.address_ktp);
       }
       
-      // Append files
       if (ktpFile) data.append('ktp_image', ktpFile);
       if (kkFile) data.append('kk_image', kkFile);
       
-      // Auto-fill RT/RW from head of family if available
       if (warga?.rt_id) data.append('rt_id', String(warga.rt_id));
       if (warga?.rw_id) data.append('rw_id', String(warga.rw_id));
 
-      await api.post('/warga', data, {
+      if (modalMode === 'add') {
+        await api.post('/warga', data, {
           headers: { 'Content-Type': 'multipart/form-data' }
-      });
+        });
+        toast.success('Anggota keluarga berhasil ditambahkan');
+      } else if (editingMember) {
+        data.append('_method', 'PUT');
+        await api.post(`/warga/${editingMember.id}`, data, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        toast.success('Data anggota keluarga berhasil diperbarui');
+      }
       
       setIsModalOpen(false);
-      fetchWargaDetail(); // Refresh data
-      toast.success('Anggota keluarga berhasil ditambahkan');
+      fetchWargaDetail();
     } catch (err: any) {
       console.error('Error saving family member:', err);
       const msg = err.response?.data?.message || 'Gagal menyimpan data anggota keluarga.';
@@ -357,6 +410,7 @@ export default function WargaDetailPage() {
                         <th className="px-6 py-4 font-semibold text-slate-700">L/P</th>
                         <th className="px-6 py-4 font-semibold text-slate-700">Status</th>
                         <th className="px-6 py-4 font-semibold text-slate-700">Tanggal Lahir</th>
+                        <th className="px-6 py-4 font-semibold text-slate-700 text-right">Aksi</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -383,11 +437,29 @@ export default function WargaDetailPage() {
                                     <span className="capitalize">{member.status_in_family?.toLowerCase().replace('_', ' ')}</span>
                                 </td>
                                 <td className="px-6 py-4 text-slate-600">{member.date_of_birth}</td>
+                                <td className="px-6 py-4 text-right">
+                                  <div className="flex items-center justify-end gap-2">
+                                    <button
+                                      onClick={() => handleEditFamilyMember(member)}
+                                      className="p-2.5 text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors border border-transparent hover:border-emerald-100 shadow-sm"
+                                      title="Edit Anggota"
+                                    >
+                                      <Edit size={16} />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteFamilyMember(member)}
+                                      className="p-2.5 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors border border-transparent hover:border-rose-100 shadow-sm"
+                                      title="Hapus Anggota"
+                                    >
+                                      <Trash2 size={16} />
+                                    </button>
+                                  </div>
+                                </td>
                             </tr>
                         ))
                     ) : (
                         <tr>
-                            <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                            <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
                                 <div className="flex flex-col items-center justify-center">
                                     <Users className="w-12 h-12 text-slate-200 mb-3" />
                                     <p>Belum ada anggota keluarga lain.</p>
@@ -406,8 +478,12 @@ export default function WargaDetailPage() {
           <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white/95 backdrop-blur z-10">
               <div>
-                  <h2 className="text-xl font-bold text-slate-800">Tambah Anggota Keluarga</h2>
-                  <p className="text-sm text-slate-500">Isi data anggota keluarga baru</p>
+                  <h2 className="text-xl font-bold text-slate-800">
+                    {modalMode === 'add' ? 'Tambah Anggota Keluarga' : 'Edit Anggota Keluarga'}
+                  </h2>
+                  <p className="text-sm text-slate-500">
+                    {modalMode === 'add' ? 'Isi data anggota keluarga baru' : 'Perbarui data anggota keluarga'}
+                  </p>
               </div>
               <button 
                 onClick={() => setIsModalOpen(false)}

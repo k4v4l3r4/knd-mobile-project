@@ -19,7 +19,8 @@ import {
   AlertCircle,
   Loader2,
   Download,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Eye
 } from 'lucide-react';
 import api from '@/lib/axios';
 import { toast } from 'react-hot-toast';
@@ -27,6 +28,7 @@ import Cookies from 'js-cookie';
 import { useTenant } from '@/context/TenantContext';
 import { DemoLabel } from '@/components/TenantStatusComponents';
 import { PaginationControls } from '@/components/ui/pagination-controls';
+import { useRouter } from 'next/navigation';
 
 interface Warga {
   id: number;
@@ -62,6 +64,7 @@ interface Warga {
 
 export default function WargaPage() {
   const { isDemo, isExpired, isTrial } = useTenant();
+  const router = useRouter();
   const [wargas, setWargas] = useState<Warga[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -114,6 +117,15 @@ export default function WargaPage() {
   const [addressSame, setAddressSame] = useState(true);
   const [ktpFile, setKtpFile] = useState<File | null>(null);
   const [kkFile, setKkFile] = useState<File | null>(null);
+
+  const isHeadOfFamily = (w: Warga) => {
+    const status = w.status_in_family || '';
+    const kk = w.kk_number || '';
+    const isHead = status === 'KEPALA_KELUARGA';
+    const isRtAdmin = w.role === 'ADMIN_RT' || w.role === 'RT';
+    const hasNoKk = kk.trim() === '';
+    return isHead || isRtAdmin || hasNoKk;
+  };
 
   // Region Data States
   const [provinces, setProvinces] = useState<Record<string, string>>({});
@@ -838,6 +850,8 @@ export default function WargaPage() {
     }
   };
 
+  const visibleWargas = wargas.filter(isHeadOfFamily);
+
   return (
     <div className="space-y-8 pb-10">
       {/* --- HEADER SECTION --- */}
@@ -974,7 +988,7 @@ export default function WargaPage() {
                     </td>
                   </tr>
                 ))
-              ) : wargas.length === 0 ? (
+              ) : visibleWargas.length === 0 ? (
                 <tr>
                     <td colSpan={5} className="px-8 py-20 text-center">
                         <div className="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
@@ -985,7 +999,7 @@ export default function WargaPage() {
                     </td>
                 </tr>
               ) : (
-                wargas.map((warga) => (
+                visibleWargas.map((warga) => (
                   <tr key={warga.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors group">
                     <td className="px-8 py-5">
                       <div className="flex items-center gap-4">
@@ -1056,20 +1070,27 @@ export default function WargaPage() {
                     </td>
                     <td className="px-8 py-5 text-right">
                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                                onClick={() => handleOpenModal('edit', warga)}
-                                className="p-2.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-xl transition-colors tooltip border border-transparent hover:border-emerald-100 dark:hover:border-emerald-800 shadow-sm"
-                                title="Edit"
-                            >
-                                <Edit size={18} />
-                            </button>
-                            <button
-                                onClick={() => handleDelete(warga)}
-                                className="p-2.5 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-colors tooltip border border-transparent hover:border-rose-100 dark:hover:border-rose-800 shadow-sm"
-                                title="Hapus"
-                            >
-                                <Trash2 size={18} />
-                            </button>
+                          <button
+                            onClick={() => router.push(`/dashboard/warga/${warga.id}`)}
+                            className="p-2.5 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors tooltip border border-transparent hover:border-slate-200 dark:hover:border-slate-700 shadow-sm"
+                            title="Detail Kepala Keluarga"
+                          >
+                            <Eye size={18} />
+                          </button>
+                          <button
+                            onClick={() => handleOpenModal('edit', warga)}
+                            className="p-2.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-xl transition-colors tooltip border border-transparent hover:border-emerald-100 dark:hover:border-emerald-800 shadow-sm"
+                            title="Edit"
+                          >
+                            <Edit size={18} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(warga)}
+                            className="p-2.5 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-colors tooltip border border-transparent hover:border-rose-100 dark:hover:border-rose-800 shadow-sm"
+                            title="Hapus"
+                          >
+                            <Trash2 size={18} />
+                          </button>
                         </div>
                     </td>
                   </tr>
