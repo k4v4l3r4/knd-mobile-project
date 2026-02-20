@@ -231,14 +231,16 @@ export default function HeaderSection() {
   return (
     <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-20">
       <div>
-        <div className="flex items-center gap-2 mb-1">
+        <div className="inline-flex items-center gap-2 mb-2">
           <span className="px-2.5 py-0.5 rounded-full bg-emerald-100/50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold uppercase tracking-wider border border-emerald-100 dark:border-emerald-800">
             {currentDate}
           </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Dashboard Overview</h1>
           <DemoLabel />
         </div>
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Dashboard Overview</h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-1.5 font-medium">
+        <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">
           Selamat datang kembali, <span className="text-emerald-600 dark:text-emerald-400">{user?.name || 'Admin'}</span>! 👋
         </p>
       </div>
