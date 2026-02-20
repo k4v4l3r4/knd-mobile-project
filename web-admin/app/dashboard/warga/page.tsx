@@ -117,16 +117,7 @@ export default function WargaPage() {
   const [addressSame, setAddressSame] = useState(true);
   const [ktpFile, setKtpFile] = useState<File | null>(null);
   const [kkFile, setKkFile] = useState<File | null>(null);
-
-  const isHeadOfFamily = (w: Warga) => {
-    const status = w.status_in_family || '';
-    const kk = w.kk_number || '';
-    const isHead = status === 'KEPALA_KELUARGA';
-    const isRtAdmin = w.role === 'ADMIN_RT' || w.role === 'RT';
-    const hasNoKk = kk.trim() === '';
-    return isHead || isRtAdmin || hasNoKk;
-  };
-
+  
   // Region Data States
   const [provinces, setProvinces] = useState<Record<string, string>>({});
   const [cities, setCities] = useState<Record<string, string>>({});
@@ -434,7 +425,12 @@ export default function WargaPage() {
         return;
       }
       const response = await api.get('/warga', {
-        params: { search: searchTerm, page: pageParam ?? page, per_page: 10 }
+        params: { 
+          search: searchTerm, 
+          page: pageParam ?? page, 
+          per_page: 10,
+          head_only: true
+        }
       });
       if (response.data.success) {
         const payload = response.data.data;
@@ -850,8 +846,6 @@ export default function WargaPage() {
     }
   };
 
-  const visibleWargas = wargas.filter(isHeadOfFamily);
-
   return (
     <div className="space-y-8 pb-10">
       {/* --- HEADER SECTION --- */}
@@ -988,7 +982,7 @@ export default function WargaPage() {
                     </td>
                   </tr>
                 ))
-              ) : visibleWargas.length === 0 ? (
+              ) : wargas.length === 0 ? (
                 <tr>
                     <td colSpan={5} className="px-8 py-20 text-center">
                         <div className="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
@@ -999,7 +993,7 @@ export default function WargaPage() {
                     </td>
                 </tr>
               ) : (
-                visibleWargas.map((warga) => (
+                wargas.map((warga) => (
                   <tr key={warga.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors group">
                     <td className="px-8 py-5">
                       <div className="flex items-center gap-4">

@@ -51,6 +51,14 @@ class WargaController extends Controller
             }
         }
 
+        if ($request->boolean('head_only')) {
+            $query->where(function ($q) {
+                $q->where('status_in_family', 'KEPALA_KELUARGA')
+                  ->orWhereNull('kk_number')
+                  ->orWhere('kk_number', '');
+            });
+        }
+
         $query->orderByRaw("CASE WHEN kk_number IS NULL OR kk_number = '' THEN 1 ELSE 0 END")
               ->orderBy('kk_number')
               ->orderByRaw("
