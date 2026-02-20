@@ -486,32 +486,35 @@ export default function JadwalRondaPage() {
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <Link 
-          href="/dashboard/jadwal-ronda/pengaturan-denda"
-          className="px-5 py-2.5 rounded-full text-sm font-bold transition-all border whitespace-nowrap bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
-        >
-          <Settings size={16} /> Atur Denda
-        </Link>
-        <Link 
-          href="/dashboard/jadwal-ronda/denda"
-          className="px-5 py-2.5 rounded-full text-sm font-bold transition-all border whitespace-nowrap bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
-        >
-          <FileText size={16} /> Laporan Denda
-        </Link>
-        <Link 
-          href="/dashboard/jadwal-ronda/lokasi"
-          className="px-5 py-2.5 rounded-full text-sm font-bold transition-all border whitespace-nowrap bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
-        >
-          <MapPin size={16} /> Lokasi & QR Code
-        </Link>
-        <button
-          onClick={openCreateModal}
-          className="px-5 py-2.5 rounded-full text-sm font-bold transition-all border whitespace-nowrap bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-600/20 hover:bg-emerald-700"
-        >
-          Buat Jadwal
-        </button>
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col xl:flex-row gap-3 xl:items-center xl:justify-between">
+        <div className="flex flex-wrap gap-2">
+          <Link 
+            href="/dashboard/jadwal-ronda/pengaturan-denda"
+            className="px-5 py-2.5 rounded-full text-sm font-bold transition-all border whitespace-nowrap bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
+          >
+            <Settings size={16} /> Atur Denda
+          </Link>
+          <Link 
+            href="/dashboard/jadwal-ronda/denda"
+            className="px-5 py-2.5 rounded-full text-sm font-bold transition-all border whitespace-nowrap bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
+          >
+            <FileText size={16} /> Laporan Denda
+          </Link>
+          <Link 
+            href="/dashboard/jadwal-ronda/lokasi"
+            className="px-5 py-2.5 rounded-full text-sm font-bold transition-all border whitespace-nowrap bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
+          >
+            <MapPin size={16} /> Lokasi & QR Code
+          </Link>
+          <button
+            onClick={openCreateModal}
+            className="px-5 py-2.5 rounded-full text-sm font-bold transition-all border whitespace-nowrap bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-600/20 hover:bg-emerald-700"
+          >
+            Buat Jadwal
+          </button>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
           <select 
             value={form.schedule_type}
             onChange={(e) => handleTypeChange(e.target.value as 'DAILY' | 'WEEKLY')}
