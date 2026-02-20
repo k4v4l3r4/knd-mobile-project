@@ -103,10 +103,9 @@ class Tenant extends Model
 
     public function activeSubscription()
     {
-        return $this->subscriptions()
+        return $this->hasOne(Subscription::class)
             ->where('status', Subscription::STATUS_ACTIVE)
-            ->latest()
-            ->first();
+            ->latestOfMany();
     }
 
     public function hasLifetimeAccess()
