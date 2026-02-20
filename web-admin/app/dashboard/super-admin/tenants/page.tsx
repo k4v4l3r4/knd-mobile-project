@@ -8,6 +8,32 @@ import { toast } from 'react-hot-toast';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { PaginationControls } from '@/components/ui/pagination-controls';
+import { useTenant } from '@/context/TenantContext';
+
+const demoTenants: TenantBilling[] = [
+  {
+    id: 1,
+    tenant_name: 'RT 01 Demo',
+    rt_rw: 'RT 01 / RW 01',
+    billing_mode: 'RT',
+    status: 'ACTIVE',
+    plan_code: 'BASIC_RT_MONTHLY',
+    subscription_type: 'MONTHLY',
+    ends_at: null,
+    trial_ends_at: null,
+  },
+  {
+    id: 2,
+    tenant_name: 'RT 05 Demo',
+    rt_rw: 'RT 05 / RW 02',
+    billing_mode: 'RW',
+    status: 'TRIAL',
+    plan_code: 'TRIAL_14_DAYS',
+    subscription_type: 'MONTHLY',
+    ends_at: null,
+    trial_ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
 
 export default function TenantBillingPage() {
   const [tenants, setTenants] = useState<TenantBilling[]>([]);
@@ -15,18 +41,24 @@ export default function TenantBillingPage() {
   const [filters, setFilters] = useState({
     search: '',
     status: '',
-    billing_mode: ''
+    billing_mode: '',
   });
   const [page, setPage] = useState(1);
   const [meta, setMeta] = useState<any>(null);
+  const { isDemo } = useTenant();
 
   useEffect(() => {
     fetchTenants();
-  }, [filters.status, filters.billing_mode, page]); // Debounce search in real app
+  }, [filters.status, filters.billing_mode, page]);
 
   const fetchTenants = async () => {
     try {
       setLoading(true);
+      if (isDemo) {
+        setTenants(demoTenants);
+        setMeta(null);
+        return;
+      }
       const response = await SuperAdminService.getTenants({ ...filters, page });
       setTenants(response.data);
       setMeta(response.meta);

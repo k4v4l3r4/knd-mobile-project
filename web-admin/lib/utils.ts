@@ -9,9 +9,9 @@ export function formatRole(role?: string) {
   if (!role) return 'Administrator';
   
   const map: Record<string, string> = {
-    'SUPER_ADMIN': 'Admin RT',
+    'SUPER_ADMIN': 'Super Admin',
     'ADMIN_RT': 'Admin RT',
-    'Admin RT (Super Admin)': 'Admin RT',
+    'Admin RT (Super Admin)': 'Super Admin',
     'ADMIN_RW': 'Admin RW',
     'WARGA_TETAP': 'Warga Tetap',
     'WARGA_KOST': 'Warga Kost',
