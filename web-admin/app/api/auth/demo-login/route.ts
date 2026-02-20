@@ -10,6 +10,6 @@ export async function GET(request: Request) {
     sameSite: 'lax',
   });
 
-  const origin = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
+  const origin = new URL(request.url).origin;
   return NextResponse.redirect(new URL('/dashboard', origin));
 }
