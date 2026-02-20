@@ -430,7 +430,11 @@ export default function WargaDetailPage() {
                                     <span className={`px-2 py-1 rounded text-xs font-medium ${
                                         member.gender === 'L' ? 'bg-blue-50 text-blue-700' : 'bg-pink-50 text-pink-700'
                                     }`}>
-                                        {member.gender}
+                                        {member.gender === 'L'
+                                          ? 'Laki-Laki'
+                                          : member.gender === 'P'
+                                            ? 'Perempuan'
+                                            : '-'}
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 text-slate-600">
@@ -438,22 +442,28 @@ export default function WargaDetailPage() {
                                 </td>
                                 <td className="px-6 py-4 text-slate-600">{member.date_of_birth}</td>
                                 <td className="px-6 py-4 text-right">
-                                  <div className="flex items-center justify-end gap-2">
-                                    <button
-                                      onClick={() => handleEditFamilyMember(member)}
-                                      className="p-2.5 text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors border border-transparent hover:border-emerald-100 shadow-sm"
-                                      title="Edit Anggota"
-                                    >
-                                      <Edit size={16} />
-                                    </button>
-                                    <button
-                                      onClick={() => handleDeleteFamilyMember(member)}
-                                      className="p-2.5 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors border border-transparent hover:border-rose-100 shadow-sm"
-                                      title="Hapus Anggota"
-                                    >
-                                      <Trash2 size={16} />
-                                    </button>
-                                  </div>
+                                  {member.id === warga.id ? (
+                                    <span className="text-xs text-slate-400 italic">
+                                      Kelola dari menu atas
+                                    </span>
+                                  ) : (
+                                    <div className="flex items-center justify-end gap-2">
+                                      <button
+                                        onClick={() => handleEditFamilyMember(member)}
+                                        className="p-2.5 text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors border border-transparent hover:border-emerald-100 shadow-sm"
+                                        title="Edit Anggota"
+                                      >
+                                        <Edit size={16} />
+                                      </button>
+                                      <button
+                                        onClick={() => handleDeleteFamilyMember(member)}
+                                        className="p-2.5 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors border border-transparent hover:border-rose-100 shadow-sm"
+                                        title="Hapus Anggota"
+                                      >
+                                        <Trash2 size={16} />
+                                      </button>
+                                    </div>
+                                  )}
                                 </td>
                             </tr>
                         ))
