@@ -577,19 +577,14 @@ export default function HomeScreen({ onLogout, onNavigate }: HomeScreenProps) {
 
   const fetchDashboard = async () => {
     try {
-      // First get profile to know RT/RW
-      const profileRes = await api.get('/me');
-      const userRaw = profileRes.data.data;
-      const userData = {
-        ...userRaw,
-        rt_number: userRaw.rt?.rt_number,
-        rw_name: userRaw.rw?.name
-      };
-      
-      // Get announcements
-      const announcementRes = await api.get('/announcements');
-      
-      // Get invite code if admin
+      const dashboardRes = await api.get('/warga/dashboard');
+      if (!dashboardRes.data?.success) {
+        throw new Error('Failed to load dashboard');
+      }
+
+      const dashboardData = dashboardRes.data.data;
+      const userData = dashboardData.user;
+
       if (['ADMIN_RT', 'SECRETARY', 'TREASURER'].includes(userData.role)) {
         try {
            const inviteRes = await api.get('/rt/invite-code');
@@ -599,13 +594,10 @@ export default function HomeScreen({ onLogout, onNavigate }: HomeScreenProps) {
         }
       }
 
-      // Mock iuran status for now or fetch from API if available
-      // const iuranRes = await api.get('/bills/summary'); 
-      
       setData({
         user: userData,
-        iuran_status: 'BELUM_LUNAS', // Default or fetch real status
-        announcements: announcementRes.data.data.data || []
+        iuran_status: dashboardData.iuran_status || 'LUNAS',
+        announcements: dashboardData.announcements || []
       });
 
     } catch (error: any) {

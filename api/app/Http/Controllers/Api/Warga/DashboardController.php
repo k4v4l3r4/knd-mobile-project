@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Warga;
 use App\Http\Controllers\Controller;
 use App\Models\Announcement;
 use App\Models\Transaction;
+use App\Models\Fee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -15,19 +16,49 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        // 1. Cek Status Iuran Bulan Ini
-        // Asumsi: Iuran dianggap LUNAS jika ada transaksi VERIFIED bulan ini
-        // Bisa disesuaikan nanti dengan Logic Master Iuran (Fee)
+        // 1. Cek Status Iuran Bulan Ini berbasis tunggakan (unpaid fees)
         $currentMonth = Carbon::now()->month;
         $currentYear = Carbon::now()->year;
 
-        $hasPaid = Transaction::where('user_id', $user->id)
-            ->whereIn('status', ['VERIFIED', 'PAID'])
-            ->whereMonth('created_at', $currentMonth)
-            ->whereYear('created_at', $currentYear)
-            ->exists();
+        $fees = Fee::where('rt_id', $user->rt_id)
+            ->where('is_mandatory', true)
+            ->get();
 
-        $iuranStatus = $hasPaid ? 'LUNAS' : 'BELUM_LUNAS';
+        $monthTransactions = Transaction::where('user_id', $user->id)
+            ->whereYear('date', $currentYear)
+            ->whereMonth('date', $currentMonth)
+            ->where('status', '!=', 'REJECTED')
+            ->get();
+
+        $unpaidCount = 0;
+
+        foreach ($fees as $fee) {
+            $isPaid = false;
+
+            foreach ($monthTransactions as $trx) {
+                $items = $trx->items ?? [];
+                if (!is_array($items)) {
+                    continue;
+                }
+
+                foreach ($items as $item) {
+                    if (isset($item['fee_id']) && $item['fee_id'] == $fee->id) {
+                        $isPaid = true;
+                        break 2;
+                    }
+                }
+            }
+
+            if (!$isPaid) {
+                $unpaidCount++;
+            }
+        }
+
+        if ($fees->isEmpty()) {
+            $iuranStatus = 'LUNAS';
+        } else {
+            $iuranStatus = $unpaidCount > 0 ? 'BELUM_LUNAS' : 'LUNAS';
+        }
 
         // 2. Ambil 5 Pengumuman Terbaru
         $announcements = Announcement::where('status', 'PUBLISHED')
