@@ -88,6 +88,14 @@ const SettingsScreen = ({ onLogout, onNavigate }: SettingsScreenProps) => {
   };
 
   const handleUpdateApp = async () => {
+    if (!Updates.isEnabled) {
+      Alert.alert(
+        'Update tidak tersedia',
+        'Fitur Update Aplikasi hanya bisa digunakan pada aplikasi hasil build (bukan Expo Go atau mode pengembangan).'
+      );
+      return;
+    }
+
     try {
       setUpdateStatus('checking');
       const result = await Updates.checkForUpdateAsync();
@@ -111,9 +119,12 @@ const SettingsScreen = ({ onLogout, onNavigate }: SettingsScreenProps) => {
         setUpdateStatus('upToDate');
         Alert.alert('Tidak ada pembaruan', 'Anda sudah menggunakan versi terbaru.');
       }
-    } catch (error) {
+    } catch (error: any) {
       setUpdateStatus('error');
-      Alert.alert('Gagal cek pembaruan', 'Terjadi kesalahan saat memeriksa pembaruan. Coba lagi nanti.');
+      const message =
+        (error && (error.message || String(error))) ||
+        'Terjadi kesalahan saat memeriksa pembaruan. Coba lagi nanti.';
+      Alert.alert('Gagal cek pembaruan', message);
     } finally {
       setTimeout(() => {
         setUpdateStatus('idle');
