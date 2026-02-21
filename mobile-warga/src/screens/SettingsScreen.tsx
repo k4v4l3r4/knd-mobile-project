@@ -121,11 +121,16 @@ const SettingsScreen = ({ onLogout, onNavigate }: SettingsScreenProps) => {
       }
     } catch (error: any) {
       setUpdateStatus('error');
-      const baseMessage =
-        (error && (error.message || String(error))) ||
-        'Terjadi kesalahan saat memeriksa pembaruan. Coba lagi nanti.';
-      const debugInfo = `\n\nDetail teknis:\nRuntime: ${Updates.runtimeVersion || 'unknown'}\nChannel: ${Updates.channel || 'unknown'}`;
-      Alert.alert('Gagal cek pembaruan', baseMessage + debugInfo);
+      const raw = (error && (error.message || String(error))) || '';
+      const lower = raw.toLowerCase();
+      const isNetworkLikeError =
+        lower.includes('failed to check for update') ||
+        lower.includes('network') ||
+        lower.includes('timed out');
+      const userMessage = isNetworkLikeError
+        ? 'Saat ini tidak bisa memeriksa pembaruan. Coba lagi beberapa saat lagi atau perbarui aplikasi melalui APK terbaru.'
+        : 'Terjadi kesalahan saat memeriksa pembaruan. Coba lagi nanti.';
+      Alert.alert('Gagal cek pembaruan', userMessage);
     } finally {
       setTimeout(() => {
         setUpdateStatus('idle');
