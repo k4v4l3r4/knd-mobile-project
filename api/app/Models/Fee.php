@@ -17,11 +17,13 @@ class Fee extends Model
         'amount',
         'description',
         'is_mandatory',
+        'billing_day',
     ];
 
     protected $casts = [
         'is_mandatory' => 'boolean',
         'amount' => 'decimal:2',
+        'billing_day' => 'integer',
     ];
 
     public function rt()

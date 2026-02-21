@@ -43,6 +43,7 @@ import RondaFineSettingsScreen from './src/screens/RondaFineSettingsScreen';
 import RondaFineReportScreen from './src/screens/RondaFineReportScreen';
 import RondaLocationScreen from './src/screens/RondaLocationScreen';
 import BansosScreen from './src/screens/BansosScreen';
+import NotificationsScreen from './src/screens/NotificationsScreen';
 
 import { BottomNav } from './src/components/BottomNav';
 import { TenantProvider, useTenant } from './src/context/TenantContext';
@@ -58,7 +59,7 @@ const ThemedContainer = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-type ScreenState = 'LOGIN' | 'HOME' | 'REPORT' | 'MARKET' | 'PAYMENT' | 'PATROL' | 'LETTER' | 'INFORMATION' | 'INVENTORY' | 'GUEST' | 'POLLING' | 'EMERGENCY' | 'BOARDING' | 'ANNOUNCEMENT_DETAIL' | 'PRODUCT_DETAIL' | 'ADD_PRODUCT' | 'CCTV' | 'SETTINGS' | 'BILLS' | 'FINANCE_REPORT' | 'WARGA_LIST' | 'TERMS' | 'CHANGE_PASSWORD' | 'PROFILE' | 'REGISTER_RT' | 'REGISTER_WARGA' | 'HELP_SUPPORT' | 'RONDA_FINE_SETTINGS' | 'RONDA_FINE_REPORT' | 'RONDA_LOCATION' | 'BANSOS' | 'SYSTEM_SETTINGS' | 'RT_PROFILE' | 'WALLET_SETTINGS' | 'ACTIVITY_SETTINGS' | 'ROLE_SETTINGS' | 'ADMIN_SETTINGS' | 'FEE_SETTINGS' | 'LETTER_TYPE_SETTINGS';
+type ScreenState = 'LOGIN' | 'HOME' | 'REPORT' | 'MARKET' | 'PAYMENT' | 'PATROL' | 'LETTER' | 'INFORMATION' | 'INVENTORY' | 'GUEST' | 'POLLING' | 'EMERGENCY' | 'BOARDING' | 'ANNOUNCEMENT_DETAIL' | 'PRODUCT_DETAIL' | 'ADD_PRODUCT' | 'CCTV' | 'SETTINGS' | 'BILLS' | 'FINANCE_REPORT' | 'WARGA_LIST' | 'TERMS' | 'CHANGE_PASSWORD' | 'PROFILE' | 'REGISTER_RT' | 'REGISTER_WARGA' | 'HELP_SUPPORT' | 'RONDA_FINE_SETTINGS' | 'RONDA_FINE_REPORT' | 'RONDA_LOCATION' | 'BANSOS' | 'SYSTEM_SETTINGS' | 'RT_PROFILE' | 'WALLET_SETTINGS' | 'ACTIVITY_SETTINGS' | 'ROLE_SETTINGS' | 'ADMIN_SETTINGS' | 'FEE_SETTINGS' | 'LETTER_TYPE_SETTINGS' | 'NOTIFICATIONS';
 
 const AppContent = () => {
   const [fontsLoaded] = useFonts({
@@ -249,6 +250,7 @@ const AppContent = () => {
       {currentScreen === 'CHANGE_PASSWORD' && <ChangePasswordScreen onSuccess={() => setCurrentScreen('SETTINGS')} />}
       {currentScreen === 'PROFILE' && <ProfileScreen />}
       {currentScreen === 'HELP_SUPPORT' && <HelpSupportScreen onNavigate={handleNavigate} />}
+      {currentScreen === 'NOTIFICATIONS' && <NotificationsScreen onNavigate={handleNavigate} />}
       
       {currentScreen === 'RONDA_FINE_SETTINGS' && <RondaFineSettingsScreen navigation={{ goBack: () => setCurrentScreen('PATROL') }} />}
       {currentScreen === 'RONDA_FINE_REPORT' && <RondaFineReportScreen navigation={{ goBack: () => setCurrentScreen('PATROL') }} />}

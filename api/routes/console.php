@@ -10,3 +10,4 @@ Artisan::command('inspire', function () {
 
 Schedule::command('announcements:unpublish-expired')->hourly();
 Schedule::command('billing:recurring-check')->daily();
+Schedule::command('iuran:send-bill-notifications')->dailyAt('08:00');

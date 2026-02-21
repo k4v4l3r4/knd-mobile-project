@@ -266,17 +266,21 @@ export default function WargaDetailPage() {
   if (!warga) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-8">
-        <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-          <User className="w-10 h-10 text-slate-400" />
+        <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
+          <User className="w-10 h-10 text-slate-400 dark:text-slate-500" />
         </div>
-        <h3 className="text-lg font-bold text-slate-800 mb-2">Data Warga Tidak Ditemukan</h3>
-        <p className="text-slate-500 mb-6">Data yang Anda cari mungkin telah dihapus atau tidak tersedia.</p>
-        <button 
-            onClick={() => router.back()}
-            className="px-6 py-2.5 bg-slate-800 text-white rounded-xl font-medium hover:bg-slate-900 transition-colors flex items-center"
+        <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">
+          Data Warga Tidak Ditemukan
+        </h3>
+        <p className="text-slate-500 dark:text-slate-400 mb-6">
+          Data yang Anda cari mungkin telah dihapus atau tidak tersedia.
+        </p>
+        <button
+          onClick={() => router.back()}
+          className="px-6 py-2.5 bg-slate-800 dark:bg-slate-700 text-white rounded-xl font-medium hover:bg-slate-900 dark:hover:bg-slate-600 transition-colors flex items-center"
         >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Kembali
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Kembali
         </button>
       </div>
     );
@@ -287,10 +291,10 @@ export default function WargaDetailPage() {
       {/* Back Button */}
       <button 
         onClick={() => router.push('/dashboard/warga')}
-        className="flex items-center text-slate-500 hover:text-emerald-600 transition-colors font-medium group"
+        className="flex items-center text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors font-medium group"
       >
-        <div className="w-8 h-8 rounded-full bg-slate-100 group-hover:bg-emerald-50 flex items-center justify-center mr-2 transition-colors">
-            <ArrowLeft className="w-4 h-4" />
+        <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 group-hover:bg-emerald-50 dark:group-hover:bg-emerald-900/40 flex items-center justify-center mr-2 transition-colors">
+            <ArrowLeft className="w-4 h-4 text-slate-600 dark:text-slate-300" />
         </div>
         Kembali ke Data Warga
       </button>
@@ -298,13 +302,13 @@ export default function WargaDetailPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-            <h1 className="text-2xl font-bold text-slate-800">Detail Warga</h1>
-            <p className="text-slate-500 mt-1">Informasi lengkap dan kartu keluarga</p>
+            <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Detail Warga</h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-1">Informasi lengkap dan kartu keluarga</p>
         </div>
         <div className="flex space-x-2">
             <button 
                 onClick={() => router.push(`/dashboard/warga?edit=${warga.id}`)}
-                className="px-4 py-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 hover:text-emerald-600 hover:border-emerald-200 transition-all flex items-center shadow-sm"
+                className="px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-emerald-200 dark:hover:border-emerald-700 transition-all flex items-center shadow-sm"
             >
                 <Edit className="w-4 h-4 mr-2" />
                 Edit Data
@@ -313,12 +317,12 @@ export default function WargaDetailPage() {
       </div>
 
       {/* Main Info Card */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="p-6 md:p-8">
             <div className="flex flex-col md:flex-row gap-8">
                 {/* Photo */}
                 <div className="flex flex-col items-center space-y-4">
-                    <div className="w-40 h-40 bg-slate-100 rounded-2xl flex items-center justify-center flex-shrink-0 border-4 border-white shadow-lg overflow-hidden relative group">
+                    <div className="w-40 h-40 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center flex-shrink-0 border-4 border-white dark:border-slate-900 shadow-lg overflow-hidden relative group">
                         {warga.ktp_image_path ? (
                             <img 
                                 src={`${process.env.NEXT_PUBLIC_API_URL}/storage/${warga.ktp_image_path}`} 
@@ -326,13 +330,15 @@ export default function WargaDetailPage() {
                                 className="w-full h-full object-cover"
                             />
                         ) : (
-                            <User className="w-16 h-16 text-slate-300" />
+                            <User className="w-16 h-16 text-slate-300 dark:text-slate-500" />
                         )}
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
                     </div>
                     <div className="text-center">
                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                            warga.gender === 'L' ? 'bg-blue-50 text-blue-700' : 'bg-pink-50 text-pink-700'
+                            warga.gender === 'L'
+                              ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+                              : 'bg-pink-50 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300'
                         }`}>
                             {warga.gender === 'L' ? 'Laki-Laki' : 'Perempuan'}
                         </span>
@@ -341,9 +347,9 @@ export default function WargaDetailPage() {
                 
                 {/* Details */}
                 <div className="flex-1">
-                    <div className="mb-6 pb-6 border-b border-slate-100">
-                        <h2 className="text-2xl font-bold text-slate-900 mb-1">{warga.name}</h2>
-                        <div className="flex items-center text-slate-500 font-mono">
+                    <div className="mb-6 pb-6 border-b border-slate-100 dark:border-slate-800">
+                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">{warga.name}</h2>
+                        <div className="flex items-center text-slate-500 dark:text-slate-400 font-mono">
                             <CreditCard className="w-4 h-4 mr-2 text-emerald-500" />
                             {warga.nik}
                         </div>
@@ -351,56 +357,56 @@ export default function WargaDetailPage() {
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                         <div className="space-y-1">
-                            <div className="flex items-center text-sm text-slate-500 mb-1">
+                            <div className="flex items-center text-sm text-slate-500 dark:text-slate-400 mb-1">
                                 <Phone className="w-4 h-4 mr-2 text-emerald-500" />
                                 Nomor HP
                             </div>
-                            <p className="text-base font-medium text-slate-900 pl-6">{warga.phone || '-'}</p>
+                            <p className="text-base font-medium text-slate-900 dark:text-slate-100 pl-6">{warga.phone || '-'}</p>
                         </div>
 
                         <div className="space-y-1">
-                            <div className="flex items-center text-sm text-slate-500 mb-1">
+                            <div className="flex items-center text-sm text-slate-500 dark:text-slate-400 mb-1">
                                 <MapPin className="w-4 h-4 mr-2 text-emerald-500" />
                                 Alamat Domisili
                             </div>
-                            <p className="text-base font-medium text-slate-900 pl-6">{warga.address || '-'}</p>
+                            <p className="text-base font-medium text-slate-900 dark:text-slate-100 pl-6">{warga.address || '-'}</p>
                         </div>
 
                         <div className="space-y-1">
-                            <div className="flex items-center text-sm text-slate-500 mb-1">
+                            <div className="flex items-center text-sm text-slate-500 dark:text-slate-400 mb-1">
                                 <Users className="w-4 h-4 mr-2 text-emerald-500" />
                                 Nomor KK
                             </div>
-                            <p className="text-base font-medium text-slate-900 pl-6">{warga.kk_number || '-'}</p>
+                            <p className="text-base font-medium text-slate-900 dark:text-slate-100 pl-6">{warga.kk_number || '-'}</p>
                         </div>
 
                         <div className="space-y-1">
-                            <div className="flex items-center text-sm text-slate-500 mb-1">
+                            <div className="flex items-center text-sm text-slate-500 dark:text-slate-400 mb-1">
                                 <Calendar className="w-4 h-4 mr-2 text-emerald-500" />
                                 Tempat, Tanggal Lahir & Umur
                             </div>
-                            <p className="text-base font-medium text-slate-900 pl-6">
+                            <p className="text-base font-medium text-slate-900 dark:text-slate-100 pl-6">
                                 {warga.place_of_birth}, {formatBirthDate(warga.date_of_birth)}{' '}
-                                <span className="text-sm text-slate-500">
+                                <span className="text-sm text-slate-500 dark:text-slate-400">
                                     ({calculateAge(warga.date_of_birth)})
                                 </span>
                             </p>
                         </div>
 
                         <div className="space-y-1">
-                            <div className="flex items-center text-sm text-slate-500 mb-1">
+                            <div className="flex items-center text-sm text-slate-500 dark:text-slate-400 mb-1">
                                 <Briefcase className="w-4 h-4 mr-2 text-emerald-500" />
                                 Pekerjaan
                             </div>
-                            <p className="text-base font-medium text-slate-900 pl-6">{warga.occupation || '-'}</p>
+                            <p className="text-base font-medium text-slate-900 dark:text-slate-100 pl-6">{warga.occupation || '-'}</p>
                         </div>
 
                         <div className="space-y-1">
-                            <div className="flex items-center text-sm text-slate-500 mb-1">
+                            <div className="flex items-center text-sm text-slate-500 dark:text-slate-400 mb-1">
                                 <Home className="w-4 h-4 mr-2 text-emerald-500" />
                                 Status Keluarga
                             </div>
-                            <p className="text-base font-medium text-slate-900 pl-6">{warga.status_in_family?.replace('_', ' ') || '-'}</p>
+                            <p className="text-base font-medium text-slate-900 dark:text-slate-100 pl-6">{warga.status_in_family?.replace('_', ' ') || '-'}</p>
                         </div>
                     </div>
                 </div>
@@ -409,15 +415,15 @@ export default function WargaDetailPage() {
       </div>
 
       {/* Family Card Section */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-4">
             <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center">
-                    <Users className="w-5 h-5 text-emerald-600" />
+                <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-900/40 flex items-center justify-center">
+                    <Users className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <div>
-                    <h3 className="font-bold text-slate-800">Anggota Keluarga</h3>
-                    <p className="text-sm text-slate-500 font-mono">No. KK: {warga.kk_number}</p>
+                    <h3 className="font-bold text-slate-800 dark:text-white">Anggota Keluarga</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 font-mono">No. KK: {warga.kk_number}</p>
                 </div>
             </div>
             <button 
@@ -431,32 +437,39 @@ export default function WargaDetailPage() {
         
         <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50 border-b border-slate-200">
+                <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
                     <tr>
-                        <th className="px-6 py-4 font-semibold text-slate-700">Nama Lengkap</th>
-                        <th className="px-6 py-4 font-semibold text-slate-700">NIK</th>
-                        <th className="px-6 py-4 font-semibold text-slate-700">L/P</th>
-                        <th className="px-6 py-4 font-semibold text-slate-700">Status</th>
-                        <th className="px-6 py-4 font-semibold text-slate-700">Tanggal Lahir / Umur</th>
-                        <th className="px-6 py-4 font-semibold text-slate-700 text-right">Aksi</th>
+                        <th className="px-6 py-4 font-semibold text-slate-700 dark:text-slate-200">Nama Lengkap</th>
+                        <th className="px-6 py-4 font-semibold text-slate-700 dark:text-slate-200">NIK</th>
+                        <th className="px-6 py-4 font-semibold text-slate-700 dark:text-slate-200">L/P</th>
+                        <th className="px-6 py-4 font-semibold text-slate-700 dark:text-slate-200">Status</th>
+                        <th className="px-6 py-4 font-semibold text-slate-700 dark:text-slate-200">Tanggal Lahir / Umur</th>
+                        <th className="px-6 py-4 font-semibold text-slate-700 dark:text-slate-200 text-right">Aksi</th>
                     </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                     {warga.family && warga.family.length > 0 ? (
                         warga.family.map((member) => (
-                            <tr key={member.id} className={`hover:bg-slate-50/50 transition-colors ${member.id === warga.id ? "bg-emerald-50/30" : ""}`}>
+                            <tr
+                              key={member.id}
+                              className={`hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors ${
+                                member.id === warga.id ? "bg-emerald-50/30 dark:bg-emerald-900/20" : ""
+                              }`}
+                            >
                                 <td className="px-6 py-4">
-                                    <div className="font-medium text-slate-900">{member.name}</div>
+                                    <div className="font-medium text-slate-900 dark:text-slate-100">{member.name}</div>
                                     {member.id === warga.id && (
-                                        <span className="inline-flex items-center mt-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 uppercase tracking-wide">
+                                        <span className="inline-flex items-center mt-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 uppercase tracking-wide">
                                             Kepala Keluarga
                                         </span>
                                     )}
                                 </td>
-                                <td className="px-6 py-4 text-slate-600 font-mono">{member.nik}</td>
-                                <td className="px-6 py-4 text-slate-600">
+                                <td className="px-6 py-4 text-slate-600 dark:text-slate-300 font-mono">{member.nik}</td>
+                                <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
                                     <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                        member.gender === 'L' ? 'bg-blue-50 text-blue-700' : 'bg-pink-50 text-pink-700'
+                                        member.gender === 'L'
+                                          ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+                                          : 'bg-pink-50 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300'
                                     }`}>
                                         {member.gender === 'L'
                                           ? 'Laki-Laki'
@@ -465,32 +478,32 @@ export default function WargaDetailPage() {
                                             : '-'}
                                     </span>
                                 </td>
-                                <td className="px-6 py-4 text-slate-600">
+                                <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
                                     <span className="capitalize">{member.status_in_family?.toLowerCase().replace('_', ' ')}</span>
                                 </td>
-                                <td className="px-6 py-4 text-slate-600">
+                                <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
                                     <div>{formatBirthDate(member.date_of_birth)}</div>
-                                    <div className="text-xs text-slate-500">
+                                    <div className="text-xs text-slate-500 dark:text-slate-400">
                                         {calculateAge(member.date_of_birth)}
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 text-right">
                                   {member.id === warga.id ? (
-                                    <span className="text-xs text-slate-400 italic">
+                                    <span className="text-xs text-slate-400 dark:text-slate-500 italic">
                                       Kelola dari menu atas
                                     </span>
                                   ) : (
                                     <div className="flex items-center justify-end gap-2">
                                       <button
                                         onClick={() => handleEditFamilyMember(member)}
-                                        className="p-2.5 text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors border border-transparent hover:border-emerald-100 shadow-sm"
+                                        className="p-2.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-xl transition-colors border border-transparent hover:border-emerald-100 dark:hover:border-emerald-800 shadow-sm"
                                         title="Edit Anggota"
                                       >
                                         <Edit size={16} />
                                       </button>
                                       <button
                                         onClick={() => handleDeleteFamilyMember(member)}
-                                        className="p-2.5 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors border border-transparent hover:border-rose-100 shadow-sm"
+                                        className="p-2.5 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-colors border border-transparent hover:border-rose-100 dark:hover:border-rose-800 shadow-sm"
                                         title="Hapus Anggota"
                                       >
                                         <Trash2 size={16} />
@@ -502,9 +515,9 @@ export default function WargaDetailPage() {
                         ))
                     ) : (
                         <tr>
-                            <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                            <td colSpan={6} className="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
                                 <div className="flex flex-col items-center justify-center">
-                                    <Users className="w-12 h-12 text-slate-200 mb-3" />
+                                    <Users className="w-12 h-12 text-slate-200 dark:text-slate-700 mb-3" />
                                     <p>Belum ada anggota keluarga lain.</p>
                                 </div>
                             </td>

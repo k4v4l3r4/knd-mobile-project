@@ -104,9 +104,17 @@ export default function RegisterWargaScreen({ onSuccess }: RegisterWargaScreenPr
             <Text style={[styles.description, { color: colors.textSecondary }]}>
               Silakan masukkan Kode Undangan yang diberikan oleh Ketua RT Anda untuk mendaftar.
             </Text>
+            <Text style={[styles.requiredHint, { color: colors.textSecondary }]}>
+              Kolom bertanda
+              <Text style={{ color: '#ef4444' }}> *</Text>
+              {' '}wajib diisi.
+            </Text>
             
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Kode Undangan RT</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>
+                Kode Undangan RT
+                <Text style={{ color: '#ef4444' }}> *</Text>
+              </Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border, textAlign: 'center', letterSpacing: 2, fontWeight: 'bold' }]}
                 placeholder="XXXXXX"
@@ -118,7 +126,10 @@ export default function RegisterWargaScreen({ onSuccess }: RegisterWargaScreenPr
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Nama Lengkap</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>
+                Nama Lengkap
+                <Text style={{ color: '#ef4444' }}> *</Text>
+              </Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
                 placeholder="Contoh: Budi Santoso"
@@ -129,7 +140,10 @@ export default function RegisterWargaScreen({ onSuccess }: RegisterWargaScreenPr
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Nomor HP (WhatsApp)</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>
+                Nomor HP (WhatsApp)
+                <Text style={{ color: '#ef4444' }}> *</Text>
+              </Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
                 placeholder="Contoh: 08123456789"
@@ -141,7 +155,10 @@ export default function RegisterWargaScreen({ onSuccess }: RegisterWargaScreenPr
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Password</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>
+                Password
+                <Text style={{ color: '#ef4444' }}> *</Text>
+              </Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
                 placeholder="Minimal 6 karakter"
@@ -153,7 +170,10 @@ export default function RegisterWargaScreen({ onSuccess }: RegisterWargaScreenPr
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Konfirmasi Password</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>
+                Konfirmasi Password
+                <Text style={{ color: '#ef4444' }}> *</Text>
+              </Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
                 placeholder="Ulangi password"
@@ -209,6 +229,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 24,
     lineHeight: 20,
+  },
+  requiredHint: {
+    fontSize: 12,
+    marginBottom: 16,
   },
   inputGroup: {
     marginBottom: 16,

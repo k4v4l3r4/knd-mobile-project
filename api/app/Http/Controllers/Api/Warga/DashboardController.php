@@ -17,12 +17,20 @@ class DashboardController extends Controller
         $user = Auth::user();
 
         // 1. Cek Status Iuran Bulan Ini berbasis tunggakan (unpaid fees)
-        $currentMonth = Carbon::now()->month;
-        $currentYear = Carbon::now()->year;
+        $now = Carbon::now();
+        $currentMonth = $now->month;
+        $currentYear = $now->year;
 
         $fees = Fee::where('rt_id', $user->rt_id)
             ->where('is_mandatory', true)
-            ->get();
+            ->get()
+            ->filter(function (Fee $fee) use ($now, $currentMonth, $currentYear) {
+                if (!$fee->billing_day) {
+                    return true;
+                }
+                $billingDate = Carbon::create($currentYear, $currentMonth, $fee->billing_day, 0, 0, 0);
+                return $now->greaterThanOrEqualTo($billingDate);
+            });
 
         $monthTransactions = Transaction::where('user_id', $user->id)
             ->whereYear('date', $currentYear)

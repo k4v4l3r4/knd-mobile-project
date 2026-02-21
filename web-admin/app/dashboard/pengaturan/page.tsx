@@ -46,6 +46,7 @@ interface FeeData {
   name: string;
   amount: number;
   is_mandatory: boolean;
+  billing_day?: number | null;
 }
 
 interface WalletData {
@@ -436,18 +437,21 @@ export default function SettingsPage() {
             name: 'Iuran Kebersihan',
             amount: 25000,
             is_mandatory: true,
+            billing_day: 5,
           },
           {
             id: 2,
             name: 'Iuran Keamanan',
             amount: 30000,
             is_mandatory: true,
+            billing_day: 10,
           },
           {
             id: 3,
             name: 'Dana Sosial',
             amount: 10000,
             is_mandatory: false,
+            billing_day: 15,
           },
         ];
         setFees(demoFees);
@@ -996,7 +1000,9 @@ export default function SettingsPage() {
 
   // --- Fee Logic ---
   const openFeeModal = (fee?: FeeData) => {
-    setCurrentFee(fee || { name: '', amount: 0, is_mandatory: true });
+    setCurrentFee(
+      fee || { name: '', amount: 0, is_mandatory: true, billing_day: 1 }
+    );
     setIsFeeModalOpen(true);
   };
 
@@ -1790,6 +1796,7 @@ export default function SettingsPage() {
                         <tr>
                           <th className="px-8 py-5 text-sm font-bold text-slate-600 dark:text-slate-400">Nama Iuran</th>
                           <th className="px-8 py-5 text-sm font-bold text-slate-600 dark:text-slate-400">Nominal</th>
+                          <th className="px-8 py-5 text-sm font-bold text-slate-600 dark:text-slate-400">Tanggal Tagih</th>
                           <th className="px-8 py-5 text-sm font-bold text-slate-600 dark:text-slate-400">Sifat</th>
                           <th className="px-8 py-5 text-sm font-bold text-slate-600 dark:text-slate-400 text-right">Aksi</th>
                         </tr>
@@ -1803,6 +1810,11 @@ export default function SettingsPage() {
                             <td className="px-8 py-5">
                               <span className="font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
                                 {formatRupiah(fee.amount)}
+                              </span>
+                            </td>
+                            <td className="px-8 py-5">
+                              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                                {fee.billing_day ? `Tanggal ${fee.billing_day}` : 'Belum diatur'}
                               </span>
                             </td>
                             <td className="px-8 py-5">
@@ -2531,6 +2543,31 @@ export default function SettingsPage() {
                   className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all outline-none font-medium text-slate-800 dark:text-white"
                   min="0"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                  Tanggal Penagihan (1–31)
+                </label>
+                <select
+                  value={currentFee.billing_day ?? ''}
+                  onChange={(e) =>
+                    setCurrentFee({
+                      ...currentFee,
+                      billing_day: e.target.value ? Number(e.target.value) : null,
+                    })
+                  }
+                  className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all outline-none font-medium text-slate-800 dark:text-white"
+                >
+                  <option value="">Setiap awal bulan (default)</option>
+                  {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                    <option key={day} value={day}>
+                      Tanggal {day}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Digunakan sebagai acuan kapan iuran dianggap jatuh tempo dan ditagih.
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Sifat Iuran</label>

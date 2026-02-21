@@ -146,7 +146,7 @@ const ProfileScreen = () => {
 
     setIsLoading(true);
     try {
-      const response = await api.put('/profile', {
+      const response = await api.post('/profile', {
         name: user.name,
         phone: user.phone,
       });

@@ -213,11 +213,44 @@ export default function WargaListScreen({ }: WargaListScreenProps) {
     setFamilyLoading(true);
     try {
       const response = await api.get('/warga/family');
-      if (response.data.success) {
-        setFamilyMembers(response.data.data);
+
+      let family: any = null;
+
+      if (response.data) {
+        if (response.data.success) {
+          const data = response.data.data;
+          if (Array.isArray(data)) {
+            family = data;
+          } else if (data && Array.isArray(data.data)) {
+            family = data.data;
+          }
+        } else if (Array.isArray(response.data.data)) {
+          family = response.data.data;
+        } else if (Array.isArray(response.data)) {
+          family = response.data;
+        }
+      }
+
+      if (!family || family.length === 0) {
+        try {
+          const meResponse = await api.get('/me');
+          const meData = meResponse.data?.data;
+          if (meData && Array.isArray(meData.family)) {
+            family = meData.family;
+          }
+        } catch (e) {
+          // ignore secondary error, main error handled below
+        }
+      }
+
+      if (family && Array.isArray(family)) {
+        setFamilyMembers(family);
+      } else {
+        setFamilyMembers([]);
       }
     } catch (error) {
       console.error('Error fetching family:', error);
+      setFamilyMembers([]);
     } finally {
       setFamilyLoading(false);
       setRefreshing(false);

@@ -277,7 +277,7 @@ const DashboardSummary = React.memo(({ data, onNavigate, menuItems, styles, colo
         <View style={styles.headerIcons}>
           <TouchableOpacity 
             style={styles.iconButton} 
-            onPress={() => Alert.alert(t('common.info'), t('home.noNotifications'))}
+            onPress={() => onNavigate('NOTIFICATIONS')}
             activeOpacity={0.7}
           >
              <Ionicons name="notifications-outline" size={24} color={isDarkMode ? "#fff" : "#1e293b"} />
@@ -623,7 +623,7 @@ export default function HomeScreen({ onLogout, onNavigate }: HomeScreenProps) {
       const dashboardData = payload.data;
       const userData = dashboardData.user || payload.user;
 
-      if (['ADMIN_RT', 'SECRETARY', 'TREASURER'].includes(userData.role)) {
+      if (['ADMIN_RT', 'RT', 'SECRETARY', 'TREASURER'].includes(userData.role)) {
         try {
            const inviteRes = await api.get('/rt/invite-code');
            setInviteCode(inviteRes.data.data.code);

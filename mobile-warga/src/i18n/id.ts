@@ -522,6 +522,11 @@ export const id = {
     writeComment: 'Tulis komentar...',
     postFailed: 'Gagal mengirim komentar',
   },
+  notifications: {
+    title: 'Notifikasi',
+    emptyTitle: 'Belum ada notifikasi',
+    emptyMsg: 'Anda belum memiliki notifikasi.',
+  },
   bills: {
     title: 'Keuangan Warga',
     tabs: {
@@ -551,6 +556,7 @@ export const id = {
     payButton: 'Bayar',
     paymentDescription: 'Pembayaran {{count}} Tagihan',
     billFor: 'Tagihan',
+    dueDatePrefix: 'Jatuh tempo tanggal',
   },
   boarding: {
     title: 'Manajemen Kost',

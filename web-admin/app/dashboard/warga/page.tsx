@@ -20,7 +20,8 @@ import {
   Loader2,
   Download,
   FileSpreadsheet,
-  Eye
+  Eye,
+  Smartphone
 } from 'lucide-react';
 import api from '@/lib/axios';
 import { toast } from 'react-hot-toast';
@@ -60,6 +61,7 @@ interface Warga {
   city_code?: string | null;
   district_code?: string | null;
   village_code?: string | null;
+  has_mobile_app?: boolean;
 }
 
 export default function WargaPage() {
@@ -1001,7 +1003,15 @@ export default function WargaPage() {
                           {warga.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <div className="font-bold text-slate-800 dark:text-white text-base">{warga.name}</div>
+                          <div className="font-bold text-slate-800 dark:text-white text-base flex items-center gap-2">
+                            <span>{warga.name}</span>
+                            {warga.has_mobile_app && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                <Smartphone size={12} className="shrink-0" />
+                                <span>Aplikasi Mobile</span>
+                              </span>
+                            )}
+                          </div>
                           <div className="mt-0.5 space-y-0.5">
                             <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
                               <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wide dark:text-slate-300">

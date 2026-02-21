@@ -20,13 +20,21 @@ class BillController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        $currentMonth = Carbon::now()->month;
-        $currentYear = Carbon::now()->year;
+        $now = Carbon::now();
+        $currentMonth = $now->month;
+        $currentYear = $now->year;
 
         // 1. Get all mandatory fees for User's RT
         $fees = Fee::where('rt_id', $user->rt_id)
             ->where('is_mandatory', true)
-            ->get();
+            ->get()
+            ->filter(function (Fee $fee) use ($now, $currentMonth, $currentYear) {
+                if (!$fee->billing_day) {
+                    return true;
+                }
+                $billingDate = Carbon::create($currentYear, $currentMonth, $fee->billing_day, 0, 0, 0);
+                return $now->greaterThanOrEqualTo($billingDate);
+            });
 
         // 2. Get user's transactions for this month to check payments
         // We look for transactions that are NOT REJECTED (so PENDING or VERIFIED counts as "paid" or "processing")
@@ -56,7 +64,13 @@ class BillController extends Controller
             }
 
             if (!$isPaid) {
-                $unpaid[] = $fee;
+                $unpaid[] = [
+                    'id' => $fee->id,
+                    'name' => $fee->name,
+                    'amount' => $fee->amount,
+                    'description' => $fee->description,
+                    'billing_day' => $fee->billing_day,
+                ];
             }
         }
 

@@ -19,11 +19,21 @@ class FeeController extends Controller
         $user = $request->user();
         $month = $request->input('month', Carbon::now()->month);
         $year = $request->input('year', Carbon::now()->year);
+        $asOfDate = $request->input('date')
+            ? Carbon::parse($request->input('date'))
+            : Carbon::createFromDate($year, $month, Carbon::now()->day);
         
         // 1. Get mandatory fees
         $mandatoryFees = Fee::where('rt_id', $user->rt_id)
             ->where('is_mandatory', true)
-            ->get();
+            ->get()
+            ->filter(function (Fee $fee) use ($asOfDate, $month, $year) {
+                if (!$fee->billing_day) {
+                    return true;
+                }
+                $billingDate = Carbon::create($year, $month, $fee->billing_day, 0, 0, 0);
+                return $asOfDate->greaterThanOrEqualTo($billingDate);
+            });
 
         if ($mandatoryFees->isEmpty()) {
             return response()->json([]);
@@ -108,6 +118,7 @@ class FeeController extends Controller
             'amount' => 'required|numeric|min:0',
             'description' => 'nullable|string',
             'is_mandatory' => 'boolean',
+            'billing_day' => 'nullable|integer|min:1|max:31',
         ]);
 
         $validated['rt_id'] = $request->user()->rt_id;
@@ -138,6 +149,7 @@ class FeeController extends Controller
             'amount' => 'sometimes|required|numeric|min:0',
             'description' => 'nullable|string',
             'is_mandatory' => 'boolean',
+            'billing_day' => 'nullable|integer|min:1|max:31',
         ]);
 
         $fee->update($validated);

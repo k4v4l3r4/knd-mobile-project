@@ -27,6 +27,7 @@ interface Fee {
   name: string;
   amount: string; // or number
   description: string;
+  billing_day?: number | null;
 }
 
 interface TransactionItem {
@@ -195,6 +196,9 @@ export default function BillsScreen({ initialTab = 'bills', onNavigate }: { init
 
   const renderBillItem = ({ item }: { item: Fee }) => {
     const isSelected = selectedFees.includes(item.id);
+    const billingLabel = item.billing_day
+      ? `${t('bills.dueDatePrefix')} ${item.billing_day} ${currentPeriod}`
+      : `${t('bills.billFor')} ${currentPeriod}`;
     return (
       <TouchableOpacity 
         style={[styles.card, isSelected && { borderColor: colors.primary, borderWidth: 1, backgroundColor: isDarkMode ? 'rgba(5, 150, 105, 0.05)' : '#ecfdf5' }]}
@@ -217,7 +221,7 @@ export default function BillsScreen({ initialTab = 'bills', onNavigate }: { init
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.cardTitle}>{item.name}</Text>
-              <Text style={styles.cardSubtitle}>{t('bills.billFor')} {currentPeriod}</Text>
+              <Text style={styles.cardSubtitle}>{billingLabel}</Text>
             </View>
           </View>
           <Text style={styles.amountText}>{formatRupiah(item.amount)}</Text>

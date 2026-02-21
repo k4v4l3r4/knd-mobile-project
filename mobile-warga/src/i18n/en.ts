@@ -475,6 +475,11 @@ export const en = {
     writeComment: 'Write a comment...',
     postFailed: 'Failed to post comment',
   },
+  notifications: {
+    title: 'Notifications',
+    emptyTitle: 'No notifications',
+    emptyMsg: 'You do not have any notifications yet.',
+  },
   bills: {
     title: 'Resident Finance',
     tabs: {

@@ -76,8 +76,24 @@ class WargaController extends Controller
         // If per_page is 'all', get all results
         if ($request->input('all') === 'true') {
             $wargas = $query->get();
-            // Wrap in resource structure to match pagination format if needed, or just return data
-             return response()->json([
+
+            $wargas->each(function (User $warga) {
+                $warga->makeVisible('nik');
+
+                $hasMobileApp = false;
+
+                if (!empty($warga->fcm_token)) {
+                    $hasMobileApp = true;
+                }
+
+                if (!$hasMobileApp && method_exists($warga, 'tokens')) {
+                    $hasMobileApp = $warga->tokens()->exists();
+                }
+
+                $warga->has_mobile_app = $hasMobileApp;
+            });
+
+            return response()->json([
                 'success' => true,
                 'message' => 'List data warga',
                 'data' => $wargas
@@ -86,9 +102,21 @@ class WargaController extends Controller
         
         $wargas = $query->paginate($perPage);
         
-        // Make NIK visible for admin
-        $wargas->getCollection()->each(function ($warga) {
+        // Make NIK visible for admin & tandai pengguna yang sudah pakai mobile app
+        $wargas->getCollection()->each(function (User $warga) {
             $warga->makeVisible('nik');
+
+            $hasMobileApp = false;
+
+            if (!empty($warga->fcm_token)) {
+                $hasMobileApp = true;
+            }
+
+            if (!$hasMobileApp && method_exists($warga, 'tokens')) {
+                $hasMobileApp = $warga->tokens()->exists();
+            }
+
+            $warga->has_mobile_app = $hasMobileApp;
         });
 
         return response()->json([
