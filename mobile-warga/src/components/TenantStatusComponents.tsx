@@ -10,50 +10,32 @@ export const TrialBanner = () => {
   const { isTrial, daysRemaining, isExpired, status } = useTenant();
   const { colors } = useTheme();
 
-  if (!isTrial || isExpired) return null;
-
-  const isCritical = daysRemaining <= 2;
-  const backgroundColor = isCritical ? colors.danger : colors.primary;
-
   const [countdown, setCountdown] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isTrial || isExpired) {
-      setCountdown(null);
-      return;
-    }
-
-    let target: Date | null = null;
-
-    if (status?.trial_end_at) {
-      const date = new Date(status.trial_end_at);
-      if (!isNaN(date.getTime())) {
-        target = date;
-      }
-    }
-
-    if (!target && daysRemaining > 0) {
-      const now = new Date();
-      now.setDate(now.getDate() + Math.ceil(daysRemaining));
-      target = now;
-    }
-
-    if (!target) {
+    if (!status?.trial_end_at || !isTrial || isExpired) {
       setCountdown(null);
       return;
     }
 
     const update = () => {
-      const diff = target ? target.getTime() - Date.now() : 0;
+      const end = new Date(status.trial_end_at as string).getTime();
+      const now = Date.now();
+      const diff = end - now;
       if (diff <= 0) {
         setCountdown('00:00:00');
         return;
       }
       const totalSeconds = Math.floor(diff / 1000);
-      const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
-      const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
-      const seconds = String(totalSeconds % 60).padStart(2, '0');
-      setCountdown(`${hours}:${minutes}:${seconds}`);
+      const days = Math.floor(totalSeconds / (24 * 60 * 60));
+      const hours = Math.floor((totalSeconds % (24 * 60 * 60)) / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+
+      const pad = (v: number) => v.toString().padStart(2, '0');
+      const dayPart = days > 0 ? `${days} hari ` : '';
+
+      setCountdown(`${dayPart}${pad(hours)}:${pad(minutes)}:${pad(seconds)}`);
     };
 
     update();
@@ -62,7 +44,12 @@ export const TrialBanner = () => {
     return () => {
       clearInterval(interval);
     };
-  }, [isTrial, isExpired, daysRemaining, status?.trial_end_at]);
+  }, [status?.trial_end_at, isTrial, isExpired]);
+
+  if (!isTrial || isExpired) return null;
+
+  const isCritical = daysRemaining <= 2;
+  const backgroundColor = isCritical ? colors.danger : colors.primary;
 
   const handleUpgrade = () => {
     const baseUrl = BASE_URL.replace(/\/api$/, '');
