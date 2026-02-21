@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Linking } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTenant } from '../context/TenantContext';
 import { useTheme } from '../context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,16 +22,18 @@ export const TrialBanner = () => {
   };
 
   return (
-    <View style={[styles.banner, { backgroundColor }]}>
-      <Text style={styles.bannerText}>
-        {isCritical 
-          ? `Trial hampir berakhir (${Math.ceil(daysRemaining)} hari). Segera lakukan pembayaran.` 
-          : `Masa trial tersisa ${Math.ceil(daysRemaining)} hari`}
-      </Text>
-      <TouchableOpacity style={styles.upgradeButton} onPress={handleUpgrade}>
-        <Text style={[styles.upgradeText, { color: backgroundColor }]}>Upgrade</Text>
-      </TouchableOpacity>
-    </View>
+    <SafeAreaView edges={['top']} style={{ backgroundColor }}>
+      <View style={[styles.banner, { backgroundColor }]}>
+        <Text style={styles.bannerText}>
+          {isCritical 
+            ? `Trial hampir berakhir (${Math.ceil(daysRemaining)} hari). Segera lakukan pembayaran.` 
+            : `Masa trial tersisa ${Math.ceil(daysRemaining)} hari`}
+        </Text>
+        <TouchableOpacity style={styles.upgradeButton} onPress={handleUpgrade}>
+          <Text style={[styles.upgradeText, { color: backgroundColor }]}>Upgrade</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
   );
 };
 
@@ -82,6 +85,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: 4,
   },
   bannerText: {
     color: 'white',

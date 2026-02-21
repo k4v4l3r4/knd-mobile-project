@@ -10,7 +10,9 @@ import {
   RefreshControl,
   Dimensions,
   Platform,
-  TouchableOpacity
+  TouchableOpacity,
+  Modal,
+  ScrollView
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons, Feather, MaterialIcons } from '@expo/vector-icons';
@@ -35,7 +37,10 @@ interface Warga {
   role?: string;
   place_of_birth?: string | null;
   date_of_birth?: string | null;
-  nik?: string; // Visible in Family tab
+  nik?: string;
+  kk_number?: string | null;
+  gender?: string | null;
+  family?: Warga[];
 }
 
 interface WargaListScreenProps {
@@ -160,6 +165,9 @@ export default function WargaListScreen({ }: WargaListScreenProps) {
   // Family Data
   const [familyMembers, setFamilyMembers] = useState<Warga[]>([]);
   const [familyLoading, setFamilyLoading] = useState(false);
+  const [familyModalVisible, setFamilyModalVisible] = useState(false);
+  const [selectedHead, setSelectedHead] = useState<Warga | null>(null);
+  const [familyDetailLoading, setFamilyDetailLoading] = useState(false);
 
   // Fetch Warga RT
   const fetchWargas = useCallback(async (pageNumber = 1, search = '', refresh = false) => {
@@ -170,7 +178,8 @@ export default function WargaListScreen({ }: WargaListScreenProps) {
         params: {
           page: pageNumber,
           search: search,
-          per_page: 20
+          per_page: 20,
+          head_only: true
         }
       });
 
@@ -261,6 +270,23 @@ export default function WargaListScreen({ }: WargaListScreenProps) {
     }
   }, [activeTab, searchQuery]);
 
+  const handleOpenFamilyDetail = useCallback(async (item: Warga) => {
+    if (activeTab !== 'rt') return;
+    setSelectedHead(item);
+    setFamilyModalVisible(true);
+    setFamilyDetailLoading(true);
+    try {
+      const response = await api.get(`/warga/${item.id}`);
+      if (response.data?.success && response.data.data) {
+        setSelectedHead(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching warga detail:', error);
+    } finally {
+      setFamilyDetailLoading(false);
+    }
+  }, [activeTab]);
+
   const loadMore = () => {
     if (!loading && hasMore && activeTab === 'rt') {
       const nextPage = page + 1;
@@ -270,15 +296,21 @@ export default function WargaListScreen({ }: WargaListScreenProps) {
   };
 
   const renderItem = useCallback(({ item }: { item: Warga }) => (
-    <ProfessionalWargaCard 
-      item={item} 
-      colors={colors} 
-      styles={styles} 
-      t={t} 
-      language={language}
-      isFamilyView={activeTab === 'family'}
-    />
-  ), [colors, styles, t, language, activeTab]);
+    <TouchableOpacity
+      activeOpacity={activeTab === 'rt' ? 0.85 : 1}
+      onPress={() => handleOpenFamilyDetail(item)}
+      disabled={activeTab !== 'rt'}
+    >
+      <ProfessionalWargaCard 
+        item={item} 
+        colors={colors} 
+        styles={styles} 
+        t={t} 
+        language={language}
+        isFamilyView={activeTab === 'family'}
+      />
+    </TouchableOpacity>
+  ), [colors, styles, t, language, activeTab, handleOpenFamilyDetail]);
 
   const keyExtractor = useCallback((item: Warga) => item.id.toString(), []);
 
@@ -356,6 +388,63 @@ export default function WargaListScreen({ }: WargaListScreenProps) {
         windowSize={5}
         removeClippedSubviews={Platform.OS === 'android'}
       />
+
+      {selectedHead && (
+        <Modal
+          visible={familyModalVisible}
+          animationType="slide"
+          transparent
+          onRequestClose={() => setFamilyModalVisible(false)}
+        >
+          <View style={styles.familyModalOverlay}>
+            <View style={[styles.familyModalContent, { backgroundColor: colors.card }]}>
+              <View style={styles.familyModalHeader}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.familyModalTitle}>{selectedHead.name}</Text>
+                  {selectedHead.kk_number && (
+                    <Text style={styles.familyModalSubtitle}>
+                      Nomor KK: {selectedHead.kk_number}
+                    </Text>
+                  )}
+                </View>
+                <TouchableOpacity onPress={() => setFamilyModalVisible(false)}>
+                  <Ionicons name="close" size={22} color={colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.familyModalHint}>
+                Anggota keluarga yang terdaftar pada Kartu Keluarga ini.
+              </Text>
+
+              {familyDetailLoading ? (
+                <View style={styles.familyLoadingContainer}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                </View>
+              ) : (
+                <ScrollView style={styles.familyModalBody} showsVerticalScrollIndicator={false}>
+                  {selectedHead.family && selectedHead.family.length > 0 ? (
+                    selectedHead.family.map(member => (
+                      <ProfessionalWargaCard
+                        key={member.id}
+                        item={member}
+                        colors={colors}
+                        styles={styles}
+                        t={t}
+                        language={language}
+                        isFamilyView
+                      />
+                    ))
+                  ) : (
+                    <Text style={styles.familyEmptyText}>
+                      Belum ada data anggota keluarga.
+                    </Text>
+                  )}
+                </ScrollView>
+              )}
+            </View>
+          </View>
+        </Modal>
+      )}
     </View>
   );
 }
@@ -528,5 +617,53 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     marginTop: 16,
     fontSize: 16,
     color: colors.textSecondary,
+  },
+  familyModalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  familyModalContent: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 24,
+    maxHeight: '80%',
+  },
+  familyModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  familyModalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  familyModalSubtitle: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
+  familyModalHint: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: 8,
+  },
+  familyModalBody: {
+    marginTop: 4,
+  },
+  familyLoadingContainer: {
+    paddingVertical: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  familyEmptyText: {
+    textAlign: 'center',
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 16,
   },
 });
