@@ -625,10 +625,17 @@ export default function HomeScreen({ onLogout, onNavigate }: HomeScreenProps) {
 
       if (['ADMIN_RT', 'RT', 'SECRETARY', 'TREASURER'].includes(userData.role)) {
         try {
-           const inviteRes = await api.get('/rt/invite-code');
-           setInviteCode(inviteRes.data.data.code);
+          const inviteRes = await api.get('/rt/invite-code');
+          const payload = inviteRes.data;
+          const data = payload?.data || payload;
+          const code = data?.invite_code || data?.code || null;
+          if (code) {
+            setInviteCode(code);
+          } else {
+            console.log('Invite code not found in response payload');
+          }
         } catch (e) {
-           console.log('Error fetching invite code', e);
+          console.log('Error fetching invite code', e);
         }
       }
 
