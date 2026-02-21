@@ -532,14 +532,21 @@ export default function PatrolScreen({ onNavigate }: PatrolScreenProps) {
                 {mySchedules.length > 0 && (
                 <View style={{ marginBottom: 24 }}>
                     <Text style={[styles.sectionTitle, { marginBottom: 12 }]}>Jadwal Saya</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
-                        {mySchedules.map((schedule) => (
+                    <ScrollView 
+                        horizontal 
+                        showsHorizontalScrollIndicator={false} 
+                        contentContainerStyle={{ paddingHorizontal: 4 }}
+                    >
+                        {mySchedules.map((schedule, index) => (
                             <LinearGradient 
                                 key={schedule.id}
                                 colors={[colors.primary, colors.primary + 'CC']}
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 1 }}
-                                style={styles.myScheduleCardSmall}
+                                style={[
+                                    styles.myScheduleCardSmall,
+                                    { marginRight: index === mySchedules.length - 1 ? 4 : 12 }
+                                ]}
                             >
                                 <View style={styles.myScheduleHeader}>
                                     <View style={styles.myScheduleIconBox}>
@@ -1629,4 +1636,3 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
         fontWeight: '600',
     },
   });
-
