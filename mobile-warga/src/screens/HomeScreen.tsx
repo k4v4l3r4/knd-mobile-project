@@ -575,15 +575,53 @@ export default function HomeScreen({ onLogout, onNavigate }: HomeScreenProps) {
     }
   };
 
+  const fetchDashboardLegacy = async () => {
+    try {
+      const [meRes, announcementsRes] = await Promise.all([
+        api.get('/me'),
+        api.get('/announcements', { params: { limit: 5 } }),
+      ]);
+
+      const userPayload = meRes.data;
+      const userSuccess = typeof userPayload?.success === 'boolean' ? userPayload.success : true;
+      if (!userSuccess || !userPayload?.data) {
+        throw new Error(userPayload?.message || 'Failed to load user profile');
+      }
+
+      const userData = userPayload.data;
+
+      const announcementsPayload = announcementsRes.data;
+      let announcements: any[] = [];
+      if (announcementsPayload?.success) {
+        const result = announcementsPayload.data;
+        if (Array.isArray(result)) {
+          announcements = result;
+        } else if (result && Array.isArray(result.data)) {
+          announcements = result.data;
+        }
+      }
+
+      setData({
+        user: userData,
+        iuran_status: userData.iuran_status || 'LUNAS',
+        announcements,
+      });
+    } catch (e) {
+      throw e;
+    }
+  };
+
   const fetchDashboard = async () => {
     try {
       const dashboardRes = await api.get('/warga/dashboard');
-      if (!dashboardRes.data?.success) {
-        throw new Error('Failed to load dashboard');
+      const payload = dashboardRes.data;
+      const isSuccess = typeof payload?.success === 'boolean' ? payload.success : true;
+      if (!isSuccess || !payload?.data) {
+        throw new Error(payload?.message || 'Failed to load dashboard');
       }
 
-      const dashboardData = dashboardRes.data.data;
-      const userData = dashboardData.user;
+      const dashboardData = payload.data;
+      const userData = dashboardData.user || payload.user;
 
       if (['ADMIN_RT', 'SECRETARY', 'TREASURER'].includes(userData.role)) {
         try {
@@ -610,6 +648,12 @@ export default function HomeScreen({ onLogout, onNavigate }: HomeScreenProps) {
         );
       } else {
         console.log('Error fetching dashboard:', error.message || error);
+        try {
+          await fetchDashboardLegacy();
+          return;
+        } catch (fallbackError: any) {
+          console.log('Fallback dashboard load failed:', fallbackError.message || fallbackError);
+        }
       }
     } finally {
       setLoading(false);

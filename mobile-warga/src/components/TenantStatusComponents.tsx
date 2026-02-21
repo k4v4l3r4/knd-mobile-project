@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTenant } from '../context/TenantContext';
@@ -7,13 +7,62 @@ import { Ionicons } from '@expo/vector-icons';
 import { BASE_URL } from '../services/api';
 
 export const TrialBanner = () => {
-  const { isTrial, daysRemaining, isExpired } = useTenant();
+  const { isTrial, daysRemaining, isExpired, status } = useTenant();
   const { colors } = useTheme();
 
   if (!isTrial || isExpired) return null;
 
   const isCritical = daysRemaining <= 2;
   const backgroundColor = isCritical ? colors.danger : colors.primary;
+
+  const [countdown, setCountdown] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isTrial || isExpired) {
+      setCountdown(null);
+      return;
+    }
+
+    let target: Date | null = null;
+
+    if (status?.trial_end_at) {
+      const date = new Date(status.trial_end_at);
+      if (!isNaN(date.getTime())) {
+        target = date;
+      }
+    }
+
+    if (!target && daysRemaining > 0) {
+      const now = new Date();
+      now.setDate(now.getDate() + Math.ceil(daysRemaining));
+      target = now;
+    }
+
+    if (!target) {
+      setCountdown(null);
+      return;
+    }
+
+    const update = () => {
+      const diff = target ? target.getTime() - Date.now() : 0;
+      if (diff <= 0) {
+        setCountdown('00:00:00');
+        return;
+      }
+      const totalSeconds = Math.floor(diff / 1000);
+      const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+      const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+      const seconds = String(totalSeconds % 60).padStart(2, '0');
+      setCountdown(`${hours}:${minutes}:${seconds}`);
+    };
+
+    update();
+    const interval = setInterval(update, 1000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [isTrial, isExpired, daysRemaining, status?.trial_end_at]);
 
   const handleUpgrade = () => {
     const baseUrl = BASE_URL.replace(/\/api$/, '');
@@ -26,8 +75,8 @@ export const TrialBanner = () => {
       <View style={[styles.banner, { backgroundColor }]}>
         <Text style={styles.bannerText}>
           {isCritical 
-            ? `Trial hampir berakhir (${Math.ceil(daysRemaining)} hari). Segera lakukan pembayaran.` 
-            : `Masa trial tersisa ${Math.ceil(daysRemaining)} hari`}
+            ? `Trial hampir berakhir (${Math.ceil(daysRemaining)} hari${countdown ? ` - ${countdown}` : ''}). Segera lakukan pembayaran.` 
+            : `Masa trial tersisa ${Math.ceil(daysRemaining)} hari${countdown ? ` (${countdown})` : ''}`}
         </Text>
         <TouchableOpacity style={styles.upgradeButton} onPress={handleUpgrade}>
           <Text style={[styles.upgradeText, { color: backgroundColor }]}>Upgrade</Text>
