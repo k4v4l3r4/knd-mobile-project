@@ -290,9 +290,14 @@ export default function RegisterRTScreen({ onSuccess }: RegisterRTScreenProps) {
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.formSection}>
             <Text style={[styles.sectionTitle, { color: colors.primary }]}>Data Pengurus RT</Text>
+            <Text style={[styles.requiredNote, { color: colors.textSecondary }]}>
+              <Text style={{ color: '#ef4444' }}>*</Text> Wajib diisi
+            </Text>
             
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Nama Lengkap</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>
+                Nama Lengkap <Text style={{ color: '#ef4444' }}>*</Text>
+              </Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
                 placeholder="Contoh: Budi Santoso"
@@ -303,7 +308,9 @@ export default function RegisterRTScreen({ onSuccess }: RegisterRTScreenProps) {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Nomor HP (WhatsApp)</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>
+                Nomor HP (WhatsApp) <Text style={{ color: '#ef4444' }}>*</Text>
+              </Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
                 placeholder="Contoh: 08123456789"
@@ -315,7 +322,9 @@ export default function RegisterRTScreen({ onSuccess }: RegisterRTScreenProps) {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Email Resmi RT</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>
+                Email Resmi RT <Text style={{ color: '#ef4444' }}>*</Text>
+              </Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
                 placeholder="contoh: adminrt@example.com"
@@ -328,7 +337,9 @@ export default function RegisterRTScreen({ onSuccess }: RegisterRTScreenProps) {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Password</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>
+                Password <Text style={{ color: '#ef4444' }}>*</Text>
+              </Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
                 placeholder="Minimal 6 karakter"
@@ -340,7 +351,9 @@ export default function RegisterRTScreen({ onSuccess }: RegisterRTScreenProps) {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Konfirmasi Password</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>
+                Konfirmasi Password <Text style={{ color: '#ef4444' }}>*</Text>
+              </Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
                 placeholder="Ulangi password"
@@ -356,7 +369,9 @@ export default function RegisterRTScreen({ onSuccess }: RegisterRTScreenProps) {
             <Text style={[styles.sectionTitle, { color: colors.primary }]}>Data Wilayah</Text>
             
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Nomor RT</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>
+                Nomor RT <Text style={{ color: '#ef4444' }}>*</Text>
+              </Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
                 placeholder="Contoh: 005"
@@ -368,7 +383,9 @@ export default function RegisterRTScreen({ onSuccess }: RegisterRTScreenProps) {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Nomor RW</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>
+                Nomor RW <Text style={{ color: '#ef4444' }}>*</Text>
+              </Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
                 placeholder="Contoh: 001"
@@ -391,7 +408,9 @@ export default function RegisterRTScreen({ onSuccess }: RegisterRTScreenProps) {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Alamat Lengkap</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>
+                Alamat Lengkap <Text style={{ color: '#ef4444' }}>*</Text>
+              </Text>
               <TextInput
                 style={[styles.input, styles.textArea, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
                 placeholder="Alamat sekretariat / wilayah RT"
@@ -405,7 +424,9 @@ export default function RegisterRTScreen({ onSuccess }: RegisterRTScreenProps) {
 
             <View style={styles.row}>
               <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
-                <Text style={[styles.label, { color: colors.textSecondary }]}>Provinsi</Text>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>
+                  Provinsi <Text style={{ color: '#ef4444' }}>*</Text>
+                </Text>
                 <TouchableOpacity
                   style={[
                     styles.input,
@@ -433,7 +454,9 @@ export default function RegisterRTScreen({ onSuccess }: RegisterRTScreenProps) {
                 </TouchableOpacity>
               </View>
               <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
-                <Text style={[styles.label, { color: colors.textSecondary }]}>Kota/Kabupaten</Text>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>
+                  Kota/Kabupaten <Text style={{ color: '#ef4444' }}>*</Text>
+                </Text>
                 <TouchableOpacity
                   style={[
                     styles.input,
@@ -464,7 +487,9 @@ export default function RegisterRTScreen({ onSuccess }: RegisterRTScreenProps) {
 
             <View style={styles.row}>
               <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
-                <Text style={[styles.label, { color: colors.textSecondary }]}>Kecamatan</Text>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>
+                  Kecamatan <Text style={{ color: '#ef4444' }}>*</Text>
+                </Text>
                 <TouchableOpacity
                   style={[
                     styles.input,
@@ -492,7 +517,9 @@ export default function RegisterRTScreen({ onSuccess }: RegisterRTScreenProps) {
                 </TouchableOpacity>
               </View>
               <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
-                <Text style={[styles.label, { color: colors.textSecondary }]}>Kelurahan</Text>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>
+                  Kelurahan <Text style={{ color: '#ef4444' }}>*</Text>
+                </Text>
                 <TouchableOpacity
                   style={[
                     styles.input,
@@ -522,7 +549,9 @@ export default function RegisterRTScreen({ onSuccess }: RegisterRTScreenProps) {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Kode Pos</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>
+                Kode Pos <Text style={{ color: '#ef4444' }}>*</Text>
+              </Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
                 placeholder="contoh: 12820"
@@ -629,6 +658,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textTransform: 'uppercase',
     letterSpacing: 1,
+  },
+  requiredNote: {
+    fontSize: 12,
+    marginBottom: 12,
   },
   inputGroup: {
     marginBottom: 16,
