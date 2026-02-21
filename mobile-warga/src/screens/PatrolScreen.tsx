@@ -45,6 +45,7 @@ interface Schedule {
   end_time: string;
   shift_name?: string;
   start_date?: string;
+  end_date?: string;
   schedule_type?: 'DAILY' | 'WEEKLY';
   members: Member[];
 }
