@@ -121,10 +121,11 @@ const SettingsScreen = ({ onLogout, onNavigate }: SettingsScreenProps) => {
       }
     } catch (error: any) {
       setUpdateStatus('error');
-      const message =
+      const baseMessage =
         (error && (error.message || String(error))) ||
         'Terjadi kesalahan saat memeriksa pembaruan. Coba lagi nanti.';
-      Alert.alert('Gagal cek pembaruan', message);
+      const debugInfo = `\n\nDetail teknis:\nRuntime: ${Updates.runtimeVersion || 'unknown'}\nChannel: ${Updates.channel || 'unknown'}`;
+      Alert.alert('Gagal cek pembaruan', baseMessage + debugInfo);
     } finally {
       setTimeout(() => {
         setUpdateStatus('idle');
