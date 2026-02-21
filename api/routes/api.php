@@ -167,8 +167,8 @@ Route::middleware(['auth:sanctum', 'tenant.status', 'tenant.feature'])->group(fu
     Route::get('/me', [AuthController::class, 'me']);
     Route::get('/rt/invite-code', [AuthController::class, 'getInviteCode'])->middleware('permission:user.invite'); // Get Invite Code
     
-    // Warga Dashboard
-    Route::get('/warga/dashboard', [App\Http\Controllers\Api\Warga\DashboardController::class, 'index'])->middleware('permission:dashboard.view');
+    // Warga Dashboard (mobile warga) - always allow logged-in warga
+    Route::get('/warga/dashboard', [App\Http\Controllers\Api\Warga\DashboardController::class, 'index']);
     Route::get('/warga/bills', [App\Http\Controllers\Api\Warga\BillController::class, 'index'])->middleware('permission:iuran.view');
     Route::post('/warga/pay', [App\Http\Controllers\Api\Warga\BillController::class, 'pay'])->middleware('permission:iuran.pay');
 
