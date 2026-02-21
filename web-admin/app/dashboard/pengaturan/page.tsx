@@ -2548,26 +2548,79 @@ export default function SettingsPage() {
                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
                   Tanggal Penagihan (1–31)
                 </label>
-                <select
-                  value={currentFee.billing_day ?? ''}
-                  onChange={(e) =>
-                    setCurrentFee({
-                      ...currentFee,
-                      billing_day: e.target.value ? Number(e.target.value) : null,
-                    })
-                  }
-                  className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all outline-none font-medium text-slate-800 dark:text-white"
-                >
-                  <option value="">Setiap awal bulan (default)</option>
-                  {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
-                    <option key={day} value={day}>
-                      Tanggal {day}
-                    </option>
-                  ))}
-                </select>
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  Digunakan sebagai acuan kapan iuran dianggap jatuh tempo dan ditagih.
-                </p>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCurrentFee({
+                          ...currentFee,
+                          billing_day: null,
+                        })
+                      }
+                      className={`w-full text-left px-4 py-3 rounded-2xl border-2 transition-all ${
+                        !currentFee.billing_day
+                          ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
+                          : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:border-emerald-200 dark:hover:border-emerald-700'
+                      }`}
+                    >
+                      <div className="text-sm font-semibold">Awal Bulan</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400">
+                        Tagihan dibuat setiap awal bulan sebagai default.
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCurrentFee({
+                          ...currentFee,
+                          billing_day: currentFee.billing_day || 1,
+                        })
+                      }
+                      className={`w-full text-left px-4 py-3 rounded-2xl border-2 transition-all ${
+                        currentFee.billing_day
+                          ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
+                          : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:border-emerald-200 dark:hover:border-emerald-700'
+                      }`}
+                    >
+                      <div className="text-sm font-semibold">Tanggal Tertentu</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400">
+                        Pilih tanggal tetap penagihan setiap bulan.
+                      </div>
+                    </button>
+                  </div>
+
+                  {currentFee.billing_day && (
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-slate-500 dark:text-slate-400">
+                        Tanggal penagihan
+                      </span>
+                      <select
+                        value={currentFee.billing_day}
+                        onChange={(e) =>
+                          setCurrentFee({
+                            ...currentFee,
+                            billing_day: Number(e.target.value),
+                          })
+                        }
+                        className="px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                      >
+                        {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => {
+                          const dayLabel = day.toString().padStart(2, '0');
+                          return (
+                            <option key={day} value={day}>
+                              Tanggal {dayLabel}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
+                  )}
+
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    Digunakan sebagai acuan kapan iuran dianggap jatuh tempo dan ditagih.
+                  </p>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Sifat Iuran</label>
