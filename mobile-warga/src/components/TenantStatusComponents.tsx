@@ -52,8 +52,9 @@ export const TrialBanner = () => {
   const backgroundColor = isCritical ? colors.danger : colors.primary;
 
   const handleUpgrade = () => {
-    const baseUrl = BASE_URL.replace(/\/api$/, '');
-    const url = `${baseUrl}/dashboard/billing/subscribe`;
+    const apiRoot = BASE_URL.replace(/\/api$/, '');
+    const webRoot = apiRoot.replace('://api.', '://');
+    const url = `${webRoot}/dashboard/billing/subscribe`;
     Linking.openURL(url).catch(() => {});
   };
 
@@ -80,8 +81,9 @@ export const ExpiredOverlay = ({ onLogout }: { onLogout: () => void }) => {
   if (!isExpired) return null;
 
   const handleContinuePayment = () => {
-    const baseUrl = BASE_URL.replace(/\/api$/, '');
-    const url = `${baseUrl}/dashboard/billing/subscribe`;
+    const apiRoot = BASE_URL.replace(/\/api$/, '');
+    const webRoot = apiRoot.replace('://api.', '://');
+    const url = `${webRoot}/dashboard/billing/subscribe`;
     Linking.openURL(url).catch(() => {});
   };
 
