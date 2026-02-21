@@ -281,6 +281,8 @@ export const en = {
     loginButton: 'Login',
     registerText: 'Don\'t have an account?',
     registerButton: 'Register RT/RW (Free)',
+    registerWargaText: 'Have an invite code from your RT?',
+    registerWargaButton: 'Register as Resident',
     demoTitle: 'Demo Login:',
     viewDemo: 'View Demo',
     demoError: 'Failed to create demo tenant',

@@ -311,6 +311,8 @@ export const id = {
     loginButton: 'Masuk',
     registerText: 'Belum punya akun?',
     registerButton: 'Daftar RT/RW (Gratis)',
+    registerWargaText: 'Punya Kode Undangan dari Ketua RT?',
+    registerWargaButton: 'Daftar Akun Warga',
     demoTitle: 'Demo Login:',
     viewDemo: 'Lihat Demo',
     demoError: 'Gagal membuat demo tenant',

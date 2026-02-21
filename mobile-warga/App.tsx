@@ -200,6 +200,7 @@ const AppContent = () => {
             refreshStatus();
           }} 
           onRegisterRT={() => setCurrentScreen('REGISTER_RT')}
+          onRegisterWarga={() => setCurrentScreen('REGISTER_WARGA')}
         />
       )}
       {currentScreen === 'REGISTER_RT' && (

@@ -25,9 +25,10 @@ const { width, height } = Dimensions.get('window');
 interface LoginScreenProps {
   onLoginSuccess: () => void;
   onRegisterRT: () => void;
+  onRegisterWarga: () => void;
 }
 
-export default function LoginScreen({ onLoginSuccess, onRegisterRT }: LoginScreenProps) {
+export default function LoginScreen({ onLoginSuccess, onRegisterRT, onRegisterWarga }: LoginScreenProps) {
   const { colors, isDarkMode } = useTheme();
   const { t } = useLanguage();
   const styles = React.useMemo(() => getStyles(colors, isDarkMode), [colors, isDarkMode]);
@@ -495,6 +496,17 @@ export default function LoginScreen({ onLoginSuccess, onRegisterRT }: LoginScree
                 activeOpacity={0.7}
               >
                 <Text style={[styles.registerButtonText, { color: colors.primary }]}>{t('login.registerButton')}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.registerContainer}>
+              <Text style={[styles.registerText, { color: colors.textSecondary }]}>{t('login.registerWargaText')}</Text>
+              <TouchableOpacity 
+                onPress={onRegisterWarga}
+                style={[styles.registerButton, { borderColor: colors.primary }]}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.registerButtonText, { color: colors.primary }]}>{t('login.registerWargaButton')}</Text>
               </TouchableOpacity>
             </View>
 
