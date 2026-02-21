@@ -13,6 +13,7 @@ import {
   StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Updates from 'expo-updates';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -38,6 +39,7 @@ const SettingsScreen = ({ onLogout, onNavigate }: SettingsScreenProps) => {
     role: 'Warga',
     avatar: null 
   });
+  const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'downloading' | 'upToDate' | 'updated' | 'error'>('idle');
 
   useEffect(() => {
     loadUserData();
@@ -85,6 +87,57 @@ const SettingsScreen = ({ onLogout, onNavigate }: SettingsScreenProps) => {
     setIsLanguageModalVisible(false);
   };
 
+  const handleUpdateApp = async () => {
+    try {
+      setUpdateStatus('checking');
+      const result = await Updates.checkForUpdateAsync();
+      if (result.isAvailable) {
+        setUpdateStatus('downloading');
+        await Updates.fetchUpdateAsync();
+        setUpdateStatus('updated');
+        Alert.alert(
+          'Pembaruan tersedia',
+          'Aplikasi akan dimuat ulang untuk menerapkan versi terbaru.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                Updates.reloadAsync();
+              },
+            },
+          ]
+        );
+      } else {
+        setUpdateStatus('upToDate');
+        Alert.alert('Tidak ada pembaruan', 'Anda sudah menggunakan versi terbaru.');
+      }
+    } catch (error) {
+      setUpdateStatus('error');
+      Alert.alert('Gagal cek pembaruan', 'Terjadi kesalahan saat memeriksa pembaruan. Coba lagi nanti.');
+    } finally {
+      setTimeout(() => {
+        setUpdateStatus('idle');
+      }, 3000);
+    }
+  };
+
+  const getUpdateStatusLabel = () => {
+    switch (updateStatus) {
+      case 'checking':
+        return 'Memeriksa...';
+      case 'downloading':
+        return 'Mengunduh...';
+      case 'upToDate':
+        return 'Sudah terbaru';
+      case 'updated':
+        return 'Terpasang';
+      case 'error':
+        return 'Gagal, coba lagi';
+      default:
+        return '';
+    }
+  };
+
   const menuItems = [
     {
       title: t('settings.account'),
@@ -116,6 +169,7 @@ const SettingsScreen = ({ onLogout, onNavigate }: SettingsScreenProps) => {
     {
       title: t('settings.others'),
       items: [
+        { icon: 'cloud-download-outline', label: 'Update Aplikasi', value: getUpdateStatusLabel(), onPress: handleUpdateApp },
         { icon: 'information-circle-outline', label: t('settings.about'), onPress: () => Alert.alert(t('common.info'), `${t('settings.version')} 1.0.0`) },
         { icon: 'help-circle-outline', label: t('settings.help'), onPress: () => onNavigate('HELP_SUPPORT') },
         { icon: 'document-text-outline', label: t('settings.terms'), onPress: () => onNavigate('TERMS') },

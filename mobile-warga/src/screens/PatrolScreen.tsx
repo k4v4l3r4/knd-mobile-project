@@ -116,6 +116,27 @@ export default function PatrolScreen({ onNavigate }: PatrolScreenProps) {
     }
   };
 
+  const formatSchedulePeriod = (schedule: Schedule) => {
+    if (!schedule.start_date) return '';
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    const start = new Date(schedule.start_date);
+    const startLabel = `${start.getDate().toString().padStart(2, '0')} ${months[start.getMonth()]}`;
+    if (!schedule.end_date || schedule.schedule_type === 'DAILY' || schedule.end_date === schedule.start_date) {
+      const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+      const dayName = days[start.getDay()];
+      return `${dayName}, ${startLabel}`;
+    }
+    const end = new Date(schedule.end_date);
+    const endLabel = `${end.getDate().toString().padStart(2, '0')} ${months[end.getMonth()]}`;
+    return `${startLabel} - ${endLabel}`;
+  };
+
+  const getScheduleTypeLabel = (type?: 'DAILY' | 'WEEKLY') => {
+    if (type === 'DAILY') return 'HARIAN';
+    if (type === 'WEEKLY') return 'MINGGUAN';
+    return type || '';
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'PAID': return '#059669';
@@ -370,12 +391,17 @@ export default function PatrolScreen({ onNavigate }: PatrolScreenProps) {
         <View style={styles.manageHeader}>
             <View>
                 <Text style={styles.manageTitle}>{item.shift_name || item.day_of_week}</Text>
+                {!!formatSchedulePeriod(item) && (
+                  <Text style={styles.manageSubtitle}>
+                    {formatSchedulePeriod(item)}
+                  </Text>
+                )}
                 <Text style={styles.manageSubtitle}>
                     {item.start_time.substring(0, 5)} - {item.end_time.substring(0, 5)} • {item.members?.length || 0} Petugas
                 </Text>
             </View>
             <View style={styles.statusBadge}>
-                 <Text style={styles.manageStatusText}>{item.schedule_type || 'WEEKLY'}</Text>
+                 <Text style={styles.manageStatusText}>{getScheduleTypeLabel(item.schedule_type)}</Text>
             </View>
         </View>
         

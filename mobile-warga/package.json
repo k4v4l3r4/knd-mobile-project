@@ -8,7 +8,9 @@
     "android": "cross-env USERPROFILE=.\\.expo-home HOME=.\\.expo-home expo start --android",
     "ios": "cross-env USERPROFILE=.\\.expo-home HOME=.\\.expo-home expo start --ios",
     "web": "cross-env USERPROFILE=.\\.expo-home HOME=.\\.expo-home expo start --web",
-    "pad-icon": "node scripts/padAdaptiveIcon.js"
+    "pad-icon": "node scripts/padAdaptiveIcon.js",
+    "release:prod": "eas update --branch production --channel production",
+    "release:preview": "eas update --branch preview --channel preview"
   },
   "dependencies": {
     "@expo/ngrok": "^4.1.3",
@@ -26,6 +28,7 @@
     "expo-router": "~6.0.23",
     "expo-secure-store": "^15.0.8",
     "expo-status-bar": "~3.0.9",
+    "expo-updates": "~29.0.16",
     "lottie-react-native": "~7.3.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
