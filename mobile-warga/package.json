@@ -9,8 +9,8 @@
     "ios": "cross-env USERPROFILE=.\\.expo-home HOME=.\\.expo-home expo start --ios",
     "web": "cross-env USERPROFILE=.\\.expo-home HOME=.\\.expo-home expo start --web",
     "pad-icon": "node scripts/padAdaptiveIcon.js",
-    "release:prod": "eas update --branch production --channel production",
-    "release:preview": "eas update --branch preview --channel preview"
+    "release:prod": "eas update --branch production",
+    "release:preview": "eas update --branch preview"
   },
   "dependencies": {
     "@expo/ngrok": "^4.1.3",
