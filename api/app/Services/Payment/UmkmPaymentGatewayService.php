@@ -3,7 +3,6 @@
 namespace App\Services\Payment;
 
 use App\Support\PaymentSettings;
-use Illuminate\Support\Facades\Http;
 
 class UmkmPaymentGatewayService
 {
@@ -20,20 +19,30 @@ class UmkmPaymentGatewayService
             if ($baseUrl && $sharedSecret) {
                 $reference = $meta['reference'] ?? ('UMKM-' . uniqid());
 
-                try {
-                    $response = Http::withHeaders([
-                        'X-INTERNAL-SECRET' => $sharedSecret,
-                    ])
-                        ->timeout($timeoutMs / 1000)
-                        ->post($baseUrl . '/dana/create-order', [
-                            'paymentId' => $reference,
-                            'amount' => (float) $amount,
-                            'productCode' => 'KND_UMKM',
-                        ]);
+                $url = $baseUrl . '/dana/create-order';
+                $payload = [
+                    'paymentId' => $reference,
+                    'amount' => (float) $amount,
+                    'productCode' => 'KND_UMKM',
+                ];
 
-                    if ($response->successful()) {
-                        $data = $response->json();
-                        if (!empty($data['redirectUrl'])) {
+                $context = stream_context_create([
+                    'http' => [
+                        'method' => 'POST',
+                        'header' => implode("\r\n", [
+                            'Content-Type: application/json',
+                            'X-INTERNAL-SECRET: ' . $sharedSecret,
+                        ]),
+                        'content' => json_encode($payload),
+                        'timeout' => $timeoutMs / 1000,
+                    ],
+                ]);
+
+                try {
+                    $raw = file_get_contents($url, false, $context);
+                    if ($raw !== false) {
+                        $data = json_decode($raw, true);
+                        if (is_array($data) && !empty($data['redirectUrl'])) {
                             $meta['dana_redirect_url'] = $data['redirectUrl'];
                         }
                     }
