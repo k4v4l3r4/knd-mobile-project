@@ -24,6 +24,7 @@ import {
   Smartphone
 } from 'lucide-react';
 import api from '@/lib/axios';
+import type { AxiosProgressEvent } from 'axios';
 import { toast } from 'react-hot-toast';
 import Cookies from 'js-cookie';
 import { useTenant } from '@/context/TenantContext';
@@ -84,6 +85,8 @@ export default function WargaPage() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState(0);
+  const [importStage, setImportStage] = useState<'idle' | 'uploading' | 'processing'>('idle');
 
   const [page, setPage] = useState(1);
   const [meta, setMeta] = useState<any | null>(null);
@@ -814,12 +817,22 @@ export default function WargaPage() {
     }
 
     setImporting(true);
+    setImportProgress(0);
+    setImportStage('uploading');
     const data = new FormData();
     data.append('file', importFile);
 
     try {
         const response = await api.post('/warga/import', data, {
-            headers: { 'Content-Type': 'multipart/form-data' }
+            headers: { 'Content-Type': 'multipart/form-data' },
+            onUploadProgress: (event: AxiosProgressEvent) => {
+                if (!event.total) return;
+                const percent = Math.round((event.loaded * 100) / event.total);
+                setImportProgress(percent);
+                if (percent >= 100) {
+                    setImportStage('processing');
+                }
+            },
         });
         
         if (response.data.success) {
@@ -831,6 +844,8 @@ export default function WargaPage() {
             }
             setIsImportModalOpen(false);
             setImportFile(null);
+            setImportProgress(0);
+            setImportStage('idle');
             fetchWargas();
         }
     } catch (err: unknown) {
@@ -845,6 +860,7 @@ export default function WargaPage() {
         }
     } finally {
         setImporting(false);
+        setImportStage('idle');
     }
   };
 
@@ -1124,7 +1140,12 @@ export default function WargaPage() {
                 <p className="text-sm text-slate-500 dark:text-slate-400">Upload file CSV untuk import data massal.</p>
               </div>
               <button 
-                onClick={() => setIsImportModalOpen(false)}
+                onClick={() => {
+                  setIsImportModalOpen(false);
+                  setImportFile(null);
+                  setImportProgress(0);
+                  setImportStage('idle');
+                }}
                 className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
               >
                 <X size={24} />
@@ -1164,10 +1185,34 @@ export default function WargaPage() {
                     </div>
                 </div>
 
+                {importing && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                      <span>
+                        {importStage === 'uploading'
+                          ? 'Mengunggah file...'
+                          : 'Memproses data di server...'}
+                      </span>
+                      <span>{importProgress}%</span>
+                    </div>
+                    <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                      <div
+                        className="h-full bg-emerald-500 transition-all"
+                        style={{ width: `${Math.max(5, importProgress)}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
                     <button
                         type="button"
-                        onClick={() => setIsImportModalOpen(false)}
+                        onClick={() => {
+                          setIsImportModalOpen(false);
+                          setImportFile(null);
+                          setImportProgress(0);
+                          setImportStage('idle');
+                        }}
                         className="px-6 py-2.5 text-slate-600 dark:text-slate-400 font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors"
                         disabled={importing}
                     >
