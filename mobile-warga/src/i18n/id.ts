@@ -181,7 +181,7 @@ export const id = {
     inviteCode: 'KODE UNDANGAN',
     mainServices: 'Layanan Utama',
     viewAll: 'Lihat Semua',
-    joinCodeMsg: 'Undangan bergabung ke RT Online. Gunakan kode undangan berikut saat mendaftar:',
+    joinCodeMsg: 'Undangan bergabung ke aplikasi RT Online.\n\nSilakan install aplikasi RT Online, pilih "Daftar sebagai Warga", lalu saat diminta masukkan kode undangan berikut:\n\nKode undangan:',
     menus: {
       emergency: 'Darurat',
       report: 'Laporan Warga',
