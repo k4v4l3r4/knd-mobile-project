@@ -37,7 +37,7 @@ export default function SubscribePage() {
     fetchData();
   }, []);
 
-  const handleSubscribe = async (plan: Plan) => {
+  const handleSubscribe = async (planId: string) => {
     if (isDemo) {
       toast.error('Mode Demo: Tidak dapat berlangganan paket');
       return;
@@ -62,9 +62,15 @@ export default function SubscribePage() {
 
     if (!result.isConfirmed) return;
 
-    setProcessingId(plan.id);
+    setProcessingId(planId);
     try {
-      await BillingService.subscribe(plan);
+      const selected = plans.find((p) => p.id === planId);
+      if (!selected) {
+        toast.error('Paket tidak ditemukan');
+        return;
+      }
+
+      await BillingService.subscribe(selected);
       toast.success('Invoice berhasil dibuat!');
       router.push('/dashboard/invoices/current');
     } catch (err: any) {

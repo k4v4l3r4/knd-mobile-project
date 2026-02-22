@@ -64,8 +64,19 @@ export default function RegisterWargaScreen({ onSuccess }: RegisterWargaScreenPr
         Alert.alert('Gagal', response.data.message || 'Registrasi gagal');
       }
     } catch (error: any) {
-      console.log('Register Warga Error:', error);
-      const message = error.response?.data?.message || error.message || 'Terjadi kesalahan';
+      console.log('Register Warga Error:', error?.response?.data || error);
+
+      let message = error.response?.data?.message || error.message || 'Terjadi kesalahan';
+
+      const errors = error.response?.data?.errors;
+      if (errors && typeof errors === 'object') {
+        const firstKey = Object.keys(errors)[0];
+        const firstMessages = (errors as any)[firstKey];
+        if (Array.isArray(firstMessages) && firstMessages.length > 0) {
+          message = firstMessages[0];
+        }
+      }
+
       Alert.alert('Gagal', message);
     } finally {
       setLoading(false);
@@ -102,7 +113,7 @@ export default function RegisterWargaScreen({ onSuccess }: RegisterWargaScreenPr
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.formSection}>
             <Text style={[styles.description, { color: colors.textSecondary }]}>
-              Silakan masukkan Kode Undangan yang diberikan oleh Ketua RT Anda untuk mendaftar.
+              Form ini khusus untuk warga yang BELUM terdaftar di data warga RT. Jika nama Anda sudah ada di data warga, silakan gunakan menu "Login" atau fitur "Lupa Password" di halaman login, bukan daftar ulang.
             </Text>
             <Text style={[styles.requiredHint, { color: colors.textSecondary }]}>
               Kolom bertanda

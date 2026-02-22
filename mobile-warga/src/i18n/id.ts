@@ -181,7 +181,7 @@ export const id = {
     inviteCode: 'KODE UNDANGAN',
     mainServices: 'Layanan Utama',
     viewAll: 'Lihat Semua',
-    joinCodeMsg: 'Undangan bergabung ke aplikasi RT Online.\n\nSilakan install aplikasi RT Online, pilih "Daftar sebagai Warga", lalu saat diminta masukkan kode undangan berikut:\n\nKode undangan:',
+    joinCodeMsg: 'Undangan bergabung ke aplikasi RT Online.\n\nSilakan install aplikasi RT Online.\n\nJika nama dan nomor HP Anda sudah terdaftar di data warga RT, cukup pilih menu "Login" lalu gunakan fitur "Lupa Password" untuk membuat kata sandi.\n\nJika belum terdaftar, pilih "Daftar sebagai Warga" lalu saat diminta masukkan kode undangan berikut:\n\nKode undangan:',
     menus: {
       emergency: 'Darurat',
       report: 'Laporan Warga',
@@ -311,7 +311,7 @@ export const id = {
     loginButton: 'Masuk',
     registerText: 'Belum punya akun?',
     registerButton: 'Daftar RT/RW (Gratis)',
-    registerWargaText: 'Punya Kode Undangan dari Ketua RT?',
+    registerWargaText: 'Belum terdaftar di data warga, tapi punya Kode Undangan RT?',
     registerWargaButton: 'Daftar Akun Warga',
     demoTitle: 'Demo Login:',
     viewDemo: 'Lihat Demo',

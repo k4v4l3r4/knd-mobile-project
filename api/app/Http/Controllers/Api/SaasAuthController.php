@@ -271,7 +271,15 @@ class SaasAuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            $errors = $validator->errors();
+            $firstKey = $errors->keys()[0] ?? null;
+            $firstMessage = $firstKey ? ($errors->get($firstKey)[0] ?? null) : null;
+
+            return response()->json([
+                'success' => false,
+                'message' => $firstMessage ?: 'Data registrasi tidak valid.',
+                'errors' => $errors,
+            ], 422);
         }
 
         return DB::transaction(function () use ($request) {
