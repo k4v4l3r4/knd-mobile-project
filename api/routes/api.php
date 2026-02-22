@@ -184,6 +184,8 @@ Route::middleware(['auth:sanctum', 'tenant.status', 'tenant.feature'])->group(fu
     // Warga Resource Split for Permissions
     Route::get('warga/family', [WargaController::class, 'family']); // Family route must be before {warga}
     Route::post('warga/fix-orphans', [WargaController::class, 'fixOrphanWarga'])->middleware('permission:warga.update');
+    Route::post('warga/{warga}/life-status', [WargaController::class, 'updateLifeStatus'])->middleware('permission:warga.update');
+    Route::post('warga/{warga}/set-head', [WargaController::class, 'setHeadOfFamily'])->middleware('permission:warga.update');
     Route::get('warga', [WargaController::class, 'index'])->middleware('permission:warga.view');
     Route::post('warga', [WargaController::class, 'store'])->middleware('permission:warga.create');
     Route::get('warga/{warga}', [WargaController::class, 'show'])->middleware('permission:warga.view');

@@ -96,6 +96,7 @@ class WargaRequest extends FormRequest
             'marital_status' => ['nullable', 'in:BELUM_KAWIN,KAWIN,CERAI_HIDUP,CERAI_MATI'],
             'occupation' => ['nullable', 'string'],
             'status_in_family' => ['nullable', 'in:KEPALA_KELUARGA,ISTRI,ANAK,FAMILI_LAIN'],
+            'life_status' => ['nullable', 'in:ALIVE,DECEASED'],
             'ktp_image' => ['nullable', 'image', 'max:2048'], // Max 2MB
             'kk_image' => ['nullable', 'image', 'max:2048'], // Max 2MB
             'province_code' => [$requiredOnCreate, 'string', 'size:2', $provinceExistsRule],

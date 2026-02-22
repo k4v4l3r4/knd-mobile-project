@@ -1,30 +1,27 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { 
-  ArrowLeft, 
-  User, 
-  MapPin, 
-  Phone, 
-  CreditCard, 
-  Calendar, 
-  Briefcase, 
-  Home, 
-  Users, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Loader2, 
-  Save, 
+import { useState, useEffect, useCallback } from 'react';
+import {
+  ArrowLeft,
+  User,
+  MapPin,
+  Phone,
+  CreditCard,
+  Calendar,
+  Briefcase,
+  Home,
+  Users,
+  Plus,
+  Edit,
+  Trash2,
+  Loader2,
+  Save,
   X,
-  Upload,
-  FileText,
-  CheckCircle2,
-  AlertCircle
 } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 import api from '@/lib/axios';
 import toast from 'react-hot-toast';
+import Image from 'next/image';
 
 interface Warga {
   id: number;
@@ -43,6 +40,7 @@ interface Warga {
   marital_status: string | null;
   occupation: string | null;
   status_in_family: string | null;
+  life_status?: 'ALIVE' | 'DECEASED' | null;
   address_ktp: string | null;
   ktp_image_path: string | null;
   kk_image_path: string | null;
@@ -108,14 +106,12 @@ export default function WargaDetailPage() {
   const [addressSame, setAddressSame] = useState(true);
   const [ktpFile, setKtpFile] = useState<File | null>(null);
   const [kkFile, setKkFile] = useState<File | null>(null);
+  const [markingDeceasedId, setMarkingDeceasedId] = useState<number | null>(null);
+  const [isHeadSelectOpen, setIsHeadSelectOpen] = useState(false);
+  const [selectedHeadId, setSelectedHeadId] = useState<number | null>(null);
 
-  useEffect(() => {
-    if (id) {
-      fetchWargaDetail();
-    }
-  }, [id]);
-
-  const fetchWargaDetail = async () => {
+  const fetchWargaDetail = useCallback(async () => {
+    if (!id) return;
     setLoading(true);
     try {
       const response = await api.get(`/warga/${id}`);
@@ -128,7 +124,11 @@ export default function WargaDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchWargaDetail();
+  }, [fetchWargaDetail]);
 
   const handleAddFamilyMember = () => {
     if (!warga) return;
@@ -207,6 +207,34 @@ export default function WargaDetailPage() {
     }
   };
 
+  const handleMarkDeceased = async (member: Warga) => {
+    if (!window.confirm(`Tandai anggota keluarga "${member.name}" sebagai meninggal?`)) return;
+
+    try {
+      setMarkingDeceasedId(member.id);
+      const response = await api.post(`/warga/${member.id}/life-status`, {
+        life_status: 'DECEASED',
+      });
+
+      const message =
+        response.data?.message || 'Status anggota keluarga berhasil diperbarui menjadi meninggal';
+
+      toast.success(message);
+
+      await fetchWargaDetail();
+
+      if (member.status_in_family === 'KEPALA_KELUARGA') {
+        setSelectedHeadId(null);
+        setIsHeadSelectOpen(true);
+      }
+    } catch (err) {
+      console.error('Error marking family member as deceased:', err);
+      toast.error('Gagal memperbarui status anggota keluarga');
+    } finally {
+      setMarkingDeceasedId(null);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -246,9 +274,10 @@ export default function WargaDetailPage() {
       
       setIsModalOpen(false);
       fetchWargaDetail();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error saving family member:', err);
-      const msg = err.response?.data?.message || 'Gagal menyimpan data anggota keluarga.';
+      const apiError = (err as { response?: { data?: { message?: string } } })?.response?.data;
+      const msg = apiError?.message || 'Gagal menyimpan data anggota keluarga.';
       toast.error(msg);
     } finally {
       setSaving(false);
@@ -324,10 +353,11 @@ export default function WargaDetailPage() {
                 <div className="flex flex-col items-center space-y-4">
                     <div className="w-40 h-40 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center flex-shrink-0 border-4 border-white dark:border-slate-900 shadow-lg overflow-hidden relative group">
                         {warga.ktp_image_path ? (
-                            <img 
-                                src={`${process.env.NEXT_PUBLIC_API_URL}/storage/${warga.ktp_image_path}`} 
-                                alt="Foto Warga" 
-                                className="w-full h-full object-cover"
+                            <Image
+                                src={`${process.env.NEXT_PUBLIC_API_URL}/storage/${warga.ktp_image_path}`}
+                                alt="Foto Warga"
+                                fill
+                                className="object-cover"
                             />
                         ) : (
                             <User className="w-16 h-16 text-slate-300 dark:text-slate-500" />
@@ -443,6 +473,7 @@ export default function WargaDetailPage() {
                         <th className="px-6 py-4 font-semibold text-slate-700 dark:text-slate-200">NIK</th>
                         <th className="px-6 py-4 font-semibold text-slate-700 dark:text-slate-200">L/P</th>
                         <th className="px-6 py-4 font-semibold text-slate-700 dark:text-slate-200">Status</th>
+                        <th className="px-6 py-4 font-semibold text-slate-700 dark:text-slate-200">Status Hidup</th>
                         <th className="px-6 py-4 font-semibold text-slate-700 dark:text-slate-200">Tanggal Lahir / Umur</th>
                         <th className="px-6 py-4 font-semibold text-slate-700 dark:text-slate-200 text-right">Aksi</th>
                     </tr>
@@ -458,7 +489,7 @@ export default function WargaDetailPage() {
                             >
                                 <td className="px-6 py-4">
                                     <div className="font-medium text-slate-900 dark:text-slate-100">{member.name}</div>
-                                    {member.id === warga.id && (
+                                    {member.status_in_family === 'KEPALA_KELUARGA' && (
                                         <span className="inline-flex items-center mt-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 uppercase tracking-wide">
                                             Kepala Keluarga
                                         </span>
@@ -479,7 +510,22 @@ export default function WargaDetailPage() {
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
-                                    <span className="capitalize">{member.status_in_family?.toLowerCase().replace('_', ' ')}</span>
+                                    <span className="capitalize">
+                                      {member.status_in_family
+                                        ? member.status_in_family.toLowerCase().replace('_', ' ')
+                                        : '-'}
+                                    </span>
+                                </td>
+                                <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
+                                  {member.life_status === 'DECEASED' ? (
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300">
+                                      Meninggal
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                                      Hidup
+                                    </span>
+                                  )}
                                 </td>
                                 <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
                                     <div>{formatBirthDate(member.date_of_birth)}</div>
@@ -488,34 +534,47 @@ export default function WargaDetailPage() {
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 text-right">
-                                  {member.id === warga.id ? (
-                                    <span className="text-xs text-slate-400 dark:text-slate-500 italic">
-                                      Kelola dari menu atas
-                                    </span>
-                                  ) : (
-                                    <div className="flex items-center justify-end gap-2">
-                                      <button
-                                        onClick={() => handleEditFamilyMember(member)}
-                                        className="p-2.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-xl transition-colors border border-transparent hover:border-emerald-100 dark:hover:border-emerald-800 shadow-sm"
-                                        title="Edit Anggota"
-                                      >
-                                        <Edit size={16} />
-                                      </button>
-                                      <button
-                                        onClick={() => handleDeleteFamilyMember(member)}
-                                        className="p-2.5 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-colors border border-transparent hover:border-rose-100 dark:hover:border-rose-800 shadow-sm"
-                                        title="Hapus Anggota"
-                                      >
-                                        <Trash2 size={16} />
-                                      </button>
-                                    </div>
-                                  )}
+                                  <div className="flex items-center justify-end gap-2">
+                                    {member.id !== warga.id && (
+                                      <>
+                                        <button
+                                          onClick={() => handleEditFamilyMember(member)}
+                                          className="p-2.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-xl transition-colors border border-transparent hover:border-emerald-100 dark:hover:border-emerald-800 shadow-sm"
+                                          title="Edit Anggota"
+                                        >
+                                          <Edit size={16} />
+                                        </button>
+                                        <button
+                                          onClick={() => handleDeleteFamilyMember(member)}
+                                          className="p-2.5 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-colors border border-transparent hover:border-rose-100 dark:hover:border-rose-800 shadow-sm"
+                                          title="Hapus Anggota"
+                                        >
+                                          <Trash2 size={16} />
+                                        </button>
+                                      </>
+                                    )}
+                                    <button
+                                      onClick={() => handleMarkDeceased(member)}
+                                      disabled={markingDeceasedId === member.id}
+                                      className="p-2.5 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-700 shadow-sm text-xs flex items-center gap-1"
+                                      title="Tandai Meninggal"
+                                    >
+                                      {markingDeceasedId === member.id ? (
+                                        <>
+                                          <Loader2 size={14} className="animate-spin" />
+                                          <span>Menyimpan...</span>
+                                        </>
+                                      ) : (
+                                        <span>Meninggal</span>
+                                      )}
+                                    </button>
+                                  </div>
                                 </td>
                             </tr>
                         ))
                     ) : (
                         <tr>
-                            <td colSpan={6} className="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
+                            <td colSpan={7} className="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
                                 <div className="flex flex-col items-center justify-center">
                                     <Users className="w-12 h-12 text-slate-200 dark:text-slate-700 mb-3" />
                                     <p>Belum ada anggota keluarga lain.</p>
@@ -527,6 +586,120 @@ export default function WargaDetailPage() {
             </table>
         </div>
       </div>
+
+      {/* Select New Head of Family Modal */}
+      {isHeadSelectOpen && warga && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="p-5 border-b border-slate-100 flex justify-between items-center">
+              <div>
+                <h2 className="text-lg font-bold text-slate-800">
+                  Pilih Kepala Keluarga Baru
+                </h2>
+                <p className="text-xs text-slate-500 mt-1">
+                  Pilih salah satu anggota keluarga yang masih hidup untuk dijadikan kepala keluarga.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setIsHeadSelectOpen(false);
+                  setSelectedHeadId(null);
+                }}
+                className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+              >
+                <X className="w-4 h-4 text-slate-500" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="max-h-64 overflow-y-auto space-y-2">
+                {warga.family
+                  ?.filter(
+                    (member) =>
+                      member.id !== warga.id &&
+                      member.life_status !== 'DECEASED'
+                  )
+                  .map((member) => (
+                    <button
+                      key={member.id}
+                      type="button"
+                      onClick={() => setSelectedHeadId(member.id)}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl border text-left text-sm ${
+                        selectedHeadId === member.id
+                          ? 'border-emerald-500 bg-emerald-50'
+                          : 'border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div>
+                        <div className="font-semibold text-slate-800">
+                          {member.name}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {member.status_in_family
+                            ? member.status_in_family
+                                .toLowerCase()
+                                .replace('_', ' ')
+                            : '-'}
+                        </div>
+                      </div>
+                      {selectedHeadId === member.id && (
+                        <span className="text-emerald-600 text-xs font-semibold">
+                          Terpilih
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                {(!warga.family ||
+                  warga.family.filter(
+                    (member) =>
+                      member.id !== warga.id &&
+                      member.life_status !== 'DECEASED'
+                  ).length === 0) && (
+                  <p className="text-xs text-slate-500">
+                    Tidak ada anggota keluarga lain yang bisa dijadikan kepala keluarga.
+                  </p>
+                )}
+              </div>
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsHeadSelectOpen(false);
+                    setSelectedHeadId(null);
+                  }}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 rounded-xl"
+                >
+                  Lewati
+                </button>
+                <button
+                  type="button"
+                  disabled={!selectedHeadId}
+                  onClick={async () => {
+                    if (!selectedHeadId) return;
+                    try {
+                      const res = await api.post(
+                        `/warga/${selectedHeadId}/set-head`
+                      );
+                      const msg =
+                        res.data?.message ||
+                        'Kepala keluarga berhasil diperbarui.';
+                      toast.success(msg);
+                      setIsHeadSelectOpen(false);
+                      setSelectedHeadId(null);
+                      await fetchWargaDetail();
+                    } catch (err) {
+                      console.error('Error setting new head of family:', err);
+                      toast.error('Gagal mengatur kepala keluarga baru');
+                    }
+                  }}
+                  className="px-4 py-2 text-xs font-semibold rounded-xl bg-emerald-600 text-white disabled:opacity-60 disabled:cursor-not-allowed hover:bg-emerald-700"
+                >
+                  Simpan Kepala Baru
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add Family Member Modal */}
       {isModalOpen && (

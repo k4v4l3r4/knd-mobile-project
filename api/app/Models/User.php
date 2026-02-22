@@ -46,6 +46,7 @@ class User extends Authenticatable
         'marital_status',
         'occupation',
         'status_in_family',
+        'life_status',
         'is_bansos_eligible',
         'photo_url',
         'avatar',

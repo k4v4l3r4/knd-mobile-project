@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Laravolt\Indonesia\Models\Province;
 use Laravolt\Indonesia\Models\City;
@@ -998,5 +999,83 @@ class WargaController extends Controller
             'message' => "Reset data warga berhasil. Total dihapus: {$deletedCount}.",
             'deleted' => $deletedCount,
         ]);
+    }
+
+    /**
+     * Update life status (alive/deceased) of a warga.
+     * This endpoint hanya mengubah status hidup (life_status) tanpa
+     * otomatis memindahkan kepala keluarga.
+     */
+    public function updateLifeStatus(Request $request, User $warga)
+    {
+        $validated = $request->validate([
+            'life_status' => ['required', 'in:ALIVE,DECEASED'],
+        ]);
+
+        $warga->life_status = $validated['life_status'];
+        $warga->save();
+        $warga->refresh();
+        $warga->makeVisible('nik');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Status kehidupan warga berhasil diperbarui',
+            'data' => $warga,
+        ]);
+    }
+
+    /**
+     * Set selected warga as new head of family for their KK.
+     * All existing heads in the same KK will be demoted to FAMILI_LAIN.
+     */
+    public function setHeadOfFamily(Request $request, User $warga)
+    {
+        if (!$warga->kk_number) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Warga ini belum memiliki Nomor KK.',
+            ], 422);
+        }
+
+        if ($warga->life_status === 'DECEASED') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak dapat menetapkan warga yang sudah meninggal sebagai kepala keluarga.',
+            ], 422);
+        }
+
+        DB::beginTransaction();
+
+        try {
+            User::where('kk_number', $warga->kk_number)
+                ->where('status_in_family', 'KEPALA_KELUARGA')
+                ->update(['status_in_family' => 'FAMILI_LAIN']);
+
+            $warga->status_in_family = 'KEPALA_KELUARGA';
+            $warga->save();
+
+            DB::commit();
+
+            $warga->refresh();
+            $warga->makeVisible('nik');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Kepala keluarga berhasil diperbarui.',
+                'data' => $warga,
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            Log::error('Failed to set head of family', [
+                'warga_id' => $warga->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengatur kepala keluarga baru.',
+            ], 500);
+        }
     }
 }
