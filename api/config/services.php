@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'payment_engine' => [
+        'base_url' => env('PAYMENT_ENGINE_BASE_URL', 'http://localhost:4000'),
+        'timeout_ms' => (int) env('PAYMENT_ENGINE_TIMEOUT_MS', 5000),
+        'shared_secret' => env('PAYMENT_ENGINE_SHARED_SECRET'),
+    ],
+
 ];
