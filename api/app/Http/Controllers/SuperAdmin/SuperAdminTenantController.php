@@ -4,6 +4,9 @@ namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Tenant;
+use App\Models\Subscription;
+use App\Models\WilayahRt;
+use App\Models\WilayahRw;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -90,6 +93,31 @@ class SuperAdminTenantController extends Controller
         return response()->json([
             'status' => 'success',
             'data' => $duplicates,
+        ]);
+    }
+
+    public function destroy(Tenant $tenant)
+    {
+        $hasActiveSubscription = $tenant->subscriptions()
+            ->where('status', Subscription::STATUS_ACTIVE)
+            ->exists();
+
+        if ($hasActiveSubscription) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Tidak dapat menghapus tenant dengan subscription aktif',
+            ], 422);
+        }
+
+        DB::transaction(function () use ($tenant) {
+            WilayahRt::where('tenant_id', $tenant->id)->delete();
+            WilayahRw::where('tenant_id', $tenant->id)->delete();
+            $tenant->delete();
+        });
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Tenant berhasil dihapus (soft delete)',
         ]);
     }
 }

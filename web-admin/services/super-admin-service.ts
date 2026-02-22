@@ -23,16 +23,20 @@ export const SuperAdminService = {
     return response.data.data;
   },
 
-  getTenants: async (params?: any): Promise<{ data: TenantBilling[], meta: any }> => {
+  getTenants: async (params?: Record<string, string | number | undefined>): Promise<{ data: TenantBilling[], meta: { current_page: number; last_page: number; per_page: number; total: number } | null }> => {
     const response = await api.get('/super-admin/tenants', { params });
     // Controller returns: { status, data: [], meta: {} }
     return {
-      data: response.data.data,
-      meta: response.data.meta
+      data: response.data.data as TenantBilling[],
+      meta: response.data.meta ?? null
     };
   },
 
-  getInvoices: async (params?: any): Promise<{ data: Invoice[], meta: any }> => {
+  deleteTenant: async (id: number): Promise<void> => {
+    await api.delete(`/super-admin/tenants/${id}`);
+  },
+
+  getInvoices: async (params?: Record<string, string | number | undefined>): Promise<{ data: Invoice[], meta: { current_page: number; last_page: number; per_page: number; total: number } }> => {
     const response = await api.get('/super-admin/invoices', { params });
     // Controller returns: { status, data: { data: [], current_page, ... } }
     const paginator = response.data.data;
