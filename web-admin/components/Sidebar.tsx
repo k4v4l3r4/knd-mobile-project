@@ -238,34 +238,36 @@ export default function Sidebar({ isOpen, setIsOpen }: { isOpen?: boolean; setIs
         </div>
 
         {/* --- SETTINGS BUTTON (Scrollable) --- */}
-        <div className="mt-2 mb-4">
-          <Link
-            href="/dashboard/pengaturan"
-            onClick={() => setIsOpen && setIsOpen(false)}
-            className={`
-              flex items-center justify-between px-4 py-3.5 rounded-2xl text-sm font-semibold transition-all duration-300 group relative overflow-hidden
-              ${isSettingsActive 
-                ? 'bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 text-emerald-700 dark:text-emerald-400 shadow-sm ring-1 ring-emerald-100 dark:ring-emerald-900/30' 
-                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200'}
-            `}
-          >
-              <div className="flex items-center gap-3.5 relative z-10">
-                  <div className={`
-                      p-1.5 rounded-xl transition-all duration-300
-                      ${isSettingsActive 
-                        ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/30' 
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 group-hover:bg-white dark:group-hover:bg-slate-700 group-hover:text-emerald-500 dark:group-hover:text-emerald-400 group-hover:shadow-sm'}
-                  `}>
-                      <Settings size={18} strokeWidth={isSettingsActive ? 2.5 : 2} />
-                  </div>
-                  <span>Pengaturan</span>
-              </div>
-              
-              {isSettingsActive && (
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-emerald-500 rounded-l-full"></div>
-              )}
-          </Link>
-        </div>
+        {user?.role !== 'SUPER_ADMIN' && (
+          <div className="mt-2 mb-4">
+            <Link
+              href="/dashboard/pengaturan"
+              onClick={() => setIsOpen && setIsOpen(false)}
+              className={`
+                flex items-center justify-between px-4 py-3.5 rounded-2xl text-sm font-semibold transition-all duration-300 group relative overflow-hidden
+                ${isSettingsActive 
+                  ? 'bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 text-emerald-700 dark:text-emerald-400 shadow-sm ring-1 ring-emerald-100 dark:ring-emerald-900/30' 
+                  : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200'}
+              `}
+            >
+                <div className="flex items-center gap-3.5 relative z-10">
+                    <div className={`
+                        p-1.5 rounded-xl transition-all duration-300
+                        ${isSettingsActive 
+                          ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/30' 
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 group-hover:bg-white dark:group-hover:bg-slate-700 group-hover:text-emerald-500 dark:group-hover:text-emerald-400 group-hover:shadow-sm'}
+                    `}>
+                        <Settings size={18} strokeWidth={isSettingsActive ? 2.5 : 2} />
+                    </div>
+                    <span>Pengaturan</span>
+                </div>
+                
+                {isSettingsActive && (
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-emerald-500 rounded-l-full"></div>
+                )}
+            </Link>
+          </div>
+        )}
       </nav>
 
       {/* --- FOOTER (User Profile Only) --- */}
