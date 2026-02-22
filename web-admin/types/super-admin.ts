@@ -21,7 +21,9 @@ export interface PlanConfig {
 export interface TenantBilling {
   id: number;
   tenant_name: string;
+  tenant_code: string;
   rt_rw: string;
+  city: string;
   billing_mode: string;
   status: string;
   plan_code: string;

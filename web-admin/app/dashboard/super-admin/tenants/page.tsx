@@ -14,7 +14,9 @@ const demoTenants: TenantBilling[] = [
   {
     id: 1,
     tenant_name: 'RT 01 Demo',
+    tenant_code: 'RT-1',
     rt_rw: 'RT 01 / RW 01',
+    city: 'Demo City',
     billing_mode: 'RT',
     status: 'ACTIVE',
     plan_code: 'BASIC_RT_MONTHLY',
@@ -25,7 +27,9 @@ const demoTenants: TenantBilling[] = [
   {
     id: 2,
     tenant_name: 'RT 05 Demo',
+    tenant_code: 'RW-2',
     rt_rw: 'RT 05 / RW 02',
+    city: 'Demo City',
     billing_mode: 'RW',
     status: 'TRIAL',
     plan_code: 'TRIAL_14_DAYS',
@@ -118,7 +122,9 @@ export default function TenantBillingPage() {
             <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 font-medium border-b border-slate-200 dark:border-slate-700">
               <tr>
                 <th className="px-6 py-4">Tenant Name</th>
+                <th className="px-6 py-4">Tenant Code</th>
                 <th className="px-6 py-4">Wilayah</th>
+                <th className="px-6 py-4">Kota</th>
                 <th className="px-6 py-4">Mode</th>
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4">Active Plan</th>
@@ -127,14 +133,16 @@ export default function TenantBillingPage() {
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
               {loading ? (
-                <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-500">Memuat data...</td></tr>
+                <tr><td colSpan={8} className="px-6 py-8 text-center text-slate-500">Memuat data...</td></tr>
               ) : tenants.length === 0 ? (
-                <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-500">Tidak ada data ditemukan</td></tr>
+                <tr><td colSpan={8} className="px-6 py-8 text-center text-slate-500">Tidak ada data ditemukan</td></tr>
               ) : (
                 tenants.map((tenant) => (
                   <tr key={tenant.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                     <td className="px-6 py-4 font-medium text-slate-800 dark:text-slate-200">{tenant.tenant_name}</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{tenant.tenant_code}</td>
                     <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{tenant.rt_rw}</td>
+                    <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{tenant.city}</td>
                     <td className="px-6 py-4">
                       <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
                         tenant.billing_mode === 'RW' 

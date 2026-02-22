@@ -81,6 +81,7 @@ Route::middleware(['auth:sanctum', 'role:SUPER_ADMIN'])->prefix('super-admin')->
     Route::get('/revenue/summary', [SuperAdminRevenueController::class, 'summary']);
     Route::get('/revenue/monthly', [SuperAdminRevenueController::class, 'monthly']);
     Route::get('/tenants', [SuperAdminTenantController::class, 'index']);
+    Route::get('/tenants/duplicates', [SuperAdminTenantController::class, 'duplicates']);
     Route::get('/invoices', [SuperAdminInvoiceController::class, 'index']);
     Route::get('/invoices/{invoice}/download', [SuperAdminInvoiceController::class, 'download']);
     Route::get('/payment-settings', [\App\Http\Controllers\SuperAdmin\SuperAdminPaymentSettingsController::class, 'index']);
