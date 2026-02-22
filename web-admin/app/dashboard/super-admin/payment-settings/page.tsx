@@ -322,7 +322,7 @@ export default function PaymentSettingsPage() {
             <div className="p-4 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
               <Label className="text-slate-500 text-xs uppercase tracking-wider font-bold">Iuran Warga</Label>
               <select 
-                className="mt-2 w-full p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none"
+                className="mt-2 w-full p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent font-bold text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none"
                 value={settings.iuran_warga_mode}
                 onChange={(e) => updateSetting('iuran_warga_mode', '', e.target.value)}
               >
@@ -340,7 +340,7 @@ export default function PaymentSettingsPage() {
             <div className="p-4 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
               <Label className="text-slate-500 text-xs uppercase tracking-wider font-bold">UMKM (Jual Beli)</Label>
               <select 
-                className="mt-2 w-full p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none"
+                className="mt-2 w-full p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent font-bold text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none"
                 value={settings.umkm_mode}
                 onChange={(e) => updateSetting('umkm_mode', '', e.target.value)}
               >
