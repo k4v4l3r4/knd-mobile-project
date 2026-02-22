@@ -37,7 +37,7 @@ export default function SubscribePage() {
     fetchData();
   }, []);
 
-  const handleSubscribe = async (planId: string) => {
+  const handleSubscribe = async (plan: Plan) => {
     if (isDemo) {
       toast.error('Mode Demo: Tidak dapat berlangganan paket');
       return;
@@ -62,9 +62,9 @@ export default function SubscribePage() {
 
     if (!result.isConfirmed) return;
 
-    setProcessingId(planId);
+    setProcessingId(plan.id);
     try {
-      await BillingService.subscribe(planId);
+      await BillingService.subscribe(plan);
       toast.success('Invoice berhasil dibuat!');
       router.push('/dashboard/invoices/current');
     } catch (err: any) {

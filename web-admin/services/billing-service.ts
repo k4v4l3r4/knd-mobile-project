@@ -1,10 +1,11 @@
 import api from '@/lib/axios';
-import { 
-  BillingSummary, 
-  Plan, 
-  Invoice, 
+import {
+  BillingSummary,
+  Plan,
+  Invoice,
   HierarchyResponse,
-  PaymentInstruction
+  PaymentInstruction,
+  Subscription,
 } from '@/types/billing';
 
 export const BillingService = {
@@ -98,9 +99,26 @@ export const BillingService = {
   },
 
   // Subscribe to a plan
-  subscribe: async (planId: string): Promise<{ invoice_id: number, message: string }> => {
-    const response = await api.post('/billing/subscribe', { plan_id: planId });
-    return response.data;
+  subscribe: async (
+    plan: Plan
+  ): Promise<{ message: string; invoice: Invoice; subscription: Subscription }> => {
+    const payload: {
+      plan_code: string;
+      price: number;
+      subscription_type: 'SUBSCRIPTION' | 'LIFETIME';
+      billing_period?: 'MONTHLY' | 'YEARLY';
+    } = {
+      plan_code: plan.id,
+      price: plan.price,
+      subscription_type: plan.type === 'LIFETIME' ? 'LIFETIME' : 'SUBSCRIPTION',
+    };
+
+    if (plan.type !== 'LIFETIME') {
+      payload.billing_period = plan.type;
+    }
+
+    const response = await api.post('/billing/subscribe', payload);
+    return response.data as { message: string; invoice: Invoice; subscription: Subscription };
   },
 
   // Get current invoice details

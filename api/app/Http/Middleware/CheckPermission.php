@@ -21,30 +21,62 @@ class CheckPermission
             return response()->json(['message' => 'Unauthorized. No role assigned.'], 403);
         }
 
-        $userRole = $user->role;
+        $roleModel = $user->userRole;
+        $roleCode = $roleModel ? $roleModel->role_code : (is_string($user->role) ? $user->role : null);
 
-        // Handle legacy string role column vs relationship
-        if (is_string($userRole)) {
-            if ($userRole === 'SUPER_ADMIN') {
-                return $next($request);
-            }
-            // Fetch Role model via relationship
-            $userRole = $user->userRole;
-            if (!$userRole) {
-                 return response()->json(['message' => 'Forbidden. Role not found.'], 403);
-            }
+        if (!$roleCode) {
+            return response()->json(['message' => 'Forbidden. Role not found.'], 403);
         }
 
-        // Super Admin Bypass
-        if ($userRole->role_code === 'SUPER_ADMIN') {
+        if ($roleCode === 'SUPER_ADMIN') {
             return $next($request);
         }
 
-        // Check Permission via Role
-        if (!$userRole->permissions()->where('permission_code', $permission)->exists()) {
-            return response()->json(['message' => 'Forbidden. Missing permission: ' . $permission], 403);
+        if ($roleModel) {
+            if ($roleModel->permissions()->where('permission_code', $permission)->exists()) {
+                return $next($request);
+            }
+        } else {
+            $legacyPermissions = [
+                'ADMIN_RW' => [
+                    'dashboard.view', 'tenant.manage', 'warga.view',
+                    'kas.view', 'iuran.view', 'laporan.view', 'laporan.export',
+                    'billing.manage', 'user.invite', 'settings.update'
+                ],
+                'ADMIN_RT' => [
+                    'dashboard.view', 'warga.view', 'warga.create', 'warga.update', 'warga.delete',
+                    'kas.view', 'kas.create', 'kas.update', 'kas.delete',
+                    'iuran.view', 'iuran.generate', 'laporan.view', 'laporan.export',
+                    'user.invite', 'settings.update'
+                ],
+                'BENDAHARA_RT' => [
+                    'dashboard.view', 'kas.view', 'kas.create', 'kas.update',
+                    'iuran.view', 'laporan.view'
+                ],
+                'SEKRETARIS_RT' => [
+                    'dashboard.view', 'warga.view', 'warga.create', 'warga.update',
+                    'iuran.view', 'laporan.view'
+                ],
+                'WARGA' => [
+                    'dashboard.view', 'warga.view', 'iuran.view', 'iuran.pay', 'kas.view'
+                ],
+                'WARGA_TETAP' => [
+                    'dashboard.view', 'warga.view', 'iuran.view', 'iuran.pay', 'kas.view'
+                ],
+                'WARGA_KOST' => [
+                    'dashboard.view', 'warga.view', 'iuran.view', 'iuran.pay', 'kas.view'
+                ],
+                'GUEST' => [
+                    'dashboard.view', 'warga.view', 'kas.view', 'iuran.view', 'laporan.view'
+                ],
+            ];
+
+            $allowed = $legacyPermissions[$roleCode] ?? [];
+            if (in_array($permission, $allowed, true)) {
+                return $next($request);
+            }
         }
 
-        return $next($request);
+        return response()->json(['message' => 'Forbidden. Missing permission: ' . $permission], 403);
     }
 }

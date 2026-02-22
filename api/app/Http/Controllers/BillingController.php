@@ -289,25 +289,102 @@ class BillingController extends Controller
             return response()->json(['message' => 'Tenant not found'], 404);
         }
 
-        $activeSub = $tenant->activeSubscription();
-        
-        // Prepare response
+        $tenantStatus = $tenant->status ?: Tenant::STATUS_DEMO;
+        $billingMode = $tenant->billing_mode ?: Tenant::BILLING_MODE_RT;
+
+        $activeSub = $tenant->activeSubscription;
         $isLifetime = $tenant->hasLifetimeAccess();
         $remainingDays = null;
-        
+
         if ($activeSub && !$isLifetime && $activeSub->ends_at) {
-             $remainingDays = now()->diffInDays($activeSub->ends_at, false);
-             if ($remainingDays < 0) $remainingDays = 0;
+            $remainingDays = now()->diffInDays($activeSub->ends_at, false);
+            if ($remainingDays < 0) {
+                $remainingDays = 0;
+            }
+        }
+
+        $subscriptionData = null;
+
+        if ($activeSub) {
+            $planNames = [
+                'BASIC_RW_MONTHLY' => 'Paket Basic Bulanan',
+                'BASIC_RW_YEARLY' => 'Paket Basic Tahunan',
+                'LIFETIME_RW' => 'Paket Lifetime',
+            ];
+
+            $planName = $planNames[$activeSub->plan_code] ?? $activeSub->plan_code;
+
+            if ($activeSub->subscription_type === Subscription::TYPE_LIFETIME) {
+                $type = 'LIFETIME';
+            } else {
+                $type = $activeSub->billing_period === Subscription::PERIOD_YEARLY ? 'YEARLY' : 'MONTHLY';
+            }
+
+            $start = $activeSub->starts_at ?? $tenant->subscription_started_at ?? now();
+            $end = $activeSub->ends_at ?? $tenant->subscription_ended_at;
+
+            $subscriptionData = [
+                'id' => $activeSub->id,
+                'plan_name' => $planName,
+                'type' => $type,
+                'status' => $activeSub->status,
+                'start_date' => $start->toIso8601String(),
+                'end_date' => $end ? $end->toIso8601String() : null,
+                'remaining_days' => $remainingDays,
+            ];
+        }
+
+        $pendingInvoice = Invoice::where('tenant_id', $tenant->id)
+            ->whereIn('status', [Invoice::STATUS_UNPAID, Invoice::STATUS_PAYMENT_RECEIVED])
+            ->latest('issued_at')
+            ->first();
+
+        $pendingInvoiceData = null;
+
+        if ($pendingInvoice) {
+            $createdAt = $pendingInvoice->issued_at ?: $pendingInvoice->created_at;
+            $dueAt = $pendingInvoice->due_at ?: $pendingInvoice->service_period_end;
+
+            $pendingInvoiceData = [
+                'id' => $pendingInvoice->id,
+                'invoice_number' => $pendingInvoice->invoice_number,
+                'status' => $pendingInvoice->status,
+                'amount' => (float) $pendingInvoice->amount,
+                'total_amount' => (float) $pendingInvoice->amount,
+                'invoice_type' => $pendingInvoice->invoice_type,
+                'payment_mode' => $pendingInvoice->payment_mode ?: Invoice::PAYMENT_MODE_CENTRALIZED,
+                'payment_channel' => $pendingInvoice->payment_channel,
+                'payment_code' => $pendingInvoice->payment_code,
+                'payment_instruction' => null,
+                'created_at' => $createdAt ? $createdAt->toIso8601String() : null,
+                'due_date' => $dueAt ? $dueAt->toIso8601String() : null,
+            ];
+        }
+
+        $userRoleModel = $user->userRole;
+        $roleCode = $userRoleModel ? $userRoleModel->role_code : (is_string($user->role) ? $user->role : null);
+
+        $canSubscribe = false;
+        $message = null;
+
+        if ($tenantStatus !== Tenant::STATUS_DEMO) {
+            if ($billingMode === Tenant::BILLING_MODE_RW && strtoupper((string) $tenant->level) === 'RT') {
+                $canSubscribe = false;
+                $message = 'Billing dikelola oleh RW. Anda tidak perlu membayar.';
+            } else {
+                if (in_array($roleCode, ['ADMIN_RW', 'ADMIN_RT', 'SUPER_ADMIN'], true) && !$pendingInvoice) {
+                    $canSubscribe = true;
+                }
+            }
         }
 
         return response()->json([
-            'tenant_status' => $tenant->status,
-            'subscription_type' => $activeSub ? $activeSub->subscription_type : null,
-            'plan_code' => $activeSub ? $activeSub->plan_code : null,
-            'is_lifetime' => $isLifetime,
-            'remaining_days' => $remainingDays, // Integer or null
-            'subscription_started_at' => $tenant->subscription_started_at,
-            'subscription_ended_at' => $tenant->subscription_ended_at,
+            'tenant_status' => $tenantStatus,
+            'billing_mode' => $billingMode,
+            'subscription' => $subscriptionData,
+            'pending_invoice' => $pendingInvoiceData,
+            'can_subscribe' => $canSubscribe,
+            'message' => $message,
         ]);
     }
 }

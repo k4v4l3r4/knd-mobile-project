@@ -6,7 +6,7 @@ import { Check, Loader2 } from 'lucide-react';
 
 interface PlanSelectionCardProps {
   plan: Plan;
-  onSelect: (planId: string) => void;
+  onSelect: (plan: Plan) => void;
   isLoading: boolean;
   disabled?: boolean;
   isPopular?: boolean;
@@ -73,7 +73,7 @@ export const PlanSelectionCard: React.FC<PlanSelectionCardProps> = ({
       </ul>
 
       <button
-        onClick={() => onSelect(plan.id)}
+        onClick={() => onSelect(plan)}
         disabled={isLoading || disabled}
         className={`w-full py-3.5 md:py-4 px-5 rounded-2xl font-bold text-sm md:text-base tracking-wide transition-all flex items-center justify-center gap-2 ${
           isPopular
