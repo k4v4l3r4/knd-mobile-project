@@ -15,6 +15,10 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Laravolt\Indonesia\Models\Province;
+use Laravolt\Indonesia\Models\City;
+use Laravolt\Indonesia\Models\District;
+use Laravolt\Indonesia\Models\Village;
 
 class WargaController extends Controller
 {
@@ -475,11 +479,12 @@ class WargaController extends Controller
         ];
 
         $columns = [
-            'Nama',
+            'Nama Lengkap',
             'NIK',
             'Nomor KK',
-            'No HP',
-            'Jenis Kelamin',
+            'No. Telepon / WA',
+            'Email',
+            'Jenis Kelamin (L/P)',
             'Tempat Lahir',
             'Tanggal Lahir (YYYY-MM-DD)',
             'Agama',
@@ -489,9 +494,14 @@ class WargaController extends Controller
             'Alamat Domisili',
             'Alamat KTP',
             'Blok',
+            'Gang',
             'RT',
             'RW',
             'Kode Pos',
+            'Kode Provinsi',
+            'Kode Kota/Kabupaten',
+            'Kode Kecamatan',
+            'Kode Kelurahan',
         ];
 
         $sampleRow = [
@@ -499,6 +509,7 @@ class WargaController extends Controller
             '3201010101010001',
             '3201010101010000',
             '081234567890',
+            'budi@example.com',
             'L',
             'Bandung',
             '1990-02-17',
@@ -509,9 +520,14 @@ class WargaController extends Controller
             'Jl. Melati No. 1',
             'Jl. Melati No. 1',
             'A1',
+            'Gg. Mawar',
             '01',
             '02',
             '40288',
+            '31',
+            '3174',
+            '3174030',
+            '3174030005',
         ];
 
         $callback = function () use ($columns, $sampleRow) {
@@ -560,20 +576,25 @@ class WargaController extends Controller
             1 => 'NIK',
             2 => 'Nomor KK',
             3 => 'No HP',
-            4 => 'Jenis Kelamin',
-            5 => 'Tempat Lahir',
-            6 => 'Tanggal Lahir',
-            7 => 'Agama',
-            8 => 'Status Perkawinan',
-            9 => 'Pekerjaan',
-            10 => 'Status Keluarga',
-            11 => 'Alamat Domisili',
-            12 => 'Alamat KTP',
-            13 => 'Blok',
-            14 => 'Gang',
-            15 => 'RT',
-            16 => 'RW',
-            17 => 'Kode Pos',
+            4 => 'Email',
+            5 => 'Jenis Kelamin',
+            6 => 'Tempat Lahir',
+            7 => 'Tanggal Lahir',
+            8 => 'Agama',
+            9 => 'Status Perkawinan',
+            10 => 'Pekerjaan',
+            11 => 'Status Keluarga',
+            12 => 'Alamat Domisili',
+            13 => 'Alamat KTP',
+            14 => 'Blok',
+            15 => 'Gang',
+            16 => 'RT',
+            17 => 'RW',
+            18 => 'Kode Pos',
+            19 => 'Kode Provinsi',
+            20 => 'Kode Kota/Kabupaten',
+            21 => 'Kode Kecamatan',
+            22 => 'Kode Kelurahan',
         ];
 
         $successCount = 0;
@@ -610,8 +631,8 @@ class WargaController extends Controller
 
             $name = trim($row[0] ?? '');
             $nik = trim($row[1] ?? '');
-            $dateOfBirthRaw = trim($row[6] ?? '');
-            $genderRaw = strtoupper(trim($row[4] ?? ''));
+            $dateOfBirthRaw = trim($row[7] ?? '');
+            $genderRaw = strtoupper(trim($row[5] ?? ''));
 
             if ($name === '') {
                 $rowErrors[] = "Kolom 'Nama' wajib diisi";
@@ -649,7 +670,7 @@ class WargaController extends Controller
 
                 $user = User::where('nik', $nik)->first();
 
-                $maritalStatusRaw = strtoupper(trim($row[8] ?? ''));
+                $maritalStatusRaw = strtoupper(trim($row[9] ?? ''));
                 $maritalStatusMap = [
                     'BELUM KAWIN' => 'BELUM_KAWIN',
                     'BELUM_KAWIN' => 'BELUM_KAWIN',
@@ -662,7 +683,7 @@ class WargaController extends Controller
                 ];
                 $maritalStatus = $maritalStatusMap[$maritalStatusRaw] ?? 'BELUM_KAWIN';
 
-                $statusInFamilyRaw = strtoupper(trim($row[10] ?? ''));
+                $statusInFamilyRaw = strtoupper(trim($row[11] ?? ''));
                 $statusInFamilyMap = [
                     'KEPALA KELUARGA' => 'KEPALA_KELUARGA',
                     'KEPALA_KELUARGA' => 'KEPALA_KELUARGA',
@@ -693,25 +714,91 @@ class WargaController extends Controller
                     }
                 }
 
+                $emailRaw = isset($row[4]) ? trim((string) $row[4]) : '';
+                $email = $emailRaw !== '' ? $emailRaw : null;
+
+                if ($email !== null) {
+                    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                        $errors[] = "Baris $rowNumber: Format email {$email} tidak valid, dikosongkan pada import.";
+                        $email = null;
+                    } else {
+                        $emailQuery = User::where('email', $email);
+                        if ($user) {
+                            $emailQuery->where('id', '!=', $user->id);
+                        }
+                        if ($emailQuery->exists()) {
+                            $errors[] = "Baris $rowNumber: Email {$email} sudah digunakan pengguna lain, dikosongkan pada import.";
+                            $email = null;
+                        }
+                    }
+                }
+
+                $provinceCode = isset($row[19]) ? trim((string) $row[19]) : '';
+                $cityCode = isset($row[20]) ? trim((string) $row[20]) : '';
+                $districtCode = isset($row[21]) ? trim((string) $row[21]) : '';
+                $villageCode = isset($row[22]) ? trim((string) $row[22]) : '';
+
+                if ($provinceCode !== '') {
+                    if (strlen($provinceCode) !== 2) {
+                        $errors[] = "Baris $rowNumber: Kode Provinsi {$provinceCode} tidak valid (harus 2 digit), dikosongkan pada import.";
+                        $provinceCode = '';
+                    } elseif (!Province::where('code', $provinceCode)->exists()) {
+                        $errors[] = "Baris $rowNumber: Kode Provinsi {$provinceCode} tidak ditemukan di database wilayah, dikosongkan pada import.";
+                        $provinceCode = '';
+                    }
+                }
+
+                if ($cityCode !== '') {
+                    if (strlen($cityCode) !== 4) {
+                        $errors[] = "Baris $rowNumber: Kode Kota/Kabupaten {$cityCode} tidak valid (harus 4 digit), dikosongkan pada import.";
+                        $cityCode = '';
+                    } elseif (!City::where('code', $cityCode)->exists()) {
+                        $errors[] = "Baris $rowNumber: Kode Kota/Kabupaten {$cityCode} tidak ditemukan di database wilayah, dikosongkan pada import.";
+                        $cityCode = '';
+                    }
+                }
+
+                if ($districtCode !== '') {
+                    if (!District::where('code', $districtCode)->exists()) {
+                        $errors[] = "Baris $rowNumber: Kode Kecamatan {$districtCode} tidak ditemukan di database wilayah, dikosongkan pada import.";
+                        $districtCode = '';
+                    }
+                }
+
+                if ($villageCode !== '') {
+                    if (strlen($villageCode) !== 10) {
+                        $errors[] = "Baris $rowNumber: Kode Kelurahan {$villageCode} tidak valid (harus 10 digit), dikosongkan pada import.";
+                        $villageCode = '';
+                    } elseif (!Village::where('code', $villageCode)->exists()) {
+                        $errors[] = "Baris $rowNumber: Kode Kelurahan {$villageCode} tidak ditemukan di database wilayah, dikosongkan pada import.";
+                        $villageCode = '';
+                    }
+                }
+
                 $userData = [
                     'name' => $name,
                     'nik' => $nik,
                     'kk_number' => $row[2] ?? null,
                     'phone' => $phone,
+                    'email' => $email,
                     'gender' => $genderRaw !== '' ? $genderRaw : 'L',
-                    'place_of_birth' => $row[5] ?? null,
+                    'place_of_birth' => $row[6] ?? null,
                     'date_of_birth' => $dateOfBirthRaw ?: null,
-                    'religion' => $row[7] ?? 'ISLAM',
+                    'religion' => $row[8] ?? 'ISLAM',
                     'marital_status' => $maritalStatus,
-                    'occupation' => $row[9] ?? null,
+                    'occupation' => $row[10] ?? null,
                     'status_in_family' => $statusInFamily,
-                    'address' => $row[11] ?? null,
-                    'address_ktp' => $row[12] ?? null,
-                    'block' => $row[13] ?? null,
-                    'gang' => $row[14] ?? null,
-                    'address_rt' => $row[15] ?? null,
-                    'address_rw' => $row[16] ?? null,
-                    'postal_code' => $row[17] ?? null,
+                    'address' => $row[12] ?? null,
+                    'address_ktp' => $row[13] ?? null,
+                    'block' => $row[14] ?? null,
+                    'gang' => $row[15] ?? null,
+                    'address_rt' => $row[16] ?? null,
+                    'address_rw' => $row[17] ?? null,
+                    'postal_code' => $row[18] ?? null,
+                    'province_code' => $provinceCode !== '' ? $provinceCode : null,
+                    'city_code' => $cityCode !== '' ? $cityCode : null,
+                    'district_code' => $districtCode !== '' ? $districtCode : null,
+                    'village_code' => $villageCode !== '' ? $villageCode : null,
                     'role' => 'WARGA_TETAP',
                     'rt_id' => $rtId,
                     'rw_id' => $rwId,

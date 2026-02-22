@@ -1138,8 +1138,16 @@ export default function WargaPage() {
                         <AlertCircle className="shrink-0 mt-0.5" size={18} />
                         <div className="space-y-1">
                             <p className="font-semibold">Format CSV yang didukung:</p>
-                            <p>Name, NIK, KK Number, Phone, Gender, Place of Birth, Date of Birth, Religion, Marital Status, Occupation, Status in Family, Address</p>
-                            <p className="text-xs mt-2 text-blue-600/80 dark:text-blue-400/80">* Gunakan fitur Export untuk melihat template yang benar.</p>
+                            <p>
+                              Nama, NIK, Nomor KK, No. Telepon/WA, Email, Jenis Kelamin (L/P),
+                              Tempat Lahir, Tanggal Lahir (YYYY-MM-DD), Agama, Status Perkawinan,
+                              Pekerjaan, Status Keluarga, Alamat Domisili, Alamat KTP, Blok, Gang,
+                              RT, RW, Kode Pos, Kode Provinsi, Kode Kota/Kabupaten, Kode Kecamatan,
+                              Kode Kelurahan
+                            </p>
+                            <p className="text-xs mt-2 text-blue-600/80 dark:text-blue-400/80">
+                              * Gunakan tombol "Download Template" untuk mendapatkan contoh format yang terbaru.
+                            </p>
                         </div>
                     </div>
 

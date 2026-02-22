@@ -88,16 +88,17 @@ const ProfessionalWargaCard = React.memo(({ item, colors, styles, t, language, i
         <View style={styles.headerInfo}>
           <Text style={styles.name}>{item.name}</Text>
           <View style={styles.badgesContainer}>
-             {isHeadOfFamily && (
-               <View style={[styles.badge, { backgroundColor: '#d1fae5' }]}>
-                 <Text style={[styles.badgeText, { color: '#059669' }]}>Kepala Keluarga</Text>
-               </View>
-             )}
-             <View style={[styles.badge, { backgroundColor: colors.surfaceVariant }]}>
-               <Text style={[styles.badgeText, { color: colors.textSecondary }]}>
-                 {item.status_in_family?.replace(/_/g, ' ') || item.role?.replace(/_/g, ' ') || '-'}
-               </Text>
-             </View>
+            {isHeadOfFamily ? (
+              <View style={[styles.badge, { backgroundColor: '#d1fae5' }]}>
+                <Text style={[styles.badgeText, { color: '#059669' }]}>Kepala Keluarga</Text>
+              </View>
+            ) : (
+              <View style={[styles.badge, { backgroundColor: colors.surfaceVariant }]}>
+                <Text style={[styles.badgeText, { color: colors.textSecondary }]}>
+                  {item.status_in_family?.replace(/_/g, ' ') || item.role?.replace(/_/g, ' ') || '-'}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
       </View>
