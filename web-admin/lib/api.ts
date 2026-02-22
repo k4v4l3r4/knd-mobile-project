@@ -1,7 +1,12 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
-const rawBase = process.env.NEXT_PUBLIC_API_URL || '';
+const defaultBase =
+  process.env.NODE_ENV === 'production'
+    ? 'https://api.afnet.my.id/api'
+    : 'http://127.0.0.1:8000/api';
+
+const rawBase = process.env.NEXT_PUBLIC_API_URL || defaultBase;
 const baseURL = rawBase.endsWith('/api') ? rawBase : `${rawBase.replace(/\/$/, '')}/api`;
 
 const api = axios.create({
