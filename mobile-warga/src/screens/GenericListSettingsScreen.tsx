@@ -105,6 +105,7 @@ export default function GenericListSettingsScreen({ onNavigate, type }: GenericL
       fields: [
         { key: 'name', label: 'Nama Iuran', placeholder: 'Contoh: Iuran Keamanan' },
         { key: 'amount', label: 'Nominal', placeholder: '0', keyboardType: 'numeric' },
+        { key: 'billing_day', label: 'Tanggal Penagihan (1-31)', placeholder: 'Kosongkan jika awal bulan', keyboardType: 'numeric' },
         { key: 'description', label: 'Deskripsi', placeholder: 'Penjelasan iuran...' },
       ]
     },
@@ -197,26 +198,43 @@ export default function GenericListSettingsScreen({ onNavigate, type }: GenericL
     setModalVisible(true);
   };
 
-  const renderItem = ({ item }: { item: any }) => (
-    <View style={styles.card}>
-      <View style={styles.itemInfo}>
-        <Text style={styles.itemName}>{item.name || item.label || item.role_code}</Text>
-        <Text style={styles.itemSub}>{item.description || item.email || item.role}</Text>
+  const renderItem = ({ item }: { item: any }) => {
+    let subtitle = item.description || item.email || item.role;
+
+    if (type === 'FEES') {
+      const amountNumber = item.amount ? Number(item.amount) : 0;
+      const amountLabel = amountNumber
+        ? 'Rp ' + amountNumber.toLocaleString('id-ID')
+        : 'Rp 0';
+
+      const billingLabel = item.billing_day
+        ? `Tagih tanggal ${item.billing_day}`
+        : 'Tagih awal bulan';
+
+      subtitle = `${amountLabel} • ${billingLabel}`;
+    }
+
+    return (
+      <View style={styles.card}>
+        <View style={styles.itemInfo}>
+          <Text style={styles.itemName}>{item.name || item.label || item.role_code}</Text>
+          <Text style={styles.itemSub}>{subtitle}</Text>
+        </View>
+        <View style={styles.actions}>
+          {(!item.is_system) && (
+            <>
+              <TouchableOpacity onPress={() => openModal(item)} style={styles.actionBtn}>
+                <Ionicons name="pencil" size={20} color={colors.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.actionBtn}>
+                <Ionicons name="trash-outline" size={20} color="#ef4444" />
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
       </View>
-      <View style={styles.actions}>
-        {(!item.is_system) && (
-          <>
-            <TouchableOpacity onPress={() => openModal(item)} style={styles.actionBtn}>
-              <Ionicons name="pencil" size={20} color={colors.primary} />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.actionBtn}>
-              <Ionicons name="trash-outline" size={20} color="#ef4444" />
-            </TouchableOpacity>
-          </>
-        )}
-      </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
