@@ -36,15 +36,16 @@ class AuthController extends Controller
             // Additional fields
             'nik' => 'nullable|string|size:16|unique:users',
             'kk_number' => 'nullable|string|size:16',
-            'gender' => 'nullable|in:L,P',
+            'gender' => 'nullable|string',
             'address' => 'nullable|string',
             'province_code' => 'nullable|string',
             'city_code' => 'nullable|string',
             'district_code' => 'nullable|string',
             'village_code' => 'nullable|string',
             'postal_code' => 'nullable|string',
-            'marital_status' => 'nullable|in:Belum Kawin,Kawin,Cerai Hidup,Cerai Mati,Lajang,Menikah,BELUM_KAWIN,KAWIN,CERAI_HIDUP,CERAI_MATI',
+            'marital_status' => 'nullable|string',
             'religion' => 'nullable|string',
+            'status_in_family' => 'nullable|string',
         ]);
 
         $rtId = $validated['rt_id'] ?? null;
@@ -83,58 +84,34 @@ class AuthController extends Controller
             $tenantId = $rt->tenant_id;
         }
 
-        // Map marital status to standard format (Title Case)
-        $maritalStatus = $validated['marital_status'] ?? null;
-        if ($maritalStatus) {
-            $maritalMap = [
-                'Lajang' => 'Belum Kawin',
-                'LAJANG' => 'Belum Kawin',
-                'BELUM_KAWIN' => 'Belum Kawin',
-                'BELUM KAWIN' => 'Belum Kawin',
-                'Belum Kawin' => 'Belum Kawin',
-                'Menikah' => 'Kawin',
-                'MENIKAH' => 'Kawin',
-                'KAWIN' => 'Kawin',
-                'Kawin' => 'Kawin',
-                'Cerai Hidup' => 'Cerai Hidup',
-                'CERAI_HIDUP' => 'Cerai Hidup',
-                'CERAI HIDUP' => 'Cerai Hidup',
-                'Cerai Mati' => 'Cerai Mati',
-                'CERAI_MATI' => 'Cerai Mati',
-                'CERAI MATI' => 'Cerai Mati',
-            ];
-            $maritalStatus = $maritalMap[$maritalStatus] ?? ucwords(strtolower($maritalStatus));
-        }
-
-        // Default Role & Status
-        $roleCode = 'WARGA_TETAP';
-        $role = \App\Models\Role::where('role_code', $roleCode)->first();
+        // Use Global Mapper for standardization
+        $mappedData = $this->mapUserData($validated, 'WARGA');
 
         try {
             $user = User::create([
                 'tenant_id' => $tenantId,
                 'name' => $validated['name'],
-                'phone' => $validated['phone'],
+                'phone' => $mappedData['phone'] ?: $validated['phone'],
                 'email' => $validated['email'] ?? null,
                 'password' => Hash::make($validated['password']),
                 'rt_id' => $rtId,
                 'rw_id' => $rwId,
-                'role' => $roleCode,
-                'role_id' => $role ? $role->id : null,
-                'life_status' => 'ALIVE',
-                'data_verified_at' => null,
+                'role' => $mappedData['role'],
+                'role_id' => $mappedData['role_id'],
+                'life_status' => $mappedData['life_status'],
+                'data_verified_at' => $mappedData['data_verified_at'],
                 'nik' => $validated['nik'] ?? null,
                 'kk_number' => $validated['kk_number'] ?? null,
-                'gender' => $validated['gender'] ?? null,
+                'gender' => $mappedData['gender'],
                 'address' => $validated['address'] ?? null,
                 'province_code' => $validated['province_code'] ?? null,
                 'city_code' => $validated['city_code'] ?? null,
                 'district_code' => $validated['district_code'] ?? null,
                 'village_code' => $validated['village_code'] ?? null,
                 'postal_code' => $validated['postal_code'] ?? null,
-                'marital_status' => $maritalStatus,
-                'religion' => $validated['religion'] ?? null,
-                'status_in_family' => 'KEPALA_KELUARGA',
+                'marital_status' => $mappedData['marital_status'],
+                'religion' => $mappedData['religion'],
+                'status_in_family' => $mappedData['status_in_family'],
             ]);
         } catch (\Exception $e) {
             Log::error('Registration Error: ' . $e->getMessage());
@@ -196,15 +173,32 @@ class AuthController extends Controller
             'invite_code' => strtoupper(Str::random(6)), // Generate invite code
         ]);
 
+        // Use Global Mapper for standardization
+        $mappedData = $this->mapUserData($validated, 'RT_BARU');
+
         // Create Admin User
-        $user = User::create([
-            'name' => $validated['name'],
-            'phone' => $validated['phone'],
-            'password' => Hash::make($validated['password']),
-            'rt_id' => $rt->id,
-            'rw_id' => $rw->id,
-            'role' => 'ADMIN_RT',
-        ]);
+        try {
+            $user = User::create([
+                'name' => $validated['name'],
+                'phone' => $mappedData['phone'] ?: $validated['phone'],
+                'password' => Hash::make($validated['password']),
+                'rt_id' => $rt->id,
+                'rw_id' => $rw->id,
+                'role' => $mappedData['role'],
+                'role_id' => $mappedData['role_id'],
+                'life_status' => $mappedData['life_status'],
+                'status_in_family' => $mappedData['status_in_family'],
+                'gender' => $mappedData['gender'],
+                'marital_status' => $mappedData['marital_status'],
+                'religion' => $mappedData['religion'],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('RT Registration Error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mendaftar RT: ' . $e->getMessage(),
+            ], 500);
+        }
 
         // Initialize Basic Data (Wallets, Fees)
         Wallet::create(['rt_id' => $rt->id, 'name' => 'Kas Tunai RT', 'type' => 'CASH', 'balance' => 0]);
@@ -496,5 +490,86 @@ class AuthController extends Controller
             'message' => 'User profile retrieved successfully',
             'data' => $user,
         ]);
+    }
+
+    /**
+     * Global Data Mapper for Registration
+     * Handles normalization and mapping for PostgreSQL constraints
+     */
+    private function mapUserData(array $data, string $type = 'WARGA')
+    {
+        // 1. Phone Normalization (08 -> 62)
+        $phone = $data['phone'] ?? null;
+        if ($phone) {
+            $phone = preg_replace('/[^0-9]/', '', $phone);
+            if (str_starts_with($phone, '08')) {
+                $phone = '62' . substr($phone, 1);
+            } elseif (str_starts_with($phone, '8')) {
+                $phone = '62' . $phone;
+            }
+        }
+
+        // Helper for mapping
+        $mapValue = function($value, $map, $default, $logLabel) {
+            if (!$value) return null; 
+            
+            foreach ($map as $k => $v) {
+                if (strcasecmp($value, $k) === 0) return $v;
+            }
+            Log::error("Mapping Failed: $logLabel '$value'");
+            return $default;
+        };
+
+        // 2. Gender
+        $genderMap = [
+            'Laki-laki' => 'MALE', 'L' => 'MALE', 'MALE' => 'MALE',
+            'Perempuan' => 'FEMALE', 'P' => 'FEMALE', 'FEMALE' => 'FEMALE'
+        ];
+        $gender = $mapValue($data['gender'] ?? null, $genderMap, 'MALE', 'Gender');
+        $gender = $gender ? strtoupper($gender) : null;
+
+        // 3. Marital Status
+        $maritalMap = [
+            'Belum Kawin' => 'SINGLE', 'Lajang' => 'SINGLE', 'Single' => 'SINGLE', 'BELUM_KAWIN' => 'SINGLE',
+            'Kawin' => 'MARRIED', 'Menikah' => 'MARRIED', 'Married' => 'MARRIED', 'KAWIN' => 'MARRIED',
+            'Cerai Hidup' => 'DIVORCED', 'Divorced' => 'DIVORCED', 'CERAI_HIDUP' => 'DIVORCED',
+            'Cerai Mati' => 'DIVORCED', 'CERAI_MATI' => 'DIVORCED'
+        ];
+        $maritalStatus = $mapValue($data['marital_status'] ?? null, $maritalMap, 'SINGLE', 'Marital Status');
+        $maritalStatus = $maritalStatus ? strtoupper($maritalStatus) : null;
+
+        // 4. Religion
+        $religionMap = [
+            'Islam' => 'ISLAM',
+            'Kristen' => 'CHRISTIAN', 'Protestan' => 'CHRISTIAN',
+            'Katolik' => 'CATHOLIC',
+            'Hindu' => 'HINDU',
+            'Buddha' => 'BUDDHA',
+            'Khonghucu' => 'CONFUCIANISM'
+        ];
+        $religion = $mapValue($data['religion'] ?? null, $religionMap, 'ISLAM', 'Religion');
+        $religion = $religion ? strtoupper($religion) : null;
+
+        // 5. Role
+        $roleCode = ($type === 'RT_BARU') ? 'ADMIN_RT' : 'WARGA_TETAP';
+        $role = \App\Models\Role::where('role_code', $roleCode)->first();
+
+        // 6. Status in Family
+        $familyStatus = $data['status_in_family'] ?? 'HEAD_OF_FAMILY';
+        if (strcasecmp($familyStatus, 'Kepala Keluarga') === 0) {
+            $familyStatus = 'HEAD_OF_FAMILY';
+        }
+
+        return [
+            'phone' => $phone,
+            'gender' => $gender,
+            'marital_status' => $maritalStatus,
+            'religion' => $religion,
+            'role' => $roleCode,
+            'role_id' => $role ? $role->id : null,
+            'life_status' => 'ALIVE',
+            'status_in_family' => $familyStatus,
+            'data_verified_at' => null,
+        ];
     }
 }
