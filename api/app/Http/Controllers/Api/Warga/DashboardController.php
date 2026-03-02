@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Announcement;
 use App\Models\Transaction;
 use App\Models\Fee;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -96,10 +98,22 @@ class DashboardController extends Controller
                 ];
             });
 
-        $unreadNotificationsCount = $user->unreadNotifications()->count();
-        $hasEmergency = $user->unreadNotifications()
-            ->whereIn('type', ['EMERGENCY', 'SOS', 'PANIC', 'WARNING', 'PANIC_BUTTON'])
-            ->exists();
+        $unreadNotificationsCount = 0;
+        $hasEmergency = false;
+
+        try {
+            $unreadNotificationsCount = Notification::where('user_id', $user->id)
+                ->where('is_read', false)
+                ->count();
+                
+            $hasEmergency = Notification::where('user_id', $user->id)
+                ->where('is_read', false)
+                ->whereIn('type', ['EMERGENCY', 'SOS', 'PANIC', 'WARNING', 'PANIC_BUTTON'])
+                ->exists();
+        } catch (\Exception $e) {
+            Log::error('Dashboard Notification Error: ' . $e->getMessage());
+            // Fallback default values are already set
+        }
 
         return response()->json([
             'success' => true,

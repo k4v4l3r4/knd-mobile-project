@@ -212,7 +212,7 @@ export default function BoardingScreen() {
         room_price: '',
         deposit_amount: '',
         gender: 'L',
-        marital_status: 'Belum Kawin',
+        marital_status: 'SINGLE',
         occupation: '',
         ktp_image: null as any,
         notificationEnabled: true
@@ -570,7 +570,7 @@ export default function BoardingScreen() {
             room_price: '',
             deposit_amount: '',
             gender: 'L',
-            marital_status: 'Belum Kawin',
+            marital_status: 'SINGLE',
             occupation: '',
             ktp_image: null,
             notificationEnabled: true
@@ -620,7 +620,7 @@ export default function BoardingScreen() {
       room_price: tenant.room_price ? String(tenant.room_price) : '',
       deposit_amount: tenant.deposit_amount ? String(tenant.deposit_amount) : '',
       gender: tenant.user?.gender || 'L',
-      marital_status: tenant.user?.marital_status || 'Belum Kawin',
+      marital_status: (tenant.user?.marital_status === 'MARRIED' || tenant.user?.marital_status === 'Kawin' || tenant.user?.marital_status === 'KAWIN') ? 'MARRIED' : 'SINGLE',
       occupation: tenant.user?.occupation || '',
       ktp_image: null,
       notificationEnabled: tenant.notification_enabled ?? true
@@ -983,7 +983,7 @@ export default function BoardingScreen() {
                         room_price: '',
                         deposit_amount: '',
                         gender: 'L',
-                        marital_status: 'Belum Kawin',
+                        marital_status: 'SINGLE',
                         occupation: '',
                         ktp_image: null,
                         notificationEnabled: true
@@ -1477,10 +1477,10 @@ export default function BoardingScreen() {
               style={styles.input}
               placeholder={t('boarding.identity.whatsappPlaceholder')}
               placeholderTextColor={colors.textSecondary}
-              keyboardType="phone-pad"
+              keyboardType="numeric"
               maxLength={15}
               value={formData.phone}
-              onChangeText={(text) => setFormData({...formData, phone: text})}
+              onChangeText={(text) => setFormData({...formData, phone: text.replace(/[^0-9]/g, '')})}
             />
 
             <Text style={styles.inputLabel}>{t('boarding.identity.nik')}</Text>
@@ -1491,7 +1491,7 @@ export default function BoardingScreen() {
               keyboardType="numeric"
               maxLength={16}
               value={formData.nik}
-              onChangeText={(text) => setFormData({...formData, nik: text})}
+              onChangeText={(text) => setFormData({...formData, nik: text.replace(/[^0-9]/g, '')})}
             />
 
             {/* Informasi Tambahan (Required by System) */}
@@ -1514,16 +1514,16 @@ export default function BoardingScreen() {
             <Text style={styles.inputLabel}>{t('boarding.identity.maritalStatus')}</Text>
             <View style={styles.radioContainer}>
                 <TouchableOpacity 
-                  style={[styles.radioOption, formData.marital_status === 'Belum Kawin' && styles.radioActive]}
-                  onPress={() => setFormData({...formData, marital_status: 'Belum Kawin'})}
+                  style={[styles.radioOption, formData.marital_status === 'SINGLE' && styles.radioActive]}
+                  onPress={() => setFormData({...formData, marital_status: 'SINGLE'})}
                 >
-                  <Text style={[styles.radioText, formData.marital_status === 'Belum Kawin' && styles.radioTextActive]}>{t('boarding.identity.single')}</Text>
+                  <Text style={[styles.radioText, formData.marital_status === 'SINGLE' && styles.radioTextActive]}>{t('boarding.identity.single')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
-                  style={[styles.radioOption, formData.marital_status === 'Kawin' && styles.radioActive]}
-                  onPress={() => setFormData({...formData, marital_status: 'Kawin'})}
+                  style={[styles.radioOption, formData.marital_status === 'MARRIED' && styles.radioActive]}
+                  onPress={() => setFormData({...formData, marital_status: 'MARRIED'})}
                 >
-                  <Text style={[styles.radioText, formData.marital_status === 'Kawin' && styles.radioTextActive]}>{t('boarding.identity.married')}</Text>
+                  <Text style={[styles.radioText, formData.marital_status === 'MARRIED' && styles.radioTextActive]}>{t('boarding.identity.married')}</Text>
                 </TouchableOpacity>
             </View>
 

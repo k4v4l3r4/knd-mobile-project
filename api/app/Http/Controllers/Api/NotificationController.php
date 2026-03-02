@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class NotificationController extends Controller
 {
@@ -27,21 +28,31 @@ class NotificationController extends Controller
 
     public function unreadCount(Request $request)
     {
-        $user = $request->user();
-        $count = Notification::where('user_id', $user->id)
-            ->where('is_read', false)
-            ->count();
+        try {
+            $user = $request->user();
+            $count = Notification::where('user_id', $user->id)
+                ->where('is_read', false)
+                ->count();
 
-        $hasEmergency = Notification::where('user_id', $user->id)
-            ->where('is_read', false)
-            ->whereIn('type', ['EMERGENCY', 'SOS', 'PANIC', 'WARNING', 'PANIC_BUTTON'])
-            ->exists();
+            $hasEmergency = Notification::where('user_id', $user->id)
+                ->where('is_read', false)
+                ->whereIn('type', ['EMERGENCY', 'SOS', 'PANIC', 'WARNING', 'PANIC_BUTTON'])
+                ->exists();
 
-        return response()->json([
-            'status' => 'success',
-            'count' => $count,
-            'has_emergency' => $hasEmergency
-        ]);
+            return response()->json([
+                'status' => 'success',
+                'count' => $count,
+                'has_emergency' => $hasEmergency
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Notification Count Error: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'count' => 0,
+                'has_emergency' => false,
+                'message' => 'Failed to retrieve notification count'
+            ]);
+        }
     }
 
     public function markAsRead(Request $request, $id)
