@@ -1,0 +1,59 @@
+{
+  "expo": {
+    "name": "KND",
+    "slug": "knd-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "icon": "./assets/knd-icon-192-padding.png",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "platforms": [
+      "android"
+    ],
+    "updates": {
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.knd.mobile"
+    },
+    "android": {
+      "package": "com.knd.mobile",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-android.png",
+        "backgroundColor": "#ffffff"
+      },
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/android-chrome-512x512.png"
+    },
+    "plugins": [
+      "@react-native-community/datetimepicker"
+    ],
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "extra": {}
+  }
+}

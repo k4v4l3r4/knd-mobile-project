@@ -1,0 +1,67 @@
+# 1. Update Tampilan Web Admin
+cd /www/wwwroot/knd-mobile-project/web-admin && \
+git stash && \
+git pull origin main && \
+npm run build && \
+cp -rf public .next/standalone/ && \
+cp -rf .next/static .next/standalone/.next/ && \
+pm2 restart web_admin_knd
+
+# 2. Update Struktur Database & Cache API
+cd /www/wwwroot/knd-mobile-project/api && \
+php artisan migrate && \
+php artisan optimize
+php artisan config:clear
+php artisan cache:clear
+
+cd /www/wwwroot/knd-mobile-project/api
+php artisan config:clear
+php artisan cache:clear
+php artisan optimize
+
+Prinsipnya begini:
+
+1. Tidak perlu build APK lagi kalau:
+
+Perubahan hanya di sisi JavaScript/TypeScript, misalnya:
+
+- Edit screen: PatrolScreen.tsx , SettingsScreen.tsx , dsb.
+- Ubah UI, teks, logika JS.
+- Tambah/ubah utility, service API di JS.
+- Tidak mengubah runtimeVersion di app.json .
+Untuk kasus seperti ini, cukup:
+
+```
+cd /www/wwwroot/knd-mobile-project/mobile-warga
+npm run release:preview -- --message "Deskripsi 
+perubahan"
+# atau
+npm run release:prod -- --message "Deskripsi 
+perubahan"
+```
+APK yang sudah terinstall di HP (selama runtimeVersion dan channel cocok) akan dapat update lewat EAS Update + tombol Update Aplikasi .
+
+Perubahan yang barusan ( Schedule ditambah end_date di PatrolScreen.tsx ) termasuk kategori ini → cukup OTA , tidak usah build APK lagi.
+
+2. Wajib build APK baru kalau:
+
+Ada perubahan di level native / config, misalnya:
+
+- Ubah permissions Android di app.json bagian "android": { "permissions": [...] } .
+- Ubah package/bundle id ( android.package , ios.bundleIdentifier ).
+- Tambah plugin native (mis: library yang butuh config di plugins dan android/ios native).
+- Upgrade besar Expo SDK yang minta rebuild.
+- Ubah runtimeVersion (misalnya dari 1.0.0 ke 1.1.0 ).
+Kalau yang diubah salah satu di atas, barulah jalankan:
+
+```
+export EAS_NO_VCS=1
+export EAS_PROJECT_ROOT=/www/wwwroot/
+knd-mobile-project/mobile-warga
+npx eas build --platform android --profile 
+preview   # atau production
+```
+Jadi jawaban untuk log yang Anda kirim:
+ mobile-warga/src/screens/PatrolScreen.tsx | 1 +
+Itu hanya perubahan kode layar (JS/TS).
+ Tidak perlu build APK ulang; cukup lanjut pakai npm run release:preview / release:prod kalau mau rilis ke tester / user.

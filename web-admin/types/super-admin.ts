@@ -1,0 +1,67 @@
+export interface RevenueSummary {
+  total_revenue: number;
+  subscription_revenue: number;
+  lifetime_revenue: number;
+  paid_invoices: number;
+  unpaid_invoices: number;
+  active_subscriptions: number;
+  lifetime_tenants: number;
+}
+
+export interface MonthlyRevenue {
+  month: string;
+  revenue: number;
+}
+
+export interface PlanConfig {
+  price: number;
+  discount_percent: number;
+  description: string;
+  features: string[];
+}
+
+export interface TenantBilling {
+  id: number;
+  tenant_name: string;
+  tenant_code: string;
+  rt_rw: string;
+  city: string;
+  billing_mode: string;
+  status: string;
+  contact_phone: string;
+  contact_email: string;
+  plan_code: string;
+  subscription_type: string;
+  ends_at: string | null;
+  trial_ends_at: string | null;
+}
+
+export interface PaymentSettings {
+  subscription_mode: 'CENTRALIZED';
+  iuran_warga_mode: 'CENTRALIZED' | 'SPLIT';
+  umkm_mode: 'CENTRALIZED' | 'SPLIT';
+  umkm_scope: 'GLOBAL' | 'RW';
+  
+  iuran_warga_config: {
+    platform_fee_percent: number;
+  };
+  
+  umkm_config: {
+    umkm_share_percent: number;
+    platform_fee_percent: number;
+    rt_share_percent: number;
+    is_rt_share_enabled: boolean;
+  };
+
+  plans: {
+    BASIC_RW_MONTHLY: PlanConfig;
+    BASIC_RW_YEARLY: PlanConfig;
+    LIFETIME_RW: PlanConfig;
+  };
+
+  gateways: {
+    subscription: 'MANUAL' | 'DANA';
+    iuran_warga: 'MANUAL' | 'DANA';
+    umkm: 'MANUAL' | 'DANA';
+  };
+}
