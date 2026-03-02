@@ -522,10 +522,10 @@ class AuthController extends Controller
 
         // 2. Gender
         $genderMap = [
-            'Laki-laki' => 'MALE', 'L' => 'MALE', 'MALE' => 'MALE',
-            'Perempuan' => 'FEMALE', 'P' => 'FEMALE', 'FEMALE' => 'FEMALE'
+            'Laki-laki' => 'L', 'L' => 'L', 'MALE' => 'L', 'Male' => 'L',
+            'Perempuan' => 'P', 'P' => 'P', 'FEMALE' => 'P', 'Female' => 'P'
         ];
-        $gender = $mapValue($data['gender'] ?? null, $genderMap, 'MALE', 'Gender');
+        $gender = $mapValue($data['gender'] ?? null, $genderMap, 'L', 'Gender');
         $gender = $gender ? strtoupper($gender) : null;
 
         // 3. Marital Status
