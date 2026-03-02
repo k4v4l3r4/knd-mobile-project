@@ -106,28 +106,43 @@ class AuthController extends Controller
             $maritalStatus = $maritalMap[$maritalStatus] ?? ucwords(strtolower($maritalStatus));
         }
 
-        $user = User::create([
-            'tenant_id' => $tenantId, // Ensure tenant_id is saved
-            'name' => $validated['name'],
-            'phone' => $validated['phone'],
-            'email' => $validated['email'] ?? null,
-            'password' => Hash::make($validated['password']),
-            'rt_id' => $rtId,
-            'rw_id' => $rwId,
-            'role' => 'WARGA_TETAP',
-            'nik' => $validated['nik'] ?? null,
-            'kk_number' => $validated['kk_number'] ?? null,
-            'gender' => $validated['gender'] ?? null,
-            'address' => $validated['address'] ?? null,
-            'province_code' => $validated['province_code'] ?? null,
-            'city_code' => $validated['city_code'] ?? null,
-            'district_code' => $validated['district_code'] ?? null,
-            'village_code' => $validated['village_code'] ?? null,
-            'postal_code' => $validated['postal_code'] ?? null,
-            'marital_status' => $maritalStatus,
-            'religion' => $validated['religion'] ?? null,
-            'status_in_family' => 'KEPALA_KELUARGA', // Default for registrant
-        ]);
+        // Default Role & Status
+        $roleCode = 'WARGA_TETAP';
+        $role = \App\Models\Role::where('role_code', $roleCode)->first();
+
+        try {
+            $user = User::create([
+                'tenant_id' => $tenantId,
+                'name' => $validated['name'],
+                'phone' => $validated['phone'],
+                'email' => $validated['email'] ?? null,
+                'password' => Hash::make($validated['password']),
+                'rt_id' => $rtId,
+                'rw_id' => $rwId,
+                'role' => $roleCode,
+                'role_id' => $role ? $role->id : null,
+                'life_status' => 'ALIVE',
+                'data_verified_at' => null,
+                'nik' => $validated['nik'] ?? null,
+                'kk_number' => $validated['kk_number'] ?? null,
+                'gender' => $validated['gender'] ?? null,
+                'address' => $validated['address'] ?? null,
+                'province_code' => $validated['province_code'] ?? null,
+                'city_code' => $validated['city_code'] ?? null,
+                'district_code' => $validated['district_code'] ?? null,
+                'village_code' => $validated['village_code'] ?? null,
+                'postal_code' => $validated['postal_code'] ?? null,
+                'marital_status' => $maritalStatus,
+                'religion' => $validated['religion'] ?? null,
+                'status_in_family' => 'KEPALA_KELUARGA',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Registration Error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mendaftar: ' . $e->getMessage(),
+            ], 500);
+        }
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
