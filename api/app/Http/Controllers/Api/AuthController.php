@@ -28,8 +28,8 @@ class AuthController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string',
-            'phone' => 'required|string|unique:users',
-            'email' => 'nullable|email|unique:users',
+            'phone' => 'required|string|unique:users,phone',
+            'email' => 'nullable|email|unique:users,email',
             'password' => 'required|string|min:6',
             'rt_id' => 'nullable|exists:wilayah_rt,id',
             'invite_code' => 'nullable|exists:wilayah_rt,invite_code',
@@ -145,7 +145,7 @@ class AuthController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string',
-            'phone' => 'required|string|unique:users',
+            'phone' => 'required|string|unique:users,phone',
             'password' => 'required|string|min:6',
             'rt_number' => 'required|string',
             'rw_number' => 'required|string',

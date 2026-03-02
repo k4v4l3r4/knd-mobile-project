@@ -560,7 +560,7 @@ export default function MarketScreen({ onNavigate }: MarketScreenProps) {
 
         {/* 5. Location & Sold Count */}
         <View style={styles.locationRow}>
-           <Text style={styles.locationText}>
+           <Text style={styles.locationText} numberOfLines={1}>
              {(() => {
                const city = item.store?.city;
                return city ? String(city) : '-';
@@ -1332,8 +1332,8 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     color: '#fff',
   },
   listContent: {
-    padding: 8,
-    gap: 8,
+    paddingHorizontal: 6,
+    paddingTop: 8,
     paddingBottom: 100,
   },
   centerContainer: {
@@ -1342,8 +1342,9 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     alignItems: 'center',
   },
   card: {
-    flex: 1,
-    margin: 4,
+    width: (width - 32) / 2, // Safe width for 2 columns (Screen - 2*padding - margins)
+    marginBottom: 10,
+    marginHorizontal: 4,
     backgroundColor: colors.card,
     borderRadius: 12,
     // Soft shadow as requested
@@ -1508,6 +1509,7 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
   locationText: {
     fontSize: 10,
     color: colors.textSecondary,
+    flex: 1,
   },
   soldText: {
     fontSize: 10,
