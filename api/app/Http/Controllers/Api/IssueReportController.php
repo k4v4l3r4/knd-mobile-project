@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class IssueReportController extends Controller
 {
@@ -58,15 +59,29 @@ class IssueReportController extends Controller
         $query = IssueReport::with('user:id,name,photo_url,phone');
 
         // Filter by RT ID for Admin RT
-        if ($user->rt_id) {
-            $query->where('rt_id', $user->rt_id);
+        // Ensure we explicitly use auth()->user()->rt_id as requested
+        $rt_id = $user->rt_id;
+        
+        if ($rt_id) {
+            $query->where('rt_id', $rt_id);
         }
 
-        if ($request->has('status') && $request->status !== 'ALL') {
-            $query->where('status', strtoupper($request->status));
+        // Case-insensitive status filter
+        // If status is 'pending', convert to 'PENDING' or handle case insensitivity
+        if ($request->has('status') && strtoupper($request->status) !== 'ALL') {
+            $status = strtoupper($request->status);
+            $query->where(function($q) use ($status) {
+                $q->where('status', $status)
+                  ->orWhere('status', strtolower($status)); // Handle potential lowercase in DB
+            });
         }
 
         $issues = $query->latest()->get();
+
+        // Debug Logging
+        Log::info('Admin RT ID: ' . ($rt_id ?? 'NULL'));
+        Log::info('Status Filter: ' . ($request->status ?? 'NONE'));
+        Log::info('Reports Found: ' . $issues->count());
 
         return response()->json([
             'success' => true,
