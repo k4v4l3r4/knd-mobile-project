@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use App\Models\Scopes\TenantScope;
 
 class IssueReportController extends Controller
 {
@@ -56,7 +57,9 @@ class IssueReportController extends Controller
             ], 403);
         }
 
-        $query = IssueReport::with('user:id,name,photo_url,phone');
+        // Bypass TenantScope to ensure Admin sees all reports in their RT regardless of tenant_id mismatch
+        $query = IssueReport::withoutGlobalScope(TenantScope::class)
+            ->with('user:id,name,photo_url,phone');
 
         // Filter by RT ID for Admin RT
         // Ensure we explicitly use auth()->user()->rt_id as requested
