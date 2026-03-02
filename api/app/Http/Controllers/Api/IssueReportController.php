@@ -55,11 +55,15 @@ class IssueReportController extends Controller
             ], 403);
         }
 
-        $query = IssueReport::with('user:id,name,photo_url,phone')
-            ->where('rt_id', $user->rt_id);
+        $query = IssueReport::with('user:id,name,photo_url,phone');
 
-        if ($request->has('status')) {
-            $query->where('status', $request->status);
+        // Filter by RT ID for Admin RT
+        if ($user->rt_id) {
+            $query->where('rt_id', $user->rt_id);
+        }
+
+        if ($request->has('status') && $request->status !== 'ALL') {
+            $query->where('status', strtoupper($request->status));
         }
 
         $issues = $query->latest()->get();
