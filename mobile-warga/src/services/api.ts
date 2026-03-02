@@ -35,16 +35,17 @@ export const getStorageUrl = (path: string | null) => {
      // If it matches current storage, return as is
      if (path.startsWith(BASE_STORAGE_URL)) return path;
 
-     // If it's localhost but we are on device, try to replace host
-     // This part is tricky, better to just return path if it's already http
-     // unless we know for sure it's wrong.
-     // But for now, let's assume the path from API is relative, or if absolute, it matches API_URL
-     
-     // If the API returns localhost URL but we need LAN IP:
-     if ((path.includes('localhost') || path.includes('127.0.0.1')) && !BASE_URL.includes('localhost') && !BASE_URL.includes('127.0.0.1')) {
-         // Replace localhost with our API host
-         const apiHost = BASE_URL.split('/')[2].split(':')[0]; // extract IP
-         return path.replace('localhost', apiHost).replace('127.0.0.1', apiHost);
+     // Special handling for localhost/IP mismatches (e.g. emulator vs device, or dev vs prod)
+     if ((path.includes('localhost') || path.includes('127.0.0.1'))) {
+         // If we are in production (or at least using a non-local API), replace the local host
+         if (!BASE_URL.includes('localhost') && !BASE_URL.includes('127.0.0.1')) {
+             const apiHost = BASE_URL.split('/')[2].split(':')[0]; // extract IP/domain
+             // If apiHost is empty (e.g. malformed), fallback to path
+             if (!apiHost) return path;
+             
+             // Replace localhost/127.0.0.1 with the correct host
+             return path.replace('localhost', apiHost).replace('127.0.0.1', apiHost);
+         }
      }
      
      return path;

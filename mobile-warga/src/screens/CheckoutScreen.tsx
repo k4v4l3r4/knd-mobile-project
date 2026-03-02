@@ -82,8 +82,12 @@ export default function CheckoutScreen({ onNavigate }: { onNavigate: (screen: st
   };
 
   const getItemShippingFee = (item: any) => {
-    if (item?.shipping_type === 'PICKUP') return 0;
-    const fee = Number(item?.shipping_fee_flat || 0);
+    // If pickup, no shipping fee
+    if (item?.shipping_type && item.shipping_type.toUpperCase() === 'PICKUP') return 0;
+    
+    // Try to get fee from various potential fields (shipping_fee_flat or shipping_cost)
+    const fee = Number(item?.shipping_fee_flat || item?.shipping_cost || 0);
+    
     if (!Number.isFinite(fee)) return 0;
     return fee > 0 ? fee : 0;
   };

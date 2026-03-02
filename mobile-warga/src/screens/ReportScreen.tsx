@@ -47,6 +47,7 @@ export default function ReportScreen() {
   
   // New States for Admin Features
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [userRtId, setUserRtId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<'create' | 'list'>('create');
   const [reports, setReports] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -66,9 +67,11 @@ export default function ReportScreen() {
   const fetchProfile = async () => {
     try {
       const response = await api.get('/me');
-      const role = response.data.data.role;
-      setUserRole(role);
-      if (role && (role.toUpperCase() === 'ADMIN_RT' || role.toUpperCase() === 'RT')) {
+      const data = response.data.data;
+      setUserRole(data.role);
+      setUserRtId(data.rt_id);
+      
+      if (data.role && (data.role.toUpperCase() === 'ADMIN_RT' || data.role.toUpperCase() === 'RT')) {
         setActiveTab('list');
       }
     } catch (error) {
@@ -309,6 +312,11 @@ export default function ReportScreen() {
       formData.append('title', title);
       formData.append('description', description);
       formData.append('category', category);
+      
+      // Ensure rt_id is sent if available
+      if (userRtId) {
+        formData.append('rt_id', userRtId.toString());
+      }
 
       if (photo) {
         const filename = photo.split('/').pop() || 'photo.jpg';
