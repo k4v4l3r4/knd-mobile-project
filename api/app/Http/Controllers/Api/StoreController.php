@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Store;
+use App\Models\Notification;
+use App\Models\User;
 use App\Http\Resources\StoreResource;
 use App\Support\PaymentSettings;
 use Illuminate\Http\Request;
@@ -86,6 +88,37 @@ class StoreController extends Controller
         }
 
         $store = Store::create($data);
+
+        // --- Notification Logic ---
+        // 1. Notify User (Warga)
+        Notification::create([
+            'user_id' => $user->id,
+            'title' => 'Pendaftaran Toko',
+            'message' => "Toko {$store->name} berhasil didaftarkan dan sedang menunggu review Admin",
+            'type' => 'STORE_REGISTRATION',
+            'related_id' => $store->id,
+            'is_read' => false,
+            'tenant_id' => $user->tenant_id,
+        ]);
+
+        // 2. Notify Admin RT
+        // Find Admin RT in the same RT
+        $admins = User::where('rt_id', $user->rt_id)
+            ->whereIn('role', ['ADMIN_RT', 'RT'])
+            ->get();
+
+        foreach ($admins as $admin) {
+            Notification::create([
+                'user_id' => $admin->id,
+                'title' => 'Pendaftaran Toko Baru',
+                'message' => "Warga {$user->name} mendaftarkan toko {$store->name}. Menunggu verifikasi.",
+                'type' => 'STORE_REGISTRATION',
+                'related_id' => $store->id,
+                'is_read' => false,
+                'tenant_id' => $user->tenant_id, // Ensure tenant consistency
+            ]);
+        }
+        // --- End Notification Logic ---
 
         return response()->json([
             'message' => 'Toko berhasil dibuat. Menunggu persetujuan Admin RT.',
