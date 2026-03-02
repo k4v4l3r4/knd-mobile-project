@@ -48,11 +48,19 @@ class AuthController extends Controller
         ]);
 
         $rtId = $validated['rt_id'] ?? null;
+        $tenantId = null;
 
         if (!$rtId && !empty($validated['invite_code'])) {
+            // Fix: Use invite_code column (already correct) and ensure we get tenant_id
             $rt = WilayahRt::where('invite_code', $validated['invite_code'])->first();
             if ($rt) {
                 $rtId = $rt->id;
+                $tenantId = $rt->tenant_id; // Capture tenant_id from RT
+            }
+        } elseif ($rtId) {
+            $rt = WilayahRt::find($rtId);
+            if ($rt) {
+                $tenantId = $rt->tenant_id;
             }
         }
 
@@ -64,8 +72,16 @@ class AuthController extends Controller
         }
 
         // Get RW ID from RT
-        $rt = WilayahRt::find($rtId);
+        // If $rt is already fetched above, use it. Otherwise find it.
+        if (!isset($rt)) {
+             $rt = WilayahRt::find($rtId);
+        }
+        
         $rwId = $rt ? $rt->rw_id : null;
+        // Update tenantId if not set yet (e.g. passed rt_id directly)
+        if (!$tenantId && $rt) {
+            $tenantId = $rt->tenant_id;
+        }
 
         // Map marital status to standard format (Title Case)
         $maritalStatus = $validated['marital_status'] ?? null;
@@ -91,6 +107,7 @@ class AuthController extends Controller
         }
 
         $user = User::create([
+            'tenant_id' => $tenantId, // Ensure tenant_id is saved
             'name' => $validated['name'],
             'phone' => $validated['phone'],
             'email' => $validated['email'] ?? null,
