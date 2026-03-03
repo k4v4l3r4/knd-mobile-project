@@ -1081,9 +1081,10 @@ export default function MarketScreen({ onNavigate }: MarketScreenProps) {
             </View>
             
             {myStore.status === 'verified' && isOwner && (
-              <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
+              <View style={{ gap: 12, marginTop: 12 }}>
+                {/* Row 1: Kelola Produk - Full Width */}
                 <TouchableOpacity 
-                  style={[styles.manageProductsButton, { flex: 1 }]}
+                  style={[styles.manageProductsButton, { width: '100%' }]}
                   onPress={() => {
                     if (isExpired) {
                       Alert.alert(t('report.accessLimited'), 'Masa trial RT Anda telah habis.');
@@ -1097,30 +1098,33 @@ export default function MarketScreen({ onNavigate }: MarketScreenProps) {
                   <Text style={styles.manageProductsText}>Kelola Produk</Text>
                 </TouchableOpacity>
                 
-                <TouchableOpacity 
-                  style={[styles.manageProductsButton, { flex: 1, backgroundColor: '#f59e0b' }]}
-                  onPress={() => {
-                    setIsCreatingStore(false);
-                    setStoreName(myStore.name || '');
-                    setStoreDescription(myStore.description || '');
-                    setStoreCategory(myStore.category || STORE_CATEGORIES[0].id);
-                    setStoreContact(myStore.contact || '');
-                    setStoreAddress(myStore.address || '');
-                    setModalVisible(false);
-                    setEditingStore(true);
-                  }}
-                >
-                  <MaterialCommunityIcons name="pencil-outline" size={20} color="#fff" />
-                  <Text style={styles.manageProductsText}>Edit Toko</Text>
-                </TouchableOpacity>
+                {/* Row 2: Edit & Hapus - Side by Side */}
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                  <TouchableOpacity 
+                    style={[styles.manageProductsButton, { flex: 1, backgroundColor: '#f59e0b' }]}
+                    onPress={() => {
+                      setIsCreatingStore(false);
+                      setStoreName(myStore.name || '');
+                      setStoreDescription(myStore.description || '');
+                      setStoreCategory(myStore.category || STORE_CATEGORIES[0].id);
+                      setStoreContact(myStore.contact || '');
+                      setStoreAddress(myStore.address || '');
+                      setModalVisible(false);
+                      setEditingStore(true);
+                    }}
+                  >
+                    <MaterialCommunityIcons name="pencil-outline" size={20} color="#fff" />
+                    <Text style={styles.manageProductsText}>Edit Toko</Text>
+                  </TouchableOpacity>
 
-                <TouchableOpacity 
-                  style={[styles.manageProductsButton, { flex: 1, backgroundColor: '#fee2e2', borderWidth: 1, borderColor: '#fca5a5' }]}
-                  onPress={handleDeleteStore}
-                >
-                  <Ionicons name="trash-outline" size={20} color="#ef4444" />
-                  <Text style={[styles.manageProductsText, { color: '#ef4444' }]}>Hapus Toko</Text>
-                </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.manageProductsButton, { flex: 1, backgroundColor: '#fee2e2', borderWidth: 1, borderColor: '#fca5a5' }]}
+                    onPress={handleDeleteStore}
+                  >
+                    <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                    <Text style={[styles.manageProductsText, { color: '#ef4444' }]}>Hapus Toko</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             )}
 
@@ -1188,19 +1192,19 @@ export default function MarketScreen({ onNavigate }: MarketScreenProps) {
 
                        {isOwner && (
                          <View style={styles.actionIcons}>
-                           <TouchableOpacity 
-                             style={[styles.actionBtn, { backgroundColor: '#fde68a', borderColor: '#f59e0b' }]}
-                             onPress={() => onNavigate('ADD_PRODUCT', item)}
-                           >
-                             <MaterialCommunityIcons name="pencil-outline" size={16} color="#92400e" />
-                           </TouchableOpacity>
-                           <TouchableOpacity 
-                             style={[styles.actionBtn, { backgroundColor: '#fee2e2', borderColor: '#fca5a5' }]}
-                             onPress={() => handleDeleteProduct(item.id)}
-                           >
-                             <Ionicons name="trash-outline" size={16} color="#991b1b" />
-                           </TouchableOpacity>
-                         </View>
+                          <TouchableOpacity 
+                            style={[styles.actionBtn, { backgroundColor: 'rgba(255, 255, 255, 0.95)', borderColor: '#f59e0b' }]}
+                            onPress={() => onNavigate('ADD_PRODUCT', item)}
+                          >
+                            <MaterialCommunityIcons name="pencil-outline" size={16} color="#d97706" />
+                          </TouchableOpacity>
+                          <TouchableOpacity 
+                            style={[styles.actionBtn, { backgroundColor: 'rgba(255, 255, 255, 0.95)', borderColor: '#ef4444' }]}
+                            onPress={() => handleDeleteProduct(item.id)}
+                          >
+                            <Ionicons name="trash-outline" size={16} color="#dc2626" />
+                          </TouchableOpacity>
+                        </View>
                        )}
                      </View>
                      <View style={styles.cardContent}>
@@ -1832,6 +1836,12 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
+    // Shadow for better contrast
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 3,
   },
   cardContent: {
     padding: 10, // White space
