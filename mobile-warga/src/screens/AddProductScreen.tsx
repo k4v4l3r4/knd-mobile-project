@@ -25,12 +25,21 @@ import { useLanguage } from '../context/LanguageContext';
 import { DemoLabel } from '../components/TenantStatusComponents';
 import { ImagePickerModal } from '../components/ImagePickerModal';
 import { STORE_CATEGORIES } from '../constants/market';
+import { Product } from './ProductDetailScreen';
 
 const { width, height } = Dimensions.get('window');
 
+interface EditingProduct extends Product {
+  shopee_url?: string;
+  tokopedia_url?: string;
+  facebook_url?: string;
+  instagram_url?: string;
+  tiktok_url?: string;
+}
+
 interface AddProductScreenProps {
   onSuccess: () => void;
-  editingProduct?: any;
+  editingProduct?: EditingProduct;
 }
 
 export default function AddProductScreen({ onSuccess, editingProduct }: AddProductScreenProps) {
@@ -80,7 +89,11 @@ export default function AddProductScreen({ onSuccess, editingProduct }: AddProdu
       setHasBpom(labels.includes('BPOM'));
       setIsHomemade(labels.includes('HOMEMADE'));
       const shipType = editingProduct.shipping_type || 'LOCAL';
-      setShippingType(shipType);
+      if (['PICKUP', 'LOCAL', 'COURIER'].includes(shipType)) {
+        setShippingType(shipType as 'PICKUP' | 'LOCAL' | 'COURIER');
+      } else {
+        setShippingType('LOCAL');
+      }
       const shipFee = editingProduct.shipping_fee_flat != null ? String(editingProduct.shipping_fee_flat) : '';
       setShippingFee(shipFee);
       setShopeeUrl(String(editingProduct.shopee_url || ''));

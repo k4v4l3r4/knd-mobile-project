@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,12 +12,13 @@ import {
   Platform,
   TouchableOpacity,
   FlatList,
-  RefreshControl
+  RefreshControl,
+  ListRenderItem
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons, MaterialIcons, Feather } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import api, { getStorageUrl } from '../services/api';
 import { useTheme, ThemeColors } from '../context/ThemeContext';
@@ -26,53 +27,105 @@ import { useLanguage } from '../context/LanguageContext';
 import { DemoLabel } from '../components/TenantStatusComponents';
 import Dropdown from '../components/Dropdown';
 
+// --- Types ---
+interface User {
+  id: number;
+  name: string;
+  email?: string;
+  role?: string;
+  avatar_url?: string;
+}
+
+interface Report {
+  id: number;
+  user_id: number;
+  rt_id?: number;
+  title: string;
+  description: string;
+  category: string;
+  status: 'PENDING' | 'PROCESSED' | 'DONE' | 'REJECTED';
+  photo_url?: string;
+  created_at: string;
+  updated_at: string;
+  user?: User | null; // User can be null if deleted
+}
+
+type TabType = 'create' | 'list';
+type FilterStatus = 'ALL' | 'PENDING' | 'PROCESSED' | 'DONE' | 'REJECTED';
+
 const CATEGORY_OPTIONS = [
   { value: 'Keamanan', labelKey: 'report.categories.security' },
   { value: 'Kebersihan', labelKey: 'report.categories.cleanliness' },
   { value: 'Infrastruktur', labelKey: 'report.categories.infrastructure' },
   { value: 'Lainnya', labelKey: 'report.categories.other' },
 ];
+import { ImagePickerModal } from '../components/ImagePickerModal';
 
 export default function ReportScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
-  const { colors, isDarkMode, setTheme } = useTheme();
+  const { colors, isDarkMode } = useTheme();
   const { isDemo, isExpired } = useTenant();
   const { t } = useLanguage();
-  const styles = React.useMemo(() => getStyles(colors, isDarkMode), [colors, isDarkMode]);
+  const styles = useMemo(() => getStyles(colors, isDarkMode), [colors, isDarkMode]);
+
+  // Form State
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('Keamanan');
   const [photo, setPhoto] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // New States for Admin Features
-  const [userRole, setUserRole] = useState<string | null>(null);
-  const [userRtId, setUserRtId] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<'create' | 'list'>('create');
-  const [reports, setReports] = useState<any[]>([]);
+  const [imagePickerVisible, setImagePickerVisible] = useState(false);
+
+  // List State
+  const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING' | 'PROCESSED' | 'DONE' | 'REJECTED'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<FilterStatus>('ALL');
 
+  // User Context
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userRtId, setUserRtId] = useState<number | null>(null);
+  const [userId, setUserId] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<TabType>('create');
+
+  // --- Effects ---
+
+  // Fetch profile on mount
   useEffect(() => {
     fetchProfile();
   }, []);
 
+  // Reload reports when tab changes to list or filter changes
   useEffect(() => {
     if (activeTab === 'list') {
       fetchReports();
     }
   }, [activeTab, statusFilter]);
 
+  // Auto-refresh when screen comes into focus (if on list tab)
+  useFocusEffect(
+    useCallback(() => {
+      if (activeTab === 'list') {
+        fetchReports();
+      }
+    }, [activeTab, statusFilter])
+  );
+
+  // --- API Calls ---
+
   const fetchProfile = async () => {
     try {
       const response = await api.get('/me');
-      const data = response.data.data;
-      setUserRole(data.role);
-      setUserRtId(data.rt_id);
-      
-      if (data.role && (data.role.toUpperCase() === 'ADMIN_RT' || data.role.toUpperCase() === 'RT')) {
-        setActiveTab('list');
+      const data = response.data?.data;
+      if (data) {
+        setUserRole(data.role);
+        setUserRtId(data.rt_id);
+        setUserId(data.id);
+        
+        // Auto-switch to list for admins
+        if (data.role && ['ADMIN_RT', 'RT'].includes(data.role.toUpperCase())) {
+          setActiveTab('list');
+        }
       }
     } catch (error) {
       console.log('Error fetching profile:', error);
@@ -81,23 +134,24 @@ export default function ReportScreen() {
 
   const fetchReports = async () => {
     try {
-      setLoading(true);
+      if (!refreshing) setLoading(true); // Don't show full loader on refresh
+      
       let url = '/reports';
       if (statusFilter !== 'ALL') {
         url += `?status=${statusFilter}`;
       }
+      
       console.log('Fetching reports:', url);
       const response = await api.get(url);
-      console.log('Data Laporan:', response.data);
-      
+      console.log('Reports data received:', response.data?.data?.length || 0);
+
       if (response.data && Array.isArray(response.data.data)) {
         setReports(response.data.data);
       } else {
-        console.warn('Invalid reports response structure:', response.data);
         setReports([]);
       }
     } catch (error) {
-      console.log('Error fetching reports:', error);
+      console.error('Error fetching reports:', error);
       Alert.alert(t('common.error'), t('report.loadFailed'));
       setReports([]);
     } finally {
@@ -117,152 +171,138 @@ export default function ReportScreen() {
       return;
     }
 
-    try {
-      let confirmMsg = t('report.confirmStatusUpdate');
-      if (newStatus === 'PROCESSED') confirmMsg = 'Proses laporan ini?';
-      if (newStatus === 'DONE') confirmMsg = 'Tandai laporan ini sebagai selesai?';
-      if (newStatus === 'REJECTED') confirmMsg = 'Tolak laporan ini?';
+    let confirmMsg = t('report.confirmStatusUpdate');
+    if (newStatus === 'PROCESSED') confirmMsg = 'Proses laporan ini?';
+    if (newStatus === 'DONE') confirmMsg = 'Tandai laporan ini sebagai selesai?';
+    if (newStatus === 'REJECTED') confirmMsg = 'Tolak laporan ini?';
 
-      Alert.alert(
-        t('common.confirm'),
-        confirmMsg,
-        [
-          { text: t('common.cancel'), style: 'cancel' },
-          {
-            text: t('common.yes'),
-            onPress: async () => {
-              setLoading(true);
-              try {
-                await api.put(`/reports/${id}`, { status: newStatus });
-                Alert.alert(t('common.success'), t('report.statusUpdated'));
-                fetchReports();
-              } catch (error: any) {
-                console.log('Error updating status API:', error);
-                Alert.alert(t('common.error'), error.response?.data?.message || t('report.updateFailed'));
-              } finally {
-                setLoading(false);
-              }
+    Alert.alert(
+      t('common.confirm'),
+      confirmMsg,
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('common.yes'),
+          onPress: async () => {
+            setLoading(true);
+            try {
+              await api.put(`/reports/${id}`, { status: newStatus });
+              Alert.alert(t('common.success'), t('report.statusUpdated'));
+              fetchReports();
+            } catch (error: any) {
+              console.error('Error updating status:', error);
+              Alert.alert(t('common.error'), error.response?.data?.message || t('report.updateFailed'));
+            } finally {
+              setLoading(false);
             }
           }
-        ]
-      );
-    } catch (error) {
-      console.log('Error updating status:', error);
-      Alert.alert(t('common.error'), t('report.updateFailed'));
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'PENDING': return '#f59e0b';
-      case 'PROCESSED': 
-      case 'PROCESS': return '#3b82f6';
-      case 'DONE': 
-      case 'RESOLVED': return '#10b981';
-      case 'REJECTED': return '#ef4444';
-      default: return '#64748b';
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'PENDING': return t('report.status.pending');
-      case 'PROCESSED': 
-      case 'PROCESS': return t('report.status.processed');
-      case 'DONE': 
-      case 'RESOLVED': return t('report.status.done');
-      case 'REJECTED': return t('report.status.rejected');
-      default: return status;
-    }
-  };
-
-  const renderReportItem = ({ item }: { item: any }) => {
-    if (!item) return null;
-
-    // Safe user access
-    const userName = item.user?.name || 'Warga';
-    const userInitial = item.user?.name ? item.user.name.charAt(0) : '?';
-    
-    // Safe date parsing
-    let dateString = '-';
-    try {
-      if (item.created_at) {
-        dateString = new Date(item.created_at).toLocaleDateString('id-ID');
-      }
-    } catch (e) {
-      console.log('Error parsing date:', e);
-    }
-
-    return (
-      <View style={styles.reportCard}>
-        <View style={styles.reportHeader}>
-          <View style={styles.reporterInfo}>
-            <View style={[styles.avatarPlaceholder, { backgroundColor: colors.primary }]}>
-               <Text style={styles.avatarText}>{userInitial}</Text>
-            </View>
-            <View>
-              <Text style={styles.reporterName}>{userName}</Text>
-              <Text style={styles.reportDate}>{dateString}</Text>
-            </View>
-          </View>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
-            <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
-              {getStatusLabel(item.status)}
-            </Text>
-          </View>
-        </View>
-
-        <Text style={styles.reportTitle}>{item.title || '-'}</Text>
-        <Text style={styles.reportDescription}>{item.description || '-'}</Text>
-        
-        {!!getStorageUrl(item.photo_url) && (
-          <Image source={{ uri: getStorageUrl(item.photo_url)! }} style={styles.reportImage} />
-        )}
-
-        {/* Admin Actions */}
-        {(userRole && (userRole.toUpperCase() === 'ADMIN_RT' || userRole.toUpperCase() === 'RT')) && (
-          <View style={styles.actionButtons}>
-            {item.status === 'PENDING' && (
-              <>
-                <TouchableOpacity 
-                  style={[styles.actionButton, { backgroundColor: '#3b82f6' }]}
-                  onPress={() => handleUpdateStatus(item.id, 'PROCESSED')}
-                >
-                  <Text style={styles.actionButtonText}>Proses</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.actionButton, { backgroundColor: '#ef4444' }]}
-                  onPress={() => handleUpdateStatus(item.id, 'REJECTED')}
-                >
-                  <Text style={styles.actionButtonText}>Tolak</Text>
-                </TouchableOpacity>
-              </>
-            )}
-            {(item.status === 'PROCESS' || item.status === 'PROCESSED') && (
-              <TouchableOpacity 
-                style={[styles.actionButton, { backgroundColor: '#10b981' }]}
-                onPress={() => handleUpdateStatus(item.id, 'DONE')}
-              >
-                <Text style={styles.actionButtonText}>Selesai</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
-      </View>
+        }
+      ]
     );
   };
+
+  const handleDeleteReport = async (id: number) => {
+    Alert.alert(
+      t('common.confirm'),
+      t('report.confirmDelete') || 'Apakah Anda yakin ingin menghapus laporan ini?',
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('common.delete'),
+          style: 'destructive',
+          onPress: async () => {
+            setLoading(true);
+            try {
+              await api.delete(`/reports/${id}`);
+              Alert.alert(t('common.success'), t('report.deletedSuccess') || 'Laporan berhasil dihapus');
+              fetchReports();
+            } catch (error: any) {
+              console.error('Error deleting report:', error);
+              Alert.alert(t('common.error'), error.response?.data?.message || t('report.deleteFailed'));
+            } finally {
+              setLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const processSubmit = async () => {
+     if (isDemo) {
+      Alert.alert(t('common.demoMode'), t('report.demoMode'));
+      return;
+    }
+    if (isExpired) {
+      Alert.alert(t('report.accessLimited'), t('report.trialExpired'));
+      return;
+    }
+
+    if (!title.trim() || !description.trim()) {
+      Alert.alert(t('common.error'), t('report.validationError'));
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('title', title.trim());
+      formData.append('description', description.trim());
+      formData.append('category', category);
+      if (userRtId) formData.append('rt_id', userRtId.toString());
+
+      if (photo) {
+        const filename = photo.split('/').pop() || 'photo.jpg';
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : `image/jpeg`;
+        // @ts-ignore
+        formData.append('photo', { uri: photo, name: filename, type });
+      }
+
+      const response = await api.post('/reports', formData, {
+        transformRequest: (data, headers) => {
+            // Fix for Network Error on Android/Axios
+            if (headers && typeof headers.delete === 'function') {
+                headers.delete('Content-Type');
+            }
+            return data;
+        },
+      });
+
+      if (response.data?.success || response.status === 201 || response.status === 200) {
+        setTitle('');
+        setDescription('');
+        setPhoto(null);
+        Alert.alert(t('report.successTitle'), t('report.successMsg'), [{ text: t('common.ok') }]);
+        
+        // Switch to list tab to see the new report
+        setActiveTab('list');
+        fetchReports();
+      } else {
+        throw new Error(response.data?.message || 'Failed');
+      }
+
+    } catch (error: any) {
+      console.error('Report submit error:', error);
+      const msg = error.response?.data?.message || error.message || t('report.failedMsg');
+      Alert.alert(t('common.failed'), msg);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  // --- UI Helpers ---
 
   const pickImage = async (mode: 'camera' | 'gallery') => {
     try {
       let result;
-      
       if (mode === 'camera') {
-        const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-        if (permissionResult.granted === false) {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
           Alert.alert(t('common.imagePicker.permissionDenied'), t('common.imagePicker.cameraPermission'));
           return;
         }
-        
         result = await ImagePicker.launchCameraAsync({
           mediaTypes: ImagePicker.MediaTypeOptions.Images,
           allowsEditing: true,
@@ -270,12 +310,11 @@ export default function ReportScreen() {
           aspect: [4, 3],
         });
       } else {
-        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (permissionResult.granted === false) {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
           Alert.alert(t('common.imagePicker.permissionDenied'), t('common.imagePicker.galleryPermission'));
           return;
         }
-
         result = await ImagePicker.launchImageLibraryAsync({
           mediaTypes: ImagePicker.MediaTypeOptions.Images,
           allowsEditing: true,
@@ -284,7 +323,7 @@ export default function ReportScreen() {
         });
       }
 
-      if (!result.canceled) {
+      if (!result.canceled && result.assets && result.assets.length > 0) {
         setPhoto(result.assets[0].uri);
       }
     } catch (error) {
@@ -294,118 +333,297 @@ export default function ReportScreen() {
   };
 
   const showImagePickerOptions = () => {
-    Alert.alert(
-      t('common.imagePicker.title'),
-      t('common.imagePicker.subtitle'),
-      [
-        {
-          text: t('common.imagePicker.camera'),
-          onPress: () => pickImage('camera')
-        },
-        {
-          text: t('common.imagePicker.gallery'),
-          onPress: () => pickImage('gallery')
-        },
-        {
-          text: t('common.imagePicker.cancel'),
-          style: "cancel"
+    setImagePickerVisible(true);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'PENDING': return '#f59e0b'; // Amber
+      case 'PROCESSED': return '#3b82f6'; // Blue
+      case 'DONE': return '#10b981'; // Emerald
+      case 'REJECTED': return '#ef4444'; // Red
+      default: return '#64748b'; // Slate
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'PENDING': return t('report.status.pending') || 'Menunggu';
+      case 'PROCESSED': return t('report.status.processed') || 'Diproses';
+      case 'DONE': return t('report.status.done') || 'Selesai';
+      case 'REJECTED': return t('report.status.rejected') || 'Ditolak';
+      default: return status;
+    }
+  };
+
+  // --- Renderers ---
+
+  const renderReportItem: ListRenderItem<Report> = ({ item }) => {
+    if (!item) return null;
+
+    // Safe accessors
+    const userName = item.user?.name || 'Warga';
+    const userInitial = userName.charAt(0).toUpperCase();
+    const statusColor = getStatusColor(item.status);
+    
+    // Date formatting
+    let dateString = '-';
+    try {
+        if (item.created_at) {
+            dateString = new Date(item.created_at).toLocaleDateString('id-ID', {
+                day: 'numeric', month: 'short', year: 'numeric'
+            });
         }
-      ]
+    } catch (e) { dateString = '-'; }
+
+    // Admin Actions Check
+    const isAdmin = userRole && ['ADMIN_RT', 'RT'].includes(userRole.toUpperCase());
+    const isOwner = userId && item.user_id === userId;
+    
+    return (
+      <View style={styles.reportCard}>
+        <View style={styles.reportHeader}>
+          <View style={styles.reporterInfo}>
+            <View style={[styles.avatarPlaceholder, { backgroundColor: colors.primary }]}>
+               <Text style={styles.avatarText}>{userInitial}</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.reporterName} numberOfLines={1}>{userName}</Text>
+              <Text style={styles.reportDate}>{dateString} • {item.category}</Text>
+            </View>
+          </View>
+          <View style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}>
+            <Text style={[styles.statusText, { color: statusColor }]}>
+              {getStatusLabel(item.status)}
+            </Text>
+          </View>
+        </View>
+
+        <Text style={styles.reportTitle}>{item.title}</Text>
+        <Text style={styles.reportDescription}>{item.description}</Text>
+        
+        {!!item.photo_url && (
+          <Image 
+            source={{ uri: getStorageUrl(item.photo_url) || '' }} 
+            style={styles.reportImage} 
+            resizeMode="cover"
+          />
+        )}
+
+        {/* Admin Actions */}
+        {isAdmin && (
+          <View style={styles.actionButtons}>
+            {item.status === 'PENDING' && (
+              <>
+                <TouchableOpacity 
+                  style={[styles.actionButton, { backgroundColor: '#3b82f6' }]}
+                  onPress={() => handleUpdateStatus(item.id, 'PROCESSED')}
+                >
+                  <Ionicons name="construct-outline" size={16} color="#fff" style={{ marginRight: 4 }} />
+                  <Text style={styles.actionButtonText}>Proses</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.actionButton, { backgroundColor: '#ef4444' }]}
+                  onPress={() => handleUpdateStatus(item.id, 'REJECTED')}
+                >
+                  <Ionicons name="close-circle-outline" size={16} color="#fff" style={{ marginRight: 4 }} />
+                  <Text style={styles.actionButtonText}>Tolak</Text>
+                </TouchableOpacity>
+              </>
+            )}
+            {(item.status === 'PROCESSED') && (
+              <TouchableOpacity 
+                style={[styles.actionButton, { backgroundColor: '#10b981' }]}
+                onPress={() => handleUpdateStatus(item.id, 'DONE')}
+              >
+                <Ionicons name="checkmark-circle-outline" size={16} color="#fff" style={{ marginRight: 4 }} />
+                <Text style={styles.actionButtonText}>Selesai</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {/* Owner Actions (Delete Pending) */}
+        {isOwner && item.status === 'PENDING' && !isAdmin && (
+          <View style={styles.actionButtons}>
+            <TouchableOpacity 
+              style={[styles.actionButton, { backgroundColor: '#ef4444' }]}
+              onPress={() => handleDeleteReport(item.id)}
+            >
+              <Ionicons name="trash-outline" size={16} color="#fff" style={{ marginRight: 4 }} />
+              <Text style={styles.actionButtonText}>{t('common.delete')}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
     );
   };
 
-  const handleSubmit = async () => {
-    if (isDemo) {
-      Alert.alert(t('common.demoMode'), t('report.demoMode'));
-      return;
-    }
-    if (isExpired) {
-      Alert.alert(t('report.accessLimited'), t('report.trialExpired'));
-      return;
-    }
+  const renderCreateForm = () => (
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={{ flex: 1 }}
+    >
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+             <View style={styles.iconCircle}>
+                <Ionicons name="megaphone-outline" size={24} color={colors.primary} />
+             </View>
+             <View style={{ flex: 1 }}>
+                <Text style={styles.sectionTitle}>{t('report.form.header')}</Text>
+                <Text style={styles.sectionSubtitle}>{t('report.form.subHeader')}</Text>
+             </View>
+          </View>
 
-    if (!title || !description) {
-      Alert.alert(t('common.error'), t('report.validationError'));
-      return;
-    }
+          <View style={styles.formGroup}>
+            <Dropdown
+              label={t('report.form.category')}
+              data={CATEGORY_OPTIONS.map(cat => ({
+                label: t(cat.labelKey),
+                value: cat.value
+              }))}
+              value={category}
+              onSelect={(val) => setCategory(val as string)}
+              placeholder={t('report.form.categoryPlaceholder') || 'Pilih Kategori'}
+            />
+          </View>
 
-    setIsSubmitting(true);
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000);
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>{t('report.form.title')}</Text>
+            <TextInput
+              style={styles.input}
+              placeholder={t('report.form.titlePlaceholder')}
+              value={title}
+              onChangeText={setTitle}
+              placeholderTextColor={colors.textSecondary}
+            />
+          </View>
 
-    try {
-      const formData = new FormData();
-      formData.append('title', title);
-      formData.append('description', description);
-      formData.append('category', category);
-      
-      // Ensure rt_id is sent if available
-      if (userRtId) {
-        formData.append('rt_id', userRtId.toString());
-      }
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>{t('report.form.description')}</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder={t('report.form.descriptionPlaceholder')}
+              value={description}
+              onChangeText={setDescription}
+              placeholderTextColor={colors.textSecondary}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+          </View>
 
-      if (photo) {
-        const filename = photo.split('/').pop() || 'photo.jpg';
-        const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : `image/jpeg`;
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>{t('report.form.photo')}</Text>
+            <TouchableOpacity style={styles.photoButton} onPress={showImagePickerOptions} activeOpacity={0.7}>
+              {photo ? (
+                <View style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                    <Image source={{ uri: photo }} style={styles.previewImage} />
+                    <View style={styles.changePhotoOverlay}>
+                        <Ionicons name="camera" size={20} color="#fff" />
+                        <Text style={{ color: '#fff', marginLeft: 4, fontWeight: '600' }}>Ubah</Text>
+                    </View>
+                </View>
+              ) : (
+                <View style={styles.uploadPlaceholder}>
+                  <Ionicons name="camera-outline" size={32} color={colors.primary} />
+                  <Text style={styles.uploadText}>{t('report.form.uploadText')}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
 
-        // @ts-ignore
-        formData.append('photo', {
-          uri: photo,
-          name: filename,
-          type: type,
-        });
-      }
+          <TouchableOpacity
+            onPress={processSubmit}
+            disabled={isSubmitting}
+            style={[
+              styles.submitButton, 
+              { backgroundColor: colors.primary, opacity: isSubmitting ? 0.7 : 1 }
+            ]}
+            activeOpacity={0.8}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.submitButtonText}>{t('report.submit')}</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+        <View style={{ height: 100 }} />
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
 
-      const response = await api.post('/reports', formData, {
-        transformRequest: (data) => data,
-        signal: controller.signal,
-      });
+  const renderList = () => (
+    <View style={{ flex: 1 }}>
+      {/* Filters */}
+      <View style={{ paddingVertical: 12, backgroundColor: colors.background }}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
+        >
+          {(['ALL', 'PENDING', 'PROCESSED', 'DONE', 'REJECTED'] as FilterStatus[]).map((status) => (
+            <TouchableOpacity
+              key={status}
+              style={[
+                styles.filterChip,
+                statusFilter === status && { backgroundColor: colors.primary },
+                statusFilter !== status && { backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9', borderWidth: 1, borderColor: colors.border }
+              ]}
+              onPress={() => setStatusFilter(status)}
+            >
+              <Text style={[
+                styles.filterText,
+                statusFilter === status ? { color: '#fff', fontWeight: '600' } : { color: colors.textSecondary }
+              ]}>
+                {status === 'ALL' ? t('report.filter.all') : getStatusLabel(status)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
-      clearTimeout(timeoutId);
-
-      const responseData = response.data;
-
-      if (responseData.success) {
-        setTitle('');
-        setDescription('');
-        setPhoto(null);
-        
-        Alert.alert(
-          t('report.successTitle'), 
-          t('report.successMsg'),
-          [{ text: t('common.ok') }]
-        );
-      } else {
-        Alert.alert(t('common.failed'), responseData.message || t('report.failedMsg'));
-      }
-    } catch (error: any) {
-      console.error('Report error:', error);
-      
-      if (error.name === 'AbortError') {
-        Alert.alert(t('report.timeout'), t('report.timeoutMsg'));
-      } else {
-        Alert.alert(t('common.failed'), t('report.failedMsg'));
-      }
-    } finally {
-      setIsSubmitting(false);
-      clearTimeout(timeoutId);
-    }
-  };
+      {loading && !refreshing ? (
+        <View style={styles.centerContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={{ marginTop: 12, color: colors.textSecondary }}>Memuat laporan...</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={reports}
+          renderItem={renderReportItem}
+          keyExtractor={(item, index) => item?.id ? String(item.id) : String(index)}
+          contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Ionicons name="document-text-outline" size={64} color={colors.textSecondary + '40'} />
+              <Text style={styles.emptyStateTitle}>Belum ada laporan</Text>
+              <Text style={styles.emptyStateSubtitle}>
+                {statusFilter === 'ALL' 
+                  ? 'Laporan yang Anda buat atau terima akan muncul di sini.' 
+                  : `Tidak ada laporan dengan status ${getStatusLabel(statusFilter)}.`}
+              </Text>
+            </View>
+          }
+        />
+      )}
+    </View>
+  );
 
   return (
     <View style={styles.container}>
-      {/* Header with Linear Gradient */}
-      <View
-        style={[
-          styles.headerBackground,
-          { backgroundColor: isDarkMode ? '#059669' : '#047857' }
-        ]}
-      >
+      {/* Header */}
+      <View style={[styles.headerBackground, { backgroundColor: isDarkMode ? '#059669' : '#047857' }]}>
         <SafeAreaView edges={['top']} style={styles.headerContent}>
           <View style={styles.headerRow}>
-            <View style={{ width: 40 }} />
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                <Ionicons name="arrow-back" size={24} color="#fff" />
+            </TouchableOpacity>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Text style={styles.headerTitle}>
                 {activeTab === 'create' ? t('report.createTitle') : t('report.listTitle')}
@@ -415,172 +633,36 @@ export default function ReportScreen() {
             <View style={{ width: 40 }} />
           </View>
 
-          {/* Tabs for Everyone (Admins see all reports, Warga see their own) */}
-          {userRole && (
-            <View style={styles.tabContainer}>
-              <TouchableOpacity 
-                style={[styles.tabButton, activeTab === 'create' && styles.tabButtonActive]}
-                onPress={() => setActiveTab('create')}
-              >
-                <Text style={[styles.tabText, activeTab === 'create' && styles.tabTextActive]}>
-                  {t('report.createTitle')}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.tabButton, activeTab === 'list' && styles.tabButtonActive]}
-                onPress={() => setActiveTab('list')}
-              >
-                <Text style={[styles.tabText, activeTab === 'list' && styles.tabTextActive]}>
-                  {t('report.listTitle')}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
+          {/* Tabs - Only show if user has role (loaded) */}
+          <View style={styles.tabContainer}>
+            <TouchableOpacity 
+              style={[styles.tabButton, activeTab === 'create' && styles.tabButtonActive]}
+              onPress={() => setActiveTab('create')}
+            >
+              <Text style={[styles.tabText, activeTab === 'create' && styles.tabTextActive]}>
+                {t('report.createTitle')}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.tabButton, activeTab === 'list' && styles.tabButtonActive]}
+              onPress={() => setActiveTab('list')}
+            >
+              <Text style={[styles.tabText, activeTab === 'list' && styles.tabTextActive]}>
+                {t('report.listTitle')}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </SafeAreaView>
       </View>
 
-      {activeTab === 'create' ? (
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1 }}
-        >
-          <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-            {/* Main Card */}
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                 <View style={styles.iconCircle}>
-                    <Ionicons name="megaphone-outline" size={24} color={colors.primary} />
-                 </View>
-                 <View>
-                    <Text style={styles.sectionTitle}>{t('report.form.header')}</Text>
-                    <Text style={styles.sectionSubtitle}>{t('report.form.subHeader')}</Text>
-                 </View>
-              </View>
+      {activeTab === 'create' ? renderCreateForm() : renderList()}
 
-              <View style={styles.formGroup}>
-                <Dropdown
-                  label={t('report.form.category')}
-                  data={CATEGORY_OPTIONS.map(cat => ({
-                    label: t(cat.labelKey),
-                    value: cat.value
-                  }))}
-                  value={category}
-                  onSelect={(val) => setCategory(val as string)}
-                  placeholder={t('report.form.categoryPlaceholder') || 'Pilih Kategori'}
-                />
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>{t('report.form.title')}</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder={t('report.form.titlePlaceholder')}
-                  value={title}
-                  onChangeText={setTitle}
-                  placeholderTextColor={colors.textSecondary}
-                />
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>{t('report.form.description')}</Text>
-                <TextInput
-                  style={[styles.input, styles.textArea]}
-                  placeholder={t('report.form.descriptionPlaceholder')}
-                  value={description}
-                  onChangeText={setDescription}
-                  placeholderTextColor={colors.textSecondary}
-                  multiline
-                  numberOfLines={4}
-                  textAlignVertical="top"
-                />
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>{t('report.form.photo')}</Text>
-                <TouchableOpacity style={styles.photoButton} onPress={showImagePickerOptions} activeOpacity={0.7}>
-                  {photo ? (
-                    <Image source={{ uri: photo }} style={styles.previewImage} />
-                  ) : (
-                    <View style={styles.uploadPlaceholder}>
-                      <Ionicons name="camera-outline" size={32} color={colors.primary} />
-                      <Text style={styles.uploadText}>{t('report.form.uploadText')}</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              </View>
-
-              <TouchableOpacity
-                onPress={handleSubmit}
-                disabled={isSubmitting}
-                style={[
-                  styles.submitButton, 
-                  { backgroundColor: colors.primary, opacity: isSubmitting ? 0.7 : 1, marginTop: 10, borderRadius: 16 }
-                ]}
-                activeOpacity={0.8}
-              >
-                {isSubmitting ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.submitButtonText}>{t('report.submit')}</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-            <View style={{ height: 120 }} />
-          </ScrollView>
-        </KeyboardAvoidingView>
-      ) : (
-        <View style={{ flex: 1 }}>
-          {/* Filters */}
-          <View style={{ paddingHorizontal: 16, paddingTop: 16, backgroundColor: colors.background }}>
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              style={styles.filterContainer}
-              contentContainerStyle={{ paddingRight: 16 }}
-            >
-              {['ALL', 'PENDING', 'PROCESSED', 'DONE', 'REJECTED'].map((status) => (
-                <TouchableOpacity
-                  key={status}
-                  style={[
-                    styles.filterChip,
-                    statusFilter === status && styles.filterChipActive,
-                    { backgroundColor: statusFilter === status ? colors.primary : (isDarkMode ? '#1e293b' : '#f1f5f9') }
-                  ]}
-                  onPress={() => setStatusFilter(status as any)}
-                >
-                  <Text style={[
-                    styles.filterText,
-                    statusFilter === status && styles.filterTextActive,
-                    { color: statusFilter === status ? '#fff' : colors.textSecondary }
-                  ]}>
-                    {status === 'ALL' ? t('report.filter.all') : getStatusLabel(status)}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-
-          {loading && !refreshing ? (
-            <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 20 }} />
-          ) : (
-            <FlatList
-              data={reports || []}
-              renderItem={renderReportItem}
-              keyExtractor={(item, index) => (item?.id ? String(item.id) : String(index))}
-              contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
-              refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
-              }
-              ListEmptyComponent={
-                <View style={styles.emptyState}>
-                  <Ionicons name="document-text-outline" size={48} color={colors.textSecondary} />
-                  <Text style={styles.emptyText}>{t('report.loadFailed') || 'Tidak ada laporan'}</Text>
-                </View>
-              }
-            />
-          )}
-        </View>
-      )}
+      <ImagePickerModal
+        visible={imagePickerVisible}
+        onClose={() => setImagePickerVisible(false)}
+        onCamera={() => pickImage('camera')}
+        onGallery={() => pickImage('gallery')}
+      />
     </View>
   );
 }
@@ -590,48 +672,90 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     flex: 1,
     backgroundColor: colors.background,
   },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   headerBackground: {
-    paddingBottom: 20,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
+    paddingBottom: 16,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    marginBottom: -16,
+    zIndex: 1,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 5,
-    zIndex: 10,
+    shadowRadius: 4,
   },
   headerContent: {
     paddingHorizontal: 16,
-    paddingTop: 10,
+    paddingBottom: 8,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    height: 44,
+    marginBottom: 12,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: '#fff',
   },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 12,
+    padding: 4,
+    marginTop: 4,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  tabButtonActive: {
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  tabText: {
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  tabTextActive: {
+    color: '#047857',
+    fontWeight: '700',
+  },
   content: {
     padding: 16,
-    paddingTop: 20, // Add padding to separate from header overlap if needed, or just standard padding
+    paddingTop: 32,
   },
   card: {
     backgroundColor: colors.card,
-    borderRadius: 30,
-    padding: 24,
-    shadowColor: colors.text,
-    shadowOffset: { width: 0, height: 4 },
+    borderRadius: 24,
+    padding: 20,
+    elevation: 2,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 3,
+    shadowRadius: 8,
     borderWidth: 1,
-    borderColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
-    marginTop: -40, // Overlap header slightly
+    borderColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -642,9 +766,9 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: isDarkMode ? 'rgba(5, 150, 105, 0.1)' : '#ecfdf5',
-    alignItems: 'center',
+    backgroundColor: isDarkMode ? '#334155' : '#e2e8f0',
     justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 16,
   },
   sectionTitle: {
@@ -653,7 +777,7 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     color: colors.text,
   },
   sectionSubtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.textSecondary,
     marginTop: 2,
   },
@@ -668,129 +792,94 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     marginLeft: 4,
   },
   input: {
-    backgroundColor: isDarkMode ? '#1e293b' : '#f8fafc',
-    borderRadius: 16,
-    padding: 16,
-    fontSize: 15,
-    color: colors.text,
+    height: 50,
     borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    fontSize: 15,
+    backgroundColor: isDarkMode ? '#1e293b' : '#f8fafc',
     borderColor: colors.border,
+    color: colors.text,
   },
   textArea: {
     height: 120,
-    textAlignVertical: 'top',
+    paddingTop: 12,
+    paddingBottom: 12,
   },
-
   photoButton: {
-    height: 160,
+    height: 180,
+    borderWidth: 1,
+    borderStyle: 'dashed',
     borderRadius: 16,
     overflow: 'hidden',
-    backgroundColor: isDarkMode ? '#1e293b' : '#f8fafc',
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderStyle: 'dashed',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  previewImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
+    backgroundColor: isDarkMode ? '#1e293b' : '#f8fafc',
+    borderColor: colors.border,
   },
   uploadPlaceholder: {
     alignItems: 'center',
   },
   uploadText: {
     marginTop: 8,
-    color: colors.textSecondary,
     fontSize: 14,
+    color: colors.textSecondary,
+    fontWeight: '500',
   },
-  submitButtonWrapper: {
-    marginTop: 10,
-    borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: colors.primary,
+  previewImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  changePhotoOverlay: {
+    position: 'absolute',
+    bottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  submitButton: {
+    height: 52,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 8,
+    elevation: 2,
+    shadowColor: '#059669',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
-    elevation: 4,
-  },
-  submitButton: {
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   submitButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '700',
   },
-  // Admin List Styles
-  tabContainer: {
-    flexDirection: 'row',
-    padding: 4,
-    backgroundColor: 'rgba(0,0,0,0.1)',
-    borderRadius: 12,
-    marginTop: 8,
-  },
-  tabButton: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: 'center',
-    borderRadius: 10,
-  },
-  tabButtonActive: {
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#fff',
-    opacity: 0.8,
-  },
-  tabTextActive: {
-    color: '#059669',
-    opacity: 1,
-  },
-  filterContainer: {
-    maxHeight: 50,
-    marginBottom: 10,
-  },
   filterChip: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  filterChipActive: {
-    borderColor: 'transparent',
+    marginRight: 0,
   },
   filterText: {
     fontSize: 13,
-    fontWeight: '600',
-  },
-  filterTextActive: {
-    fontWeight: '700',
+    fontWeight: '500',
   },
   reportCard: {
-    backgroundColor: isDarkMode ? '#1e293b' : '#fff',
+    backgroundColor: colors.card,
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowRadius: 2,
     borderWidth: 1,
-    borderColor: isDarkMode ? '#334155' : '#f1f5f9',
+    borderColor: colors.border,
   },
   reportHeader: {
     flexDirection: 'row',
@@ -801,14 +890,15 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
   reporterInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    flex: 1,
   },
   avatarPlaceholder: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
   },
   avatarText: {
     color: '#fff',
@@ -817,21 +907,24 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
   },
   reporterName: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
     color: colors.text,
   },
   reportDate: {
     fontSize: 12,
     color: colors.textSecondary,
+    marginTop: 2,
   },
   statusBadge: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 8,
+    marginLeft: 8,
   },
   statusText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
+    textTransform: 'uppercase',
   },
   reportTitle: {
     fontSize: 16,
@@ -850,24 +943,23 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     height: 200,
     borderRadius: 12,
     marginBottom: 12,
-    backgroundColor: isDarkMode ? '#0f172a' : '#f1f5f9',
+    backgroundColor: '#f1f5f9',
   },
   actionButtons: {
     flexDirection: 'row',
     gap: 8,
-    marginTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: isDarkMode ? '#334155' : '#f1f5f9',
+    marginTop: 4,
     paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
   actionButton: {
     flex: 1,
     flexDirection: 'row',
-    alignItems: 'center',
+    height: 36,
     justifyContent: 'center',
-    paddingVertical: 8,
+    alignItems: 'center',
     borderRadius: 8,
-    gap: 6,
   },
   actionButtonText: {
     color: '#fff',
@@ -877,12 +969,20 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 60,
-    gap: 16,
+    paddingVertical: 60,
   },
-  emptyText: {
-    fontSize: 16,
+  emptyStateTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyStateSubtitle: {
+    fontSize: 14,
     color: colors.textSecondary,
-    fontWeight: '500',
+    textAlign: 'center',
+    maxWidth: '80%',
+    lineHeight: 20,
   },
 });
