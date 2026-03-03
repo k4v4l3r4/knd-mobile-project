@@ -88,6 +88,7 @@ export default function ReportScreen() {
       }
       console.log('Fetching reports:', url);
       const response = await api.get(url);
+      console.log('Data Laporan:', response.data);
       
       if (response.data && Array.isArray(response.data.data)) {
         setReports(response.data.data);
@@ -563,9 +564,9 @@ export default function ReportScreen() {
             <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 20 }} />
           ) : (
             <FlatList
-              data={reports}
+              data={reports || []}
               renderItem={renderReportItem}
-              keyExtractor={(item) => item.id.toString()}
+              keyExtractor={(item, index) => (item?.id ? String(item.id) : String(index))}
               contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
               refreshControl={
                 <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
