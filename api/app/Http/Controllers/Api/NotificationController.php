@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -11,7 +12,8 @@ class NotificationController extends Controller
 {
     public function index(Request $request)
     {
-        $notifications = Notification::where('user_id', $request->user()->id)
+        $notifications = Notification::where('notifiable_id', $request->user()->id)
+            ->where('notifiable_type', User::class)
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
@@ -30,11 +32,13 @@ class NotificationController extends Controller
     {
         try {
             $user = $request->user();
-            $count = Notification::where('user_id', $user->id)
+            $count = Notification::where('notifiable_id', $user->id)
+                ->where('notifiable_type', User::class)
                 ->where('is_read', false)
                 ->count();
 
-            $hasEmergency = Notification::where('user_id', $user->id)
+            $hasEmergency = Notification::where('notifiable_id', $user->id)
+                ->where('notifiable_type', User::class)
                 ->where('is_read', false)
                 ->whereIn('type', ['EMERGENCY', 'SOS', 'PANIC', 'WARNING', 'PANIC_BUTTON'])
                 ->exists();
@@ -57,7 +61,8 @@ class NotificationController extends Controller
 
     public function markAsRead(Request $request, $id)
     {
-        $notification = Notification::where('user_id', $request->user()->id)
+        $notification = Notification::where('notifiable_id', $request->user()->id)
+            ->where('notifiable_type', User::class)
             ->where('id', $id)
             ->firstOrFail();
 
@@ -71,7 +76,8 @@ class NotificationController extends Controller
 
     public function markAllAsRead(Request $request)
     {
-        Notification::where('user_id', $request->user()->id)
+        Notification::where('notifiable_id', $request->user()->id)
+            ->where('notifiable_type', User::class)
             ->where('is_read', false)
             ->update(['is_read' => true]);
 

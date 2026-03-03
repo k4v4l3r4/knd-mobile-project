@@ -50,7 +50,8 @@ try {
 
     // 2. Create Notification for User B
     $notifB = Notification::create([
-        'user_id' => $userB->id,
+        'notifiable_id' => $userB->id,
+        'notifiable_type' => User::class,
         'title' => 'Secret Notif for B',
         'message' => 'Private Message',
         'type' => 'INFO',

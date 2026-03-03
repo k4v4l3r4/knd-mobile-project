@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Notification;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -10,7 +11,8 @@ class NotificationController extends Controller
 {
     public function index(Request $request)
     {
-        $notifications = Notification::where('user_id', Auth::id())
+        $notifications = Notification::where('notifiable_id', Auth::id())
+            ->where('notifiable_type', User::class)
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
@@ -19,7 +21,8 @@ class NotificationController extends Controller
 
     public function unreadCount()
     {
-        $count = Notification::where('user_id', Auth::id())
+        $count = Notification::where('notifiable_id', Auth::id())
+            ->where('notifiable_type', User::class)
             ->where('is_read', false)
             ->count();
 
@@ -28,7 +31,8 @@ class NotificationController extends Controller
 
     public function markAsRead($id)
     {
-        $notification = Notification::where('user_id', Auth::id())
+        $notification = Notification::where('notifiable_id', Auth::id())
+            ->where('notifiable_type', User::class)
             ->where('id', $id)
             ->firstOrFail();
 
@@ -39,7 +43,8 @@ class NotificationController extends Controller
 
     public function markAllAsRead()
     {
-        Notification::where('user_id', Auth::id())
+        Notification::where('notifiable_id', Auth::id())
+            ->where('notifiable_type', User::class)
             ->where('is_read', false)
             ->update(['is_read' => true]);
 

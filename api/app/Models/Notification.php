@@ -11,7 +11,8 @@ class Notification extends Model
     use HasFactory, BelongsToTenant;
 
     protected $fillable = [
-        'user_id',
+        'notifiable_id',
+        'notifiable_type',
         'title',
         'message',
         'type',
@@ -25,8 +26,28 @@ class Notification extends Model
         'is_read' => 'boolean',
     ];
 
-    public function user()
+    /**
+     * Get the owning notifiable model.
+     */
+    public function notifiable()
     {
-        return $this->belongsTo(User::class);
+        return $this->morphTo();
+    }
+
+    /**
+     * Backward compatibility accessor for user_id
+     */
+    public function getUserIdAttribute()
+    {
+        return $this->notifiable_id;
+    }
+
+    /**
+     * Backward compatibility mutator for user_id
+     */
+    public function setUserIdAttribute($value)
+    {
+        $this->attributes['notifiable_id'] = $value;
+        $this->attributes['notifiable_type'] = User::class;
     }
 }

@@ -92,7 +92,8 @@ class StoreController extends Controller
         // --- Notification Logic ---
         // 1. Notify User (Warga)
         Notification::create([
-            'user_id' => $user->id,
+            'notifiable_id' => $user->id,
+            'notifiable_type' => User::class,
             'title' => 'Pendaftaran Toko',
             'message' => "Toko {$store->name} berhasil didaftarkan dan sedang menunggu review Admin",
             'type' => 'STORE_REGISTRATION',
@@ -109,7 +110,8 @@ class StoreController extends Controller
 
         foreach ($admins as $admin) {
             Notification::create([
-                'user_id' => $admin->id,
+                'notifiable_id' => $admin->id,
+                'notifiable_type' => User::class,
                 'title' => 'Pendaftaran Toko Baru',
                 'message' => "Warga {$user->name} mendaftarkan toko {$store->name}. Menunggu verifikasi.",
                 'type' => 'STORE_REGISTRATION',

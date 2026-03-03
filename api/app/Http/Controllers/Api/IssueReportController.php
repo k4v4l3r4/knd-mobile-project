@@ -159,7 +159,8 @@ class IssueReportController extends Controller
 
             foreach ($admins as $admin) {
                 Notification::create([
-                    'user_id' => $admin->id,
+                    'notifiable_id' => $admin->id,
+                    'notifiable_type' => User::class,
                     'title' => 'Laporan Warga Baru',
                     'message' => ($user->name ?: 'Warga') . ': ' . $issue->title,
                     'type' => 'REPORT',

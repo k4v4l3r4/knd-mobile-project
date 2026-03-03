@@ -100,7 +100,8 @@ class LetterController extends Controller
         } else {
              // Logic to notify Warga if created by Admin
              Notification::create([
-                'user_id' => $targetUserId,
+                'notifiable_id' => $targetUserId,
+                'notifiable_type' => \App\Models\User::class,
                 'title' => 'Surat Baru Dibuat',
                 'message' => "Admin telah membuat surat pengantar untuk Anda: {$request->type}",
                 'type' => 'SURAT',

@@ -380,7 +380,7 @@ class DemoSeeder extends Seeder
         $this->command->info('9. Seeding Notifications...');
         // Create notifications for Budi (Demo User)
         \App\Models\Notification::firstOrCreate(
-            ['user_id' => $budi->id, 'title' => 'Tagihan Iuran Bulanan'],
+            ['notifiable_id' => $budi->id, 'notifiable_type' => \App\Models\User::class, 'title' => 'Tagihan Iuran Bulanan'],
             [
                 'message' => 'Tagihan iuran kebersihan bulan ini telah terbit.',
                 'type' => 'BILL',
@@ -390,7 +390,7 @@ class DemoSeeder extends Seeder
         );
         
         \App\Models\Notification::firstOrCreate(
-            ['user_id' => $budi->id, 'title' => 'Undangan Kerja Bakti'],
+            ['notifiable_id' => $budi->id, 'notifiable_type' => \App\Models\User::class, 'title' => 'Undangan Kerja Bakti'],
             [
                 'message' => 'Jangan lupa kerja bakti besok pagi jam 07:00.',
                 'type' => 'INFO',
