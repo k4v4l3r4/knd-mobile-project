@@ -61,17 +61,37 @@ class NotificationController extends Controller
 
     public function markAsRead(Request $request, $id)
     {
-        $notification = Notification::where('notifiable_id', $request->user()->id)
-            ->where('notifiable_type', User::class)
-            ->where('id', $id)
-            ->firstOrFail();
+        // Handle "0" or invalid UUIDs sent by frontend
+        if ($id === '0' || $id === 0) {
+            return response()->json([
+                'status' => 'success', // Return success to prevent frontend error, or 'ignored'
+                'message' => 'Invalid ID ignored'
+            ]);
+        }
 
-        $notification->update(['is_read' => true]);
+        try {
+            $notification = Notification::where('notifiable_id', $request->user()->id)
+                ->where('notifiable_type', User::class)
+                ->where('id', $id)
+                ->firstOrFail();
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Notification marked as read'
-        ]);
+            $notification->update([
+                'is_read' => true,
+                'read_at' => now()
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Notification marked as read'
+            ]);
+        } catch (\Exception $e) {
+            // If UUID is invalid syntax, it might throw QueryException. 
+            // We can catch it and return 404 or success (to ignore).
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Notification not found or invalid ID'
+            ], 404);
+        }
     }
 
     public function markAllAsRead(Request $request)
@@ -79,7 +99,10 @@ class NotificationController extends Controller
         Notification::where('notifiable_id', $request->user()->id)
             ->where('notifiable_type', User::class)
             ->where('is_read', false)
-            ->update(['is_read' => true]);
+            ->update([
+                'is_read' => true,
+                'read_at' => now()
+            ]);
 
         return response()->json([
             'status' => 'success',
