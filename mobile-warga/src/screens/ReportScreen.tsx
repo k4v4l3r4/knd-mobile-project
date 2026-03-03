@@ -86,11 +86,19 @@ export default function ReportScreen() {
       if (statusFilter !== 'ALL') {
         url += `?status=${statusFilter}`;
       }
+      console.log('Fetching reports:', url);
       const response = await api.get(url);
-      setReports(response.data.data);
+      
+      if (response.data && Array.isArray(response.data.data)) {
+        setReports(response.data.data);
+      } else {
+        console.warn('Invalid reports response structure:', response.data);
+        setReports([]);
+      }
     } catch (error) {
       console.log('Error fetching reports:', error);
       Alert.alert(t('common.error'), t('report.loadFailed'));
+      setReports([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -167,63 +175,81 @@ export default function ReportScreen() {
     }
   };
 
-  const renderReportItem = ({ item }: { item: any }) => (
-    <View style={styles.reportCard}>
-      <View style={styles.reportHeader}>
-        <View style={styles.reporterInfo}>
-          <View style={[styles.avatarPlaceholder, { backgroundColor: colors.primary }]}>
-             <Text style={styles.avatarText}>{item.user?.name?.charAt(0) || '?'}</Text>
+  const renderReportItem = ({ item }: { item: any }) => {
+    if (!item) return null;
+
+    // Safe user access
+    const userName = item.user?.name || 'Warga';
+    const userInitial = item.user?.name ? item.user.name.charAt(0) : '?';
+    
+    // Safe date parsing
+    let dateString = '-';
+    try {
+      if (item.created_at) {
+        dateString = new Date(item.created_at).toLocaleDateString('id-ID');
+      }
+    } catch (e) {
+      console.log('Error parsing date:', e);
+    }
+
+    return (
+      <View style={styles.reportCard}>
+        <View style={styles.reportHeader}>
+          <View style={styles.reporterInfo}>
+            <View style={[styles.avatarPlaceholder, { backgroundColor: colors.primary }]}>
+               <Text style={styles.avatarText}>{userInitial}</Text>
+            </View>
+            <View>
+              <Text style={styles.reporterName}>{userName}</Text>
+              <Text style={styles.reportDate}>{dateString}</Text>
+            </View>
           </View>
-          <View>
-            <Text style={styles.reporterName}>{item.user?.name || 'Warga'}</Text>
-            <Text style={styles.reportDate}>{new Date(item.created_at).toLocaleDateString('id-ID')}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
+            <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
+              {getStatusLabel(item.status)}
+            </Text>
           </View>
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
-          <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
-            {getStatusLabel(item.status)}
-          </Text>
-        </View>
+
+        <Text style={styles.reportTitle}>{item.title || '-'}</Text>
+        <Text style={styles.reportDescription}>{item.description || '-'}</Text>
+        
+        {!!getStorageUrl(item.photo_url) && (
+          <Image source={{ uri: getStorageUrl(item.photo_url)! }} style={styles.reportImage} />
+        )}
+
+        {/* Admin Actions */}
+        {(userRole && (userRole.toUpperCase() === 'ADMIN_RT' || userRole.toUpperCase() === 'RT')) && (
+          <View style={styles.actionButtons}>
+            {item.status === 'PENDING' && (
+              <>
+                <TouchableOpacity 
+                  style={[styles.actionButton, { backgroundColor: '#3b82f6' }]}
+                  onPress={() => handleUpdateStatus(item.id, 'PROCESSED')}
+                >
+                  <Text style={styles.actionButtonText}>Proses</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.actionButton, { backgroundColor: '#ef4444' }]}
+                  onPress={() => handleUpdateStatus(item.id, 'REJECTED')}
+                >
+                  <Text style={styles.actionButtonText}>Tolak</Text>
+                </TouchableOpacity>
+              </>
+            )}
+            {(item.status === 'PROCESS' || item.status === 'PROCESSED') && (
+              <TouchableOpacity 
+                style={[styles.actionButton, { backgroundColor: '#10b981' }]}
+                onPress={() => handleUpdateStatus(item.id, 'DONE')}
+              >
+                <Text style={styles.actionButtonText}>Selesai</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
       </View>
-
-      <Text style={styles.reportTitle}>{item.title}</Text>
-      <Text style={styles.reportDescription}>{item.description}</Text>
-      
-      {!!getStorageUrl(item.photo_url) && (
-        <Image source={{ uri: getStorageUrl(item.photo_url)! }} style={styles.reportImage} />
-      )}
-
-      {/* Admin Actions */}
-      {(userRole && (userRole.toUpperCase() === 'ADMIN_RT' || userRole.toUpperCase() === 'RT')) && (
-        <View style={styles.actionButtons}>
-          {item.status === 'PENDING' && (
-            <>
-              <TouchableOpacity 
-                style={[styles.actionButton, { backgroundColor: '#3b82f6' }]}
-                onPress={() => handleUpdateStatus(item.id, 'PROCESSED')}
-              >
-                <Text style={styles.actionButtonText}>Proses</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.actionButton, { backgroundColor: '#ef4444' }]}
-                onPress={() => handleUpdateStatus(item.id, 'REJECTED')}
-              >
-                <Text style={styles.actionButtonText}>Tolak</Text>
-              </TouchableOpacity>
-            </>
-          )}
-          {(item.status === 'PROCESS' || item.status === 'PROCESSED') && (
-            <TouchableOpacity 
-              style={[styles.actionButton, { backgroundColor: '#10b981' }]}
-              onPress={() => handleUpdateStatus(item.id, 'DONE')}
-            >
-              <Text style={styles.actionButtonText}>Selesai</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
-    </View>
-  );
+    );
+  };
 
   const pickImage = async (mode: 'camera' | 'gallery') => {
     try {
