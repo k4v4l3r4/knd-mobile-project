@@ -592,7 +592,7 @@ export default function ReportScreen() {
         </View>
       ) : (
         <FlatList
-          data={reports}
+          data={reports || []}
           renderItem={renderReportItem}
           keyExtractor={(item, index) => item?.id ? String(item.id) : String(index)}
           contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
@@ -615,56 +615,15 @@ export default function ReportScreen() {
     </View>
   );
 
+  // TEMPORARY DEBUGGING PLACEHOLDER
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={[styles.headerBackground, { backgroundColor: isDarkMode ? '#059669' : '#047857' }]}>
-        <SafeAreaView edges={['top']} style={styles.headerContent}>
-          <View style={styles.headerRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                <Ionicons name="arrow-back" size={24} color="#fff" />
-            </TouchableOpacity>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Text style={styles.headerTitle}>
-                {activeTab === 'create' ? t('report.createTitle') : t('report.listTitle')}
-              </Text>
-              <DemoLabel />
-            </View>
-            <View style={{ width: 40 }} />
-          </View>
-
-          {/* Tabs - Only show if user has role (loaded) */}
-          <View style={styles.tabContainer}>
-            <TouchableOpacity 
-              style={[styles.tabButton, activeTab === 'create' && styles.tabButtonActive]}
-              onPress={() => setActiveTab('create')}
-            >
-              <Text style={[styles.tabText, activeTab === 'create' && styles.tabTextActive]}>
-                {t('report.createTitle')}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.tabButton, activeTab === 'list' && styles.tabButtonActive]}
-              onPress={() => setActiveTab('list')}
-            >
-              <Text style={[styles.tabText, activeTab === 'list' && styles.tabTextActive]}>
-                {t('report.listTitle')}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </SafeAreaView>
-      </View>
-
-      {activeTab === 'create' ? renderCreateForm() : renderList()}
-
-      <ImagePickerModal
-        visible={imagePickerVisible}
-        onClose={() => setImagePickerVisible(false)}
-        onCamera={() => pickImage('camera')}
-        onGallery={() => pickImage('gallery')}
-      />
+    <View style={{flex:1, backgroundColor:'white', justifyContent:'center', alignItems:'center'}}>
+      <Text style={{color:'black', fontSize:20}}>Tes Halaman Laporan</Text>
+      <Text style={{color:'gray', marginTop:10}}>Jika teks ini muncul, navigasi aman.</Text>
     </View>
   );
+
+
 }
 
 const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.create({
