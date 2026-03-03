@@ -30,9 +30,10 @@ const { width, height } = Dimensions.get('window');
 
 interface AddProductScreenProps {
   onSuccess: () => void;
+  editingProduct?: any;
 }
 
-export default function AddProductScreen({ onSuccess }: AddProductScreenProps) {
+export default function AddProductScreen({ onSuccess, editingProduct }: AddProductScreenProps) {
   const { colors, isDarkMode } = useTheme();
   const { isDemo, isExpired } = useTenant();
   const { t } = useLanguage();
@@ -62,6 +63,33 @@ export default function AddProductScreen({ onSuccess }: AddProductScreenProps) {
   const [photos, setPhotos] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  
+  React.useEffect(() => {
+    if (editingProduct) {
+      setName(String(editingProduct.name || ''));
+      const priceValue = editingProduct.price ? String(editingProduct.price) : '';
+      setPrice(priceValue);
+      setDescription(String(editingProduct.description || ''));
+      setCategory(String(editingProduct.category || STORE_CATEGORIES[0].id));
+      const stockValue = editingProduct.stock != null ? String(editingProduct.stock) : '';
+      setStock(stockValue);
+      setVariantNote(String(editingProduct.variant_note || ''));
+      setSpecifications(String(editingProduct.specifications || ''));
+      const labels = Array.isArray(editingProduct.labels) ? editingProduct.labels : [];
+      setIsHalal(labels.includes('HALAL'));
+      setHasBpom(labels.includes('BPOM'));
+      setIsHomemade(labels.includes('HOMEMADE'));
+      const shipType = editingProduct.shipping_type || 'LOCAL';
+      setShippingType(shipType);
+      const shipFee = editingProduct.shipping_fee_flat != null ? String(editingProduct.shipping_fee_flat) : '';
+      setShippingFee(shipFee);
+      setShopeeUrl(String(editingProduct.shopee_url || ''));
+      setTokopediaUrl(String(editingProduct.tokopedia_url || ''));
+      setFacebookUrl(String(editingProduct.facebook_url || ''));
+      setInstagramUrl(String(editingProduct.instagram_url || ''));
+      setTiktokUrl(String(editingProduct.tiktok_url || ''));
+    }
+  }, [editingProduct]);
 
   const pickImage = async (mode: 'camera' | 'gallery') => {
     if (photos.length >= 3) {
@@ -143,9 +171,11 @@ export default function AddProductScreen({ onSuccess }: AddProductScreenProps) {
       return;
     }
 
-    if (photos.length === 0) {
-       Alert.alert(t('market.addProduct.errorTitle'), t('market.addProduct.photoError'));
-       return;
+    if (!editingProduct) {
+      if (photos.length === 0) {
+        Alert.alert(t('market.addProduct.errorTitle'), t('market.addProduct.photoError'));
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -207,31 +237,42 @@ export default function AddProductScreen({ onSuccess }: AddProductScreenProps) {
       if (tiktokUrl) formData.append('tiktok_url', tiktokUrl);
       
       // Append Images
-      photos.forEach((photoUri, index) => {
-        const filename = photoUri.split('/').pop() || `photo_${index}.jpg`;
-        const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : `image/jpeg`;
-
-        // @ts-ignore
-        formData.append('images[]', {
-          uri: photoUri,
-          name: filename,
-          type: type,
+      if (photos.length > 0) {
+        photos.forEach((photoUri, index) => {
+          const filename = photoUri.split('/').pop() || `photo_${index}.jpg`;
+          const match = /\.(\w+)$/.exec(filename);
+          const type = match ? `image/${match[1]}` : `image/jpeg`;
+          formData.append('images[]', {
+            uri: photoUri,
+            name: filename,
+            type: type,
+          } as any);
         });
-      });
+      }
 
-      const response = await api.post('/products', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      if (response.status === 201) {
-        Alert.alert(t('market.addProduct.successTitle'), t('market.addProduct.successMsg'), [
-          { text: t('common.ok'), onPress: onSuccess }
-        ]);
+      if (editingProduct) {
+        formData.append('_method', 'PUT');
+        const response = await api.post(`/products/${editingProduct.id}`, formData, {
+          transformRequest: (data) => data,
+        });
+        if (response.status === 200) {
+          Alert.alert('Sukses', 'Produk berhasil diperbarui', [
+            { text: t('common.ok'), onPress: onSuccess }
+          ]);
+        } else {
+          throw new Error('Gagal memperbarui produk');
+        }
       } else {
-        throw new Error('Gagal menambahkan produk');
+        const response = await api.post('/products', formData, {
+          transformRequest: (data) => data,
+        });
+        if (response.status === 201) {
+          Alert.alert(t('market.addProduct.successTitle'), t('market.addProduct.successMsg'), [
+            { text: t('common.ok'), onPress: onSuccess }
+          ]);
+        } else {
+          throw new Error('Gagal menambahkan produk');
+        }
       }
     } catch (error: any) {
       console.log('Error adding product:', error);
@@ -250,7 +291,7 @@ export default function AddProductScreen({ onSuccess }: AddProductScreenProps) {
           <View style={styles.headerRow}>
             <View style={{ width: 40 }} />
             <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
-              <Text style={styles.headerTitle}>{t('market.addProduct.title')}</Text>
+              <Text style={styles.headerTitle}>{editingProduct ? 'Edit Produk' : t('market.addProduct.title')}</Text>
               <DemoLabel />
             </View>
             <View style={{ width: 40 }} />
@@ -652,7 +693,7 @@ export default function AddProductScreen({ onSuccess }: AddProductScreenProps) {
               {isSubmitting ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.submitButtonText}>{t('market.addProduct.submit')}</Text>
+                <Text style={styles.submitButtonText}>{editingProduct ? 'Simpan Perubahan' : t('market.addProduct.submit')}</Text>
               )}
             </TouchableOpacity>
             

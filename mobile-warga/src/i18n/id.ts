@@ -813,8 +813,6 @@ export const id = {
       whatsappError: 'Aplikasi WhatsApp tidak terinstall',
     },
     whatsappReminderMessage: 'Halo {name}, ini pengingat pembayaran kost Anda sebesar Rp {amount}. Mohon segera dibayarkan. Terima kasih.',
-    juraganTitle: 'Kelola Kost Saya',
-    tenantTitle: 'Info Hunian Saya',
     roomStatusTitle: 'Status Kamar & Lantai',
     legend: {
       roomStatus: 'Status Kamar',

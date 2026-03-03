@@ -58,6 +58,7 @@ interface Store {
   is_open?: boolean;
   operating_hours?: any;
   is_open_now?: boolean;
+  products?: Product[];
   user?: {
     name: string;
     phone?: string;
@@ -77,6 +78,7 @@ export default function MarketScreen({ onNavigate }: MarketScreenProps) {
   const styles = React.useMemo(() => getStyles(colors, isDarkMode), [colors, isDarkMode]);
   const [activeTab, setActiveTab] = useState<'MARKETPLACE' | 'MY_STORE' | 'APPROVAL'>('MARKETPLACE');
   const [isAdminRT, setIsAdminRT] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
 
   // Animation Refs
   const cartIconRef = React.useRef<View>(null);
@@ -122,6 +124,11 @@ export default function MarketScreen({ onNavigate }: MarketScreenProps) {
       const user = await authService.getUser();
       if (user?.phone) {
         setStoreContact(user.phone);
+      }
+      if (user?.id) {
+        if (myStore && myStore.user_id) {
+          setIsOwner(myStore.user_id === user.id);
+        }
       }
     };
     loadUserPhone();
@@ -201,13 +208,17 @@ export default function MarketScreen({ onNavigate }: MarketScreenProps) {
       const response = await api.get('/stores/my');
       if (response.data.data) {
         setMyStore(response.data.data);
+        const user = await authService.getUser();
+        setIsOwner(!!user && response.data.data.user_id === user.id);
       } else {
         setMyStore(null);
+        setIsOwner(false);
       }
     } catch (error) {
       // Use the global axios object for the type guard, not the 'api' instance
       if (axios.isAxiosError(error) && error.response?.status === 404) {
         setMyStore(null);
+        setIsOwner(false);
       } else if (!isDemo) {
         console.error('Error fetching my store:', error);
       }
@@ -493,8 +504,8 @@ export default function MarketScreen({ onNavigate }: MarketScreenProps) {
     }
 
     const labels = Array.isArray(item.labels) ? item.labels : [];
-    const hasHalal = labels.includes('HALAL');
-    const hasBpom = labels.includes('BPOM');
+    const hasHalal = typeof (item as any)?.is_halal === 'boolean' ? (item as any).is_halal : labels.includes('HALAL');
+    const hasBpom = typeof (item as any)?.is_bpom === 'boolean' ? (item as any).is_bpom : labels.includes('BPOM');
 
     return (
     <TouchableOpacity 
@@ -532,6 +543,23 @@ export default function MarketScreen({ onNavigate }: MarketScreenProps) {
             <Text style={styles.ratingText}>{item.rating}</Text>
           </View>
         )}
+
+        {(hasHalal || hasBpom) && (
+          <View style={styles.certBadgeRow}>
+            {hasHalal && (
+              <View style={[styles.certBadge, styles.certHalal]}>
+                <MaterialCommunityIcons name="shield-check-outline" size={12} color="#fff" />
+                <Text style={styles.certBadgeText}>Halal</Text>
+              </View>
+            )}
+            {hasBpom && (
+              <View style={[styles.certBadge, styles.certBpom]}>
+                <MaterialCommunityIcons name="file-certificate-outline" size={12} color="#fff" />
+                <Text style={styles.certBadgeText}>BPOM</Text>
+              </View>
+            )}
+          </View>
+        )}
       </View>
 
       <View style={styles.cardContent}>
@@ -541,16 +569,8 @@ export default function MarketScreen({ onNavigate }: MarketScreenProps) {
         {/* 3. Price */}
         <Text style={styles.productPrice}>{formatRupiah(item.price)}</Text>
 
-        {/* 4. Badges (Shipping/Halal) - Simplified */}
+        {/* 4. Badges (Shipping) */}
         <View style={styles.badgeRow}>
-           {(hasHalal || hasBpom) && (
-              <View style={[styles.metaBadge, styles.halalBadge]}>
-                <Text style={[styles.metaBadgeText, styles.halalBadgeText]}>
-                  {hasHalal && hasBpom ? 'Halal & BPOM' : hasHalal ? 'Halal' : 'BPOM'}
-                </Text>
-              </View>
-            )}
-            {/* Courier Badge if needed */}
             {item.shipping_type === 'COURIER' && (
                <View style={styles.metaBadge}>
                   <Text style={styles.metaBadgeText}>Kurir</Text>
@@ -846,6 +866,156 @@ export default function MarketScreen({ onNavigate }: MarketScreenProps) {
         </ScrollView>
       );
     }
+    
+    if (editingStore && myStore) {
+      return (
+        <ScrollView 
+          style={styles.formContainer}
+          contentContainerStyle={{ paddingBottom: 100 }}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.formCard}>
+            <Text style={styles.formTitle}>Edit Toko</Text>
+            <Text style={styles.formSubtitle}>Ubah nama, kategori, kontak, alamat, dan deskripsi toko.</Text>
+            
+            <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.imagePicker}>
+              {storeImage ? (
+                <Image source={{ uri: storeImage }} style={styles.previewImage} />
+              ) : (
+                <View style={styles.imagePlaceholder}>
+                  <Ionicons name="camera-outline" size={32} color={colors.textSecondary} />
+                  <Text style={styles.imagePlaceholderText}>Unggah Foto Toko (Opsional)</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Nama Toko</Text>
+              <TextInput
+                style={styles.input}
+                value={storeName}
+                onChangeText={setStoreName}
+                placeholder="Contoh: Warung Sembako RT"
+                placeholderTextColor={colors.textSecondary}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Kategori</Text>
+              <TouchableOpacity
+                style={styles.dropdownButton}
+                onPress={() => setCategoryDropdownVisible(true)}
+              >
+                <Text style={styles.dropdownButtonText}>
+                  {STORE_CATEGORIES.find(c => c.id === storeCategory)?.label || 'Pilih Kategori'}
+                </Text>
+                <Ionicons name="chevron-down" size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <Modal
+              visible={categoryDropdownVisible}
+              transparent={true}
+              animationType="fade"
+              onRequestClose={() => setCategoryDropdownVisible(false)}
+            >
+              <TouchableOpacity 
+                style={styles.modalOverlay} 
+                activeOpacity={1} 
+                onPress={() => setCategoryDropdownVisible(false)}
+              >
+                <View style={styles.dropdownModalContent}>
+                  <Text style={styles.dropdownModalTitle}>Pilih Kategori Toko</Text>
+                  <ScrollView style={{ maxHeight: height * 0.5 }}>
+                    {STORE_CATEGORIES.map((cat) => (
+                      <TouchableOpacity
+                        key={cat.id}
+                        style={[
+                          styles.dropdownItem,
+                          storeCategory === cat.id && styles.activeDropdownItem
+                        ]}
+                        onPress={() => {
+                          setStoreCategory(cat.id);
+                          setCategoryDropdownVisible(false);
+                        }}
+                      >
+                        <Text style={[
+                          styles.dropdownItemText,
+                          storeCategory === cat.id && styles.activeDropdownItemText
+                        ]}>
+                          {cat.label}
+                        </Text>
+                        {storeCategory === cat.id && (
+                          <Ionicons name="checkmark" size={20} color={colors.primary} />
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              </TouchableOpacity>
+            </Modal>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Kontak (WA/HP)</Text>
+              <TextInput
+                style={styles.input}
+                value={storeContact}
+                onChangeText={setStoreContact}
+                placeholder="Contoh: 628123456789"
+                keyboardType="phone-pad"
+                maxLength={15}
+                placeholderTextColor={colors.textSecondary}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Alamat</Text>
+              <TextInput
+                style={styles.input}
+                value={storeAddress}
+                onChangeText={setStoreAddress}
+                placeholder="Contoh: Jl. Melati No. 10"
+                placeholderTextColor={colors.textSecondary}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Deskripsi</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                value={storeDescription}
+                onChangeText={setStoreDescription}
+                placeholder="Cerita singkat tentang toko Anda"
+                placeholderTextColor={colors.textSecondary}
+                multiline
+                numberOfLines={4}
+              />
+            </View>
+
+            <View style={styles.buttonRow}>
+              <TouchableOpacity 
+                style={[styles.button, styles.cancelButton]}
+                onPress={() => setEditingStore(false)}
+              >
+                <Text style={styles.cancelButtonText}>Batal</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.button, styles.submitButton]}
+                onPress={handleUpdateStore}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.submitButtonText}>Simpan Perubahan</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      );
+    }
 
     if (!myStore) {
       return (
@@ -910,7 +1080,7 @@ export default function MarketScreen({ onNavigate }: MarketScreenProps) {
                </Text>
             </View>
             
-            {myStore.status === 'verified' && (
+            {myStore.status === 'verified' && isOwner && (
               <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
                 <TouchableOpacity 
                   style={[styles.manageProductsButton, { flex: 1 }]}
@@ -925,6 +1095,23 @@ export default function MarketScreen({ onNavigate }: MarketScreenProps) {
                 >
                   <MaterialCommunityIcons name="cube-outline" size={20} color="#fff" />
                   <Text style={styles.manageProductsText}>Kelola Produk</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.manageProductsButton, { flex: 1, backgroundColor: '#f59e0b' }]}
+                  onPress={() => {
+                    setIsCreatingStore(false);
+                    setStoreName(myStore.name || '');
+                    setStoreDescription(myStore.description || '');
+                    setStoreCategory(myStore.category || STORE_CATEGORIES[0].id);
+                    setStoreContact(myStore.contact || '');
+                    setStoreAddress(myStore.address || '');
+                    setModalVisible(false);
+                    setEditingStore(true);
+                  }}
+                >
+                  <MaterialCommunityIcons name="pencil-outline" size={20} color="#fff" />
+                  <Text style={styles.manageProductsText}>Edit Toko</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity 
@@ -946,7 +1133,7 @@ export default function MarketScreen({ onNavigate }: MarketScreenProps) {
               </View>
             )}
 
-            {myStore.status !== 'verified' && (
+            {myStore.status !== 'verified' && isOwner && (
                <TouchableOpacity 
                   style={[styles.manageProductsButton, { marginTop: 12, backgroundColor: '#fee2e2', borderWidth: 1, borderColor: '#fca5a5' }]}
                   onPress={handleDeleteStore}
@@ -958,7 +1145,145 @@ export default function MarketScreen({ onNavigate }: MarketScreenProps) {
             </View>
           </View>
          </View>
+         
+         {Array.isArray(myStore.products) && myStore.products.length > 0 && (
+           <View style={{ paddingHorizontal: 16 }}>
+             <FlatList
+               data={myStore.products}
+               keyExtractor={(item: any) => String(item.id)}
+               numColumns={2}
+               contentContainerStyle={{ paddingTop: 8, paddingBottom: 24 }}
+               renderItem={({ item }: { item: any }) => {
+                 const imageUrl = getStorageUrl(item.image_url || '');
+                 const labels = Array.isArray(item.labels) ? item.labels : [];
+                 const hasHalal = typeof item?.is_halal === 'boolean' ? item.is_halal : labels.includes('HALAL');
+                 const hasBpom = typeof item?.is_bpom === 'boolean' ? item.is_bpom : labels.includes('BPOM');
+                 return (
+                   <View style={styles.card}>
+                     <View style={styles.imageContainer}>
+                       {item.image_url ? (
+                         <Image 
+                           source={imageUrl ? { uri: imageUrl } : { uri: 'https://via.placeholder.com/400' }} 
+                           style={styles.productImage} 
+                           resizeMode="cover"
+                         />
+                       ) : renderImagePlaceholder(item)}
+
+                      {(hasHalal || hasBpom) && (
+                        <View style={styles.certBadgeRow}>
+                          {hasHalal && (
+                            <View style={[styles.certBadge, styles.certHalal]}>
+                              <MaterialCommunityIcons name="shield-check-outline" size={12} color="#fff" />
+                              <Text style={styles.certBadgeText}>Halal</Text>
+                            </View>
+                          )}
+                          {hasBpom && (
+                            <View style={[styles.certBadge, styles.certBpom]}>
+                              <MaterialCommunityIcons name="file-certificate-outline" size={12} color="#fff" />
+                              <Text style={styles.certBadgeText}>BPOM</Text>
+                            </View>
+                          )}
+                        </View>
+                      )}
+
+                       {isOwner && (
+                         <View style={styles.actionIcons}>
+                           <TouchableOpacity 
+                             style={[styles.actionBtn, { backgroundColor: '#fde68a', borderColor: '#f59e0b' }]}
+                             onPress={() => onNavigate('ADD_PRODUCT', item)}
+                           >
+                             <MaterialCommunityIcons name="pencil-outline" size={16} color="#92400e" />
+                           </TouchableOpacity>
+                           <TouchableOpacity 
+                             style={[styles.actionBtn, { backgroundColor: '#fee2e2', borderColor: '#fca5a5' }]}
+                             onPress={() => handleDeleteProduct(item.id)}
+                           >
+                             <Ionicons name="trash-outline" size={16} color="#991b1b" />
+                           </TouchableOpacity>
+                         </View>
+                       )}
+                     </View>
+                     <View style={styles.cardContent}>
+                       <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
+                       <Text style={styles.productPrice}>{formatRupiah(item.price)}</Text>
+                     </View>
+                   </View>
+                 );
+               }}
+             />
+           </View>
+         )}
       </ScrollView>
+    );
+  };
+  
+  const [editingStore, setEditingStore] = useState(false);
+  
+  const handleUpdateStore = async () => {
+    if (!myStore) return;
+    if (isExpired) {
+      Alert.alert(t('report.accessLimited'), isAdminRT ? t('report.trialExpiredAdmin') : t('report.trialExpired'));
+      return;
+    }
+    if (isDemo) {
+      Alert.alert(t('common.demoMode'), 'Mode Demo: Tidak dapat mengedit toko.');
+      return;
+    }
+    if (!storeName.trim()) {
+      Alert.alert(t('common.validation'), t('market.createStore.validationName'));
+      return;
+    }
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('name', storeName);
+      formData.append('description', storeDescription);
+      formData.append('category', storeCategory);
+      if (storeContact) formData.append('contact', formatPhoneNumber(storeContact));
+      if (storeAddress) formData.append('address', storeAddress);
+      if (storeImage) {
+        const filename = storeImage.split('/').pop();
+        const match = /\.(\w+)$/.exec(filename || '');
+        const type = match ? `image/${match[1]}` : `image`;
+        formData.append('image', {
+          uri: storeImage,
+          name: filename,
+          type
+        } as any);
+      }
+      formData.append('_method', 'PUT');
+      await api.post(`/stores/${myStore.id}`, formData, { transformRequest: (data) => data });
+      Alert.alert('Sukses', 'Toko berhasil diperbarui', [
+        { text: 'OK', onPress: () => { setEditingStore(false); fetchMyStore(); } }
+      ]);
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.message || 'Gagal memperbarui toko');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleDeleteProduct = async (productId: number) => {
+    if (isDemo) {
+      Alert.alert(t('common.demoMode'), 'Mode Demo: Tidak dapat menghapus produk.');
+      return;
+    }
+    Alert.alert(
+      'Hapus Produk',
+      'Apakah Anda yakin ingin menghapus produk ini?',
+      [
+        { text: 'Batal', style: 'cancel' },
+        { text: 'Hapus', style: 'destructive', onPress: async () => {
+            try {
+              await api.delete(`/products/${productId}`);
+              Alert.alert('Sukses', 'Produk berhasil dihapus');
+              fetchMyStore();
+            } catch (error: any) {
+              Alert.alert('Error', error.response?.data?.message || 'Gagal menghapus produk');
+            }
+          } 
+        }
+      ]
     );
   };
 
@@ -1466,6 +1791,47 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     fontSize: 10,
     fontWeight: '700',
     color: '#1f2937',
+  },
+  certBadgeRow: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    flexDirection: 'row',
+    gap: 6,
+  },
+  certBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 8,
+    gap: 4,
+  },
+  certBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  certHalal: {
+    backgroundColor: '#16a34a',
+  },
+  certBpom: {
+    backgroundColor: '#2563eb',
+  },
+  actionIcons: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    flexDirection: 'row',
+    gap: 6,
+  },
+  actionBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
   },
   cardContent: {
     padding: 10, // White space

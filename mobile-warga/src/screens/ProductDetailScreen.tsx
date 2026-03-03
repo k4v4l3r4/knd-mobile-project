@@ -85,6 +85,8 @@ export interface Product {
    variant_note?: string | null;
    specifications?: string | null;
    labels?: string[] | null;
+  is_halal?: boolean;
+  is_bpom?: boolean;
    variants?: ProductVariant[];
    total_sold?: number;
 }

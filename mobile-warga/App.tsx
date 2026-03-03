@@ -79,6 +79,7 @@ const AppContent = () => {
   const [loading, setLoading] = useState(true);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedProductToEdit, setSelectedProductToEdit] = useState<Product | null>(null);
   const [billsInitialTab, setBillsInitialTab] = useState<'bills' | 'history'>('bills');
   const [paymentData, setPaymentData] = useState<any>(null);
 
@@ -177,6 +178,13 @@ const AppContent = () => {
     if (screen === 'PRODUCT_DETAIL' && data) {
       setSelectedProduct(data);
     }
+    if (screen === 'ADD_PRODUCT') {
+      if (data) {
+        setSelectedProductToEdit(data);
+      } else {
+        setSelectedProductToEdit(null);
+      }
+    }
     if (screen === 'BILLS') {
       setBillsInitialTab(data?.initialTab || 'bills');
     }
@@ -255,7 +263,7 @@ const AppContent = () => {
           onNavigate={handleNavigate}
         />
       )}
-      {currentScreen === 'ADD_PRODUCT' && <AddProductScreen onSuccess={() => setCurrentScreen('MARKET')} />}
+      {currentScreen === 'ADD_PRODUCT' && <AddProductScreen editingProduct={selectedProductToEdit || undefined} onSuccess={() => setCurrentScreen('MARKET')} />}
       {currentScreen === 'CHECKOUT' && <CheckoutScreen onNavigate={handleNavigate} />}
       {currentScreen === 'CCTV' && <CctvScreen />}
       {currentScreen === 'SETTINGS' && <SettingsScreen onLogout={handleLogout} onNavigate={handleNavigate} />}
