@@ -253,7 +253,13 @@ export default function AddProductScreen({ onSuccess, editingProduct }: AddProdu
       if (editingProduct) {
         formData.append('_method', 'PUT');
         const response = await api.post(`/products/${editingProduct.id}`, formData, {
-          transformRequest: (data) => data,
+          transformRequest: (data, headers) => {
+            // Remove Content-Type header to let browser set it with boundary
+            if (headers && typeof headers.delete === 'function') {
+              headers.delete('Content-Type');
+            }
+            return data;
+          },
         });
         if (response.status === 200) {
           Alert.alert('Sukses', 'Produk berhasil diperbarui', [
@@ -264,7 +270,12 @@ export default function AddProductScreen({ onSuccess, editingProduct }: AddProdu
         }
       } else {
         const response = await api.post('/products', formData, {
-          transformRequest: (data) => data,
+          transformRequest: (data, headers) => {
+            if (headers && typeof headers.delete === 'function') {
+              headers.delete('Content-Type');
+            }
+            return data;
+          },
         });
         if (response.status === 201) {
           Alert.alert(t('market.addProduct.successTitle'), t('market.addProduct.successMsg'), [
@@ -276,6 +287,7 @@ export default function AddProductScreen({ onSuccess, editingProduct }: AddProdu
       }
     } catch (error: any) {
       console.log('Error adding product:', error);
+      console.log('Error Detail:', error.response);
       Alert.alert(t('market.addProduct.errorTitle'), t('market.addProduct.errorMsg') + ". " + (error.response?.data?.message || error.message));
     } finally {
       setIsSubmitting(false);
