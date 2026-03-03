@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Transaction;
 use App\Models\Notification;
 use App\Models\WilayahRt;
+use App\Models\User as UserModel;
 use App\Services\WhatsAppService;
 use Carbon\Carbon;
 
@@ -122,7 +123,8 @@ class SendIuranBillNotifications extends Command
                     continue;
                 }
 
-                $alreadyNotified = Notification::where('user_id', $resident->id)
+                $alreadyNotified = Notification::where('notifiable_id', $resident->id)
+                    ->where('notifiable_type', UserModel::class)
                     ->where('type', 'BILL')
                     ->whereMonth('created_at', $month)
                     ->whereYear('created_at', $year)
@@ -137,7 +139,8 @@ class SendIuranBillNotifications extends Command
                 $message = "Tagihan iuran bulan {$monthName} {$year} sebesar {$formattedAmount} belum terbayar.";
 
                 Notification::create([
-                    'user_id' => $resident->id,
+                    'notifiable_id' => $resident->id,
+                    'notifiable_type' => UserModel::class,
                     'title' => 'Tagihan Iuran Bulanan',
                     'message' => $message,
                     'type' => 'BILL',

@@ -91,11 +91,6 @@ class BoardingHouseController extends Controller
 
         $ownerId = $request->owner_id;
 
-        // If Juragan creates, owner is themselves
-        if ($user->role === 'JURAGAN_KOST') {
-            $ownerId = $user->id;
-        }
-        
         // Default to current user if not provided (Admin case fallback)
         if (!$ownerId) {
             $ownerId = $user->id;
@@ -110,11 +105,7 @@ class BoardingHouseController extends Controller
             'floor_config' => $request->floor_config,
         ]);
 
-        // Auto-upgrade role if user is creating their first kost and is not Admin/Juragan
-        if ($user->role !== 'ADMIN' && $user->role !== 'JURAGAN_KOST') {
-            $user->role = 'JURAGAN_KOST';
-            $user->save();
-        }
+        // Do not change user role when creating kost. Ownership is used for authorization checks.
 
         return response()->json([
             'success' => true,
@@ -400,7 +391,9 @@ class BoardingHouseController extends Controller
         $user = $request->user('sanctum');
         if (!$user) return response()->json(['message' => 'Unauthorized'], 401);
 
-        if ($user->role === 'JURAGAN_KOST' && $boardingHouse->owner_id !== $user->id) {
+        $isAdmin = in_array($user->role, ['SUPER_ADMIN', 'ADMIN', 'ADMIN_RT', 'ADMIN_RW', 'SECRETARY', 'TREASURER']);
+        $isOwner = $boardingHouse->owner_id === $user->id;
+        if (!$isAdmin && !$isOwner) {
              return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
@@ -435,7 +428,9 @@ class BoardingHouseController extends Controller
         $user = $request->user('sanctum');
         if (!$user) return response()->json(['message' => 'Unauthorized'], 401);
 
-        if ($user->role === 'JURAGAN_KOST' && $boardingHouse->owner_id !== $user->id) {
+        $isAdmin = in_array($user->role, ['SUPER_ADMIN', 'ADMIN', 'ADMIN_RT', 'ADMIN_RW', 'SECRETARY', 'TREASURER']);
+        $isOwner = $boardingHouse->owner_id === $user->id;
+        if (!$isAdmin && !$isOwner) {
             return response()->json(['success' => false, 'message' => 'Anda tidak memiliki akses ke kost ini'], 403);
         }
 
@@ -553,7 +548,9 @@ class BoardingHouseController extends Controller
         $user = $request->user('sanctum');
         if (!$user) return response()->json(['message' => 'Unauthorized'], 401);
 
-        if ($user->role === 'JURAGAN_KOST' && $boardingHouse->owner_id !== $user->id) {
+        $isAdmin = in_array($user->role, ['SUPER_ADMIN', 'ADMIN', 'ADMIN_RT', 'ADMIN_RW', 'SECRETARY', 'TREASURER']);
+        $isOwner = $boardingHouse->owner_id === $user->id;
+        if (!$isAdmin && !$isOwner) {
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
@@ -585,7 +582,9 @@ class BoardingHouseController extends Controller
         $user = $request->user('sanctum');
         if (!$user) return response()->json(['message' => 'Unauthorized'], 401);
 
-        if ($user->role === 'JURAGAN_KOST' && $boardingHouse->owner_id !== $user->id) {
+        $isAdmin = in_array($user->role, ['SUPER_ADMIN', 'ADMIN', 'ADMIN_RT', 'ADMIN_RW', 'SECRETARY', 'TREASURER']);
+        $isOwner = $boardingHouse->owner_id === $user->id;
+        if (!$isAdmin && !$isOwner) {
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
@@ -643,7 +642,9 @@ class BoardingHouseController extends Controller
         $user = $request->user('sanctum');
         if (!$user) return response()->json(['message' => 'Unauthorized'], 401);
 
-        if ($user->role === 'JURAGAN_KOST' && $boardingHouse->owner_id !== $user->id) {
+        $isAdmin = in_array($user->role, ['SUPER_ADMIN', 'ADMIN', 'ADMIN_RT', 'ADMIN_RW', 'SECRETARY', 'TREASURER']);
+        $isOwner = $boardingHouse->owner_id === $user->id;
+        if (!$isAdmin && !$isOwner) {
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 

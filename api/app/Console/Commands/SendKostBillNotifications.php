@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Models\BoardingTenant;
 use App\Models\Notification;
+use App\Models\User as UserModel;
 use App\Services\WhatsAppService;
 use Carbon\Carbon;
 
@@ -51,7 +52,8 @@ class SendKostBillNotifications extends Command
             $dueDate = Carbon::parse($tenant->due_date);
             
             // Cek notifikasi terakhir
-            $lastNotification = Notification::where('user_id', $tenant->user_id)
+            $lastNotification = Notification::where('notifiable_id', $tenant->user_id)
+                ->where('notifiable_type', UserModel::class)
                 ->where('type', 'BILL_KOST')
                 ->where('related_id', $tenant->id) // Link ke ID tenant kost
                 ->whereMonth('created_at', $today->month)
@@ -74,7 +76,8 @@ class SendKostBillNotifications extends Command
 
             // Simpan notifikasi di database
             Notification::create([
-                'user_id' => $tenant->user_id,
+                'notifiable_id' => $tenant->user_id,
+                'notifiable_type' => UserModel::class,
                 'title' => 'Tagihan Kost Jatuh Tempo',
                 'message' => $message,
                 'type' => 'BILL_KOST',

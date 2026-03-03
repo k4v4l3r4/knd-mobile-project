@@ -27,7 +27,8 @@ class IssueReportController extends Controller
             return $this->indexAdmin($request);
         }
         
-        $query = IssueReport::where('user_id', $user->id);
+        $query = IssueReport::where('user_id', $user->id)
+            ->with('user:id,name,photo_url,phone');
 
         if ($request->has('status') && $request->status !== 'ALL') {
             $query->where('status', $request->status);

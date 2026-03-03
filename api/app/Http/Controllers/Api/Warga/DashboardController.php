@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Warga;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Models\Announcement;
 use App\Models\Transaction;
 use App\Models\Fee;
@@ -102,11 +103,13 @@ class DashboardController extends Controller
         $hasEmergency = false;
 
         try {
-            $unreadNotificationsCount = Notification::where('user_id', $user->id)
+            $unreadNotificationsCount = Notification::where('notifiable_id', $user->id)
+                ->where('notifiable_type', User::class)
                 ->where('is_read', false)
                 ->count();
                 
-            $hasEmergency = Notification::where('user_id', $user->id)
+            $hasEmergency = Notification::where('notifiable_id', $user->id)
+                ->where('notifiable_type', User::class)
                 ->where('is_read', false)
                 ->whereIn('type', ['EMERGENCY', 'SOS', 'PANIC', 'WARNING', 'PANIC_BUTTON'])
                 ->exists();

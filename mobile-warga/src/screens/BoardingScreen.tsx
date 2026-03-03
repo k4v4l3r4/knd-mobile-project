@@ -1189,18 +1189,13 @@ export default function BoardingScreen() {
   };
 
   const isJuraganView = React.useMemo(() => {
-    // Admins and RT always see Juragan view
-    if (['JURAGAN_KOST', 'RT', 'ADMIN_RT', 'ADMIN'].includes(userRole)) return true;
-    
-    // Regular users see Juragan view ONLY if they own a boarding house
-    if (boardingHouses.length > 0 && currentUser?.id) {
-       // Check if user is owner of the first house (assuming single ownership for now or list of owned houses)
-       // The API returns owned houses for non-tenants
-       const firstHouse = boardingHouses[0];
-       return firstHouse.owner_id === currentUser.id || firstHouse.owner?.id === currentUser.id;
-    }
-    
-    return false;
+    const adminRoles = ['SUPER_ADMIN', 'ADMIN', 'ADMIN_RT', 'ADMIN_RW', 'SECRETARY', 'TREASURER', 'RT'];
+    const isAdmin = adminRoles.includes(userRole);
+    const isOwner = Boolean(
+      currentUser?.id &&
+      boardingHouses.some(h => h.owner_id === currentUser.id || h.owner?.id === currentUser.id)
+    );
+    return isAdmin || isOwner;
   }, [userRole, boardingHouses, currentUser]);
 
   return (
@@ -1239,7 +1234,16 @@ export default function BoardingScreen() {
       )}
 
       {/* Floating Add Kost Button */}
-      {['JURAGAN_KOST', 'RT', 'ADMIN_RT', 'ADMIN', 'WARGA', 'WARGA_TETAP'].includes(userRole) && (
+      {(function() {
+        const adminRoles = ['SUPER_ADMIN', 'ADMIN', 'ADMIN_RT', 'ADMIN_RW', 'SECRETARY', 'TREASURER', 'RT'];
+        const isAdmin = adminRoles.includes(userRole);
+        const isOwner = Boolean(
+          currentUser?.id &&
+          boardingHouses.some(h => h.owner_id === currentUser.id || h.owner?.id === currentUser.id)
+        );
+        const isRegularCitizen = ['WARGA', 'WARGA_TETAP'].includes(userRole);
+        return isAdmin || isOwner || isRegularCitizen;
+      })() && (
         <TouchableOpacity
           style={styles.fab}
           onPress={() => setKostModalVisible(true)}
