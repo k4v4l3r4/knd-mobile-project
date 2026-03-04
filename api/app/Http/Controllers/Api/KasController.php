@@ -15,6 +15,30 @@ use Laravel\Sanctum\PersonalAccessToken;
 class KasController extends Controller
 {
     /**
+     * Get Pending Transactions for Verification.
+     */
+    public function pending(Request $request)
+    {
+        $user = Auth::user();
+        $rtId = $user->rt_id;
+
+        if (!$rtId) {
+            return response()->json(['message' => 'User not assigned to RT'], 403);
+        }
+
+        $pending = Transaction::where('rt_id', $rtId)
+            ->where('status', 'PENDING')
+            ->with(['user:id,name,block', 'wallet:id,name']) // Eager load user & wallet
+            ->orderBy('date', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $pending
+        ]);
+    }
+
+    /**
      * Get Kas Summary (Total IN, OUT, Balance, Breakdown).
      */
     public function summary(Request $request)

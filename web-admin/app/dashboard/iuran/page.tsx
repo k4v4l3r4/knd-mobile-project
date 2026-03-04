@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import axios from '@/lib/axios';
+import api from '@/lib/api';
 import { 
   Calendar, 
   ChevronLeft, 
@@ -18,14 +18,18 @@ import { useTenant } from '@/context/TenantContext';
 import { DemoLabel } from '@/components/TenantStatusComponents';
 
 interface IuranDetail {
+  id: number;
   date: string;
   amount: number;
   category: string;
   desc: string;
+  status: string;
+  proof_url?: string;
 }
 
 interface MonthData {
   paid: number;
+  pending?: number;
   status: 'PAID' | 'PARTIAL' | 'UNPAID';
   details: IuranDetail[];
 }
@@ -59,6 +63,20 @@ export default function LaporanIuranPage() {
   // Popover State
   const [hoveredCell, setHoveredCell] = useState<{userId: number, month: string} | null>(null);
 
+  const handleApprove = async (trxId: number) => {
+    if (isDemo || isExpired) return;
+    if (!confirm("Verifikasi transaksi ini? Saldo akan bertambah.")) return;
+    
+    try {
+      await api.post(`/transactions/${trxId}/verify`);
+      toast.success("Transaksi berhasil diverifikasi");
+      fetchData(); // Reload data
+    } catch (error) {
+      console.error("Verification failed:", error);
+      toast.error("Gagal verifikasi");
+    }
+  };
+
   useEffect(() => {
     if (!status) return;
     fetchData();
@@ -82,10 +100,12 @@ export default function LaporanIuranPage() {
                 status: 'PAID',
                 details: [
                   {
+                    id: 101,
                     date: `${year}-01-05`,
                     amount: 100000,
                     category: 'Iuran Rutin',
-                    desc: 'Iuran bulan Januari'
+                    desc: 'Iuran bulan Januari',
+                    status: 'PAID'
                   }
                 ]
               },
@@ -94,10 +114,12 @@ export default function LaporanIuranPage() {
                 status: 'PAID',
                 details: [
                   {
+                    id: 102,
                     date: `${year}-02-06`,
                     amount: 100000,
                     category: 'Iuran Rutin',
-                    desc: 'Iuran bulan Februari'
+                    desc: 'Iuran bulan Februari',
+                    status: 'PAID'
                   }
                 ]
               },
@@ -106,10 +128,12 @@ export default function LaporanIuranPage() {
                 status: 'PARTIAL',
                 details: [
                   {
+                    id: 103,
                     date: `${year}-03-10`,
                     amount: 50000,
                     category: 'Iuran Rutin',
-                    desc: 'Cicilan iuran Maret'
+                    desc: 'Cicilan iuran Maret',
+                    status: 'PARTIAL'
                   }
                 ]
               }
@@ -133,10 +157,12 @@ export default function LaporanIuranPage() {
                 status: 'PAID',
                 details: [
                   {
+                    id: 104,
                     date: `${year}-02-15`,
                     amount: 100000,
                     category: 'Iuran Rutin',
-                    desc: 'Iuran Februari'
+                    desc: 'Iuran Februari',
+                    status: 'PAID'
                   }
                 ]
               }
@@ -155,10 +181,12 @@ export default function LaporanIuranPage() {
                 status: 'PAID',
                 details: [
                   {
+                    id: 105,
                     date: `${year}-01-03`,
                     amount: 100000,
                     category: 'Iuran Rutin',
-                    desc: 'Iuran Januari'
+                    desc: 'Iuran Januari',
+                    status: 'PAID'
                   }
                 ]
               },
@@ -167,10 +195,12 @@ export default function LaporanIuranPage() {
                 status: 'PAID',
                 details: [
                   {
+                    id: 106,
                     date: `${year}-02-04`,
                     amount: 100000,
                     category: 'Iuran Rutin',
-                    desc: 'Iuran Februari'
+                    desc: 'Iuran Februari',
+                    status: 'PAID'
                   }
                 ]
               },
@@ -179,10 +209,12 @@ export default function LaporanIuranPage() {
                 status: 'PAID',
                 details: [
                   {
+                    id: 107,
                     date: `${year}-03-07`,
                     amount: 100000,
                     category: 'Iuran Rutin',
-                    desc: 'Iuran Maret'
+                    desc: 'Iuran Maret',
+                    status: 'PAID'
                   }
                 ]
               }
@@ -205,7 +237,7 @@ export default function LaporanIuranPage() {
         setData(demoData);
         return;
       }
-      const response = await axios.get('/reports/dues', {
+      const response = await api.get('/reports/dues', {
         params: { year }
       });
       if (response.data.success) {
@@ -425,12 +457,14 @@ export default function LaporanIuranPage() {
                     {months.map((m) => {
                       const mData: MonthData = user.months[m.key] || {
                         paid: 0,
+                        pending: 0,
                         status: 'UNPAID',
                         details: []
                       };
                       const isPaid = mData.status === 'PAID';
                       const isPartial = mData.status === 'PARTIAL';
                       const isUnpaid = mData.status === 'UNPAID';
+                      const hasPending = (mData.pending || 0) > 0;
                       
                       return (
                         <td 
@@ -440,30 +474,70 @@ export default function LaporanIuranPage() {
                           onMouseLeave={() => setHoveredCell(null)}
                         >
                           <span className={`
-                            font-medium text-xs px-2 py-1 rounded-full
+                            font-medium text-xs px-2 py-1 rounded-full relative
                             ${isPaid ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 dark:text-emerald-400' : ''}
                             ${isPartial ? 'text-amber-600 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-400' : ''}
                             ${isUnpaid ? 'text-rose-600 bg-rose-50 dark:bg-rose-900/30 dark:text-rose-400' : ''}
+                            ${hasPending && !isPaid ? 'ring-2 ring-orange-400' : ''}
                           `}>
                             {mData.paid > 0 ? formatCurrency(mData.paid) : '-'}
+                            {hasPending && (
+                              <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-3 w-3 bg-orange-500"></span>
+                              </span>
+                            )}
                           </span>
 
                           {/* Hover Popover */}
                           {hoveredCell?.userId === user.id && hoveredCell?.month === m.key && (
-                            <div className="absolute z-50 left-1/2 -translate-x-1/2 bottom-full mb-2 w-64 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 p-3 text-left animate-in fade-in zoom-in-95 duration-200">
+                            <div className="absolute z-50 left-1/2 -translate-x-1/2 bottom-full mb-2 w-72 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 p-3 text-left animate-in fade-in zoom-in-95 duration-200">
                               <div className="text-xs font-bold text-slate-700 dark:text-slate-200 mb-2 border-b border-slate-100 dark:border-slate-700 pb-1">
                                 {m.label} - Detail Pembayaran
                               </div>
                               {mData.details.length > 0 ? (
-                                <div className="space-y-1">
+                                <div className="space-y-2">
                                   {mData.details.map((d, i) => (
-                                    <div key={i} className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
-                                      <span className="truncate max-w-[120px]">{d.category || 'Pembayaran'}</span>
-                                      <span className="font-medium">{formatCurrency(d.amount)}</span>
+                                    <div key={i} className={`text-xs p-2 rounded-md ${d.status === 'PENDING' ? 'bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-800' : 'bg-slate-50 dark:bg-slate-800/50'}`}>
+                                      <div className="flex justify-between items-start mb-1">
+                                        <span className="font-medium text-slate-700 dark:text-slate-300">{d.category || 'Pembayaran'}</span>
+                                        <span className="font-bold text-slate-800 dark:text-slate-200">{formatCurrency(d.amount)}</span>
+                                      </div>
+                                      <div className="flex justify-between items-center">
+                                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                                          d.status === 'PAID' ? 'bg-emerald-100 text-emerald-700' :
+                                          d.status === 'PENDING' ? 'bg-orange-100 text-orange-700' :
+                                          'bg-slate-200 text-slate-600'
+                                        }`}>
+                                          {d.status}
+                                        </span>
+                                        {d.status === 'PENDING' && (
+                                          <button 
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleApprove(d.id);
+                                            }}
+                                            className="ml-2 px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] rounded shadow-sm transition-colors"
+                                          >
+                                            Approve
+                                          </button>
+                                        )}
+                                      </div>
+                                      {d.proof_url && (
+                                         <a 
+                                           href={`${process.env.NEXT_PUBLIC_API_URL}/storage/${d.proof_url}`} 
+                                           target="_blank" 
+                                           rel="noreferrer"
+                                           className="block mt-1 text-[10px] text-blue-600 hover:underline"
+                                           onClick={(e) => e.stopPropagation()}
+                                         >
+                                           Lihat Bukti
+                                         </a>
+                                      )}
                                     </div>
                                   ))}
                                   <div className="border-t border-slate-100 dark:border-slate-700 mt-2 pt-1 flex justify-between text-xs font-bold text-slate-800 dark:text-slate-200">
-                                    <span>Total</span>
+                                    <span>Total Masuk</span>
                                     <span>{formatCurrency(mData.paid)}</span>
                                   </div>
                                 </div>

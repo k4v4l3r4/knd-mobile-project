@@ -43,6 +43,7 @@ export default function KeuanganPage() {
     breakdown: {} as Record<string, number>
   });
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [pendingTransactions, setPendingTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
   // Modal State
@@ -180,12 +181,14 @@ export default function KeuanganPage() {
         setTransactions(demoTransactions);
         return;
       }
-      const [summaryRes, transactionsRes] = await Promise.all([
+      const [summaryRes, transactionsRes, pendingRes] = await Promise.all([
         api.get("/rt/kas/summary"),
-        api.get("/rt/kas/transactions")
+        api.get("/rt/kas/transactions"),
+        api.get("/rt/kas/pending")
       ]);
       setSummary(summaryRes.data.data);
       setTransactions(transactionsRes.data.data.data);
+      setPendingTransactions(pendingRes.data.data);
     } catch (error) {
       if (!isDemo) {
         console.error("Failed to fetch finance data:", error);
@@ -193,6 +196,21 @@ export default function KeuanganPage() {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleApprove = async (id: number) => {
+    if (isDemo || isExpired) return;
+    
+    if (!confirm("Apakah Anda yakin ingin memverifikasi transaksi ini? Saldo akan bertambah.")) return;
+
+    try {
+      await api.post(`/transactions/${id}/verify`);
+      toast.success("Transaksi berhasil diverifikasi");
+      fetchData(); // Reload data
+    } catch (error) {
+      console.error("Failed to verify transaction:", error);
+      toast.error("Gagal memverifikasi transaksi");
     }
   };
 
@@ -427,8 +445,78 @@ export default function KeuanganPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6">
-        {/* Recent Transactions Table */}
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+        {/* Pending Transactions Section */}
+        {pendingTransactions.length > 0 && (
+          <div className="bg-orange-50 dark:bg-orange-950/20 p-6 rounded-xl border border-orange-200 dark:border-orange-900 mb-8">
+            <h2 className="text-lg font-semibold text-orange-800 dark:text-orange-400 mb-4 flex items-center gap-2">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-orange-500"></span>
+              </span>
+              Transaksi Perlu Verifikasi
+            </h2>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="text-left text-sm font-medium text-orange-700 dark:text-orange-300 border-b border-orange-200 dark:border-orange-800">
+                    <th className="pb-3 pl-4">Tanggal</th>
+                    <th className="pb-3">Warga</th>
+                    <th className="pb-3">Keterangan</th>
+                    <th className="pb-3">Nominal</th>
+                    <th className="pb-3">Bukti</th>
+                    <th className="pb-3 pr-4 text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-orange-200 dark:divide-orange-800">
+                  {pendingTransactions.map((trx) => (
+                    <tr key={trx.id} className="hover:bg-orange-100/50 dark:hover:bg-orange-900/30 transition-colors">
+                      <td className="py-4 pl-4 text-sm text-slate-600 dark:text-slate-300">
+                        {format(new Date(trx.created_at || trx.date), 'dd MMM yyyy', { locale: id })}
+                      </td>
+                      <td className="py-4 text-sm font-medium text-slate-800 dark:text-slate-200">
+                        {trx.user?.name || 'Warga'}
+                        <div className="text-xs text-slate-500 font-normal">Blok {trx.user?.block_id || '-'}</div>
+                      </td>
+                      <td className="py-4 text-sm text-slate-600 dark:text-slate-300">
+                        {trx.description}
+                        <div className="text-xs text-orange-600 dark:text-orange-400 mt-0.5">{trx.category}</div>
+                      </td>
+                      <td className="py-4 text-sm font-bold text-slate-800 dark:text-slate-200">
+                        {formatCurrency(trx.amount)}
+                      </td>
+                      <td className="py-4 text-sm">
+                         {trx.proof_url ? (
+                           <a 
+                             href={`${process.env.NEXT_PUBLIC_API_URL}/storage/${trx.proof_url}`} 
+                             target="_blank" 
+                             rel="noreferrer"
+                             className="text-blue-600 hover:underline text-xs"
+                           >
+                             Lihat Foto
+                           </a>
+                         ) : (
+                           <span className="text-slate-400 text-xs">-</span>
+                         )}
+                      </td>
+                      <td className="py-4 pr-4 text-right">
+                        <Button 
+                          size="sm" 
+                          className="bg-orange-600 hover:bg-orange-700 text-white"
+                          onClick={() => handleApprove(trx.id)}
+                        >
+                          Approve / Terima
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Transaction History */}
+        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden transition-colors duration-300">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold text-slate-800 dark:text-slate-100">Riwayat Transaksi</h3>
             {/* <button className="text-sm text-emerald-600 font-medium hover:underline">Lihat Semua</button> */}

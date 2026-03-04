@@ -172,7 +172,15 @@ class TransactionController extends Controller
                  return response()->json(['message' => 'Harap buat Akun Kas terlebih dahulu di menu Pengaturan'], 400);
             }
 
+            // Get Tenant ID from Admin of this RT
+            $admin = \App\Models\User::where('rt_id', $account->rt_id)
+                ->whereNotNull('tenant_id')
+                ->whereIn('role', ['ADMIN_RT', 'RT'])
+                ->first();
+            $tenantId = $admin ? $admin->tenant_id : null;
+
             $transaction = Transaction::create([
+                'tenant_id' => $tenantId, // Explicitly set tenant_id from Admin
                 'rt_id' => $account->rt_id,
                 'account_id' => $account->id,
                 'user_id' => Auth::id(),

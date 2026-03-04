@@ -341,16 +341,25 @@ class ReportController extends Controller
                 $trxs = $transactions->get($key);
 
                 $paid = 0;
+                $pending = 0;
                 $details = [];
 
                 if ($trxs) {
                     foreach ($trxs as $t) {
-                        $paid += $t->amount;
+                        if ($t->status === 'PAID') {
+                            $paid += $t->amount;
+                        } else if ($t->status === 'PENDING') {
+                            $pending += $t->amount;
+                        }
+                        
                         $details[] = [
+                            'id' => $t->id,
                             'date' => $t->date->format('d/m/Y'),
                             'amount' => $t->amount,
                             'category' => $t->category ?? 'Umum', // Handle null category
-                            'desc' => $t->description
+                            'desc' => $t->description,
+                            'status' => $t->status,
+                            'proof_url' => $t->proof_url
                         ];
                     }
                 }
@@ -364,6 +373,7 @@ class ReportController extends Controller
 
                 $userRow['months'][$monthKey] = [
                     'paid' => $paid,
+                    'pending' => $pending,
                     'status' => $status,
                     'details' => $details
                 ];
