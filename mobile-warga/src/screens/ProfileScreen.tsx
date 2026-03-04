@@ -15,6 +15,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImageManipulator from 'expo-image-manipulator';
+import * as FileSystem from 'expo-file-system';
 import { useTheme } from '../context/ThemeContext';
 import { useTenant } from '../context/TenantContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -86,27 +88,87 @@ const ProfileScreen = () => {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.5,
+      quality: 0.7,
     });
 
     if (!result.canceled) {
-      handleUploadAvatar(result.assets[0].uri);
+      const asset = result.assets[0];
+      handleUploadAvatar(asset);
     }
   };
 
-  const handleUploadAvatar = async (uri: string) => {
+  const handleUploadAvatar = async (asset: { uri: string; width?: number; height?: number }) => {
     setIsUploading(true);
-    
-    const formData = new FormData();
-    const filename = uri.split('/').pop();
-    const match = /\.(\w+)$/.exec(filename || '');
-    const type = match ? `image/${match[1]}` : 'image/jpeg';
+    const MAX_DIMENSION = 1024;
+    const MAX_SIZE_BYTES = 1024 * 1024; // 1MB
 
-    // @ts-ignore
-    formData.append('avatar', { uri, name: filename || 'avatar.jpg', type });
-    formData.append('_method', 'PUT');
+    const computeSizeFromBase64 = (b64?: string | null) => {
+      if (!b64) return Infinity;
+      // Approx bytes = base64 length * 3/4
+      return Math.floor((b64.length * 3) / 4);
+    };
+
+    const resizeOnce = async (uri: string, targetW?: number, targetH?: number, quality = 0.7) => {
+      const actions: ImageManipulator.Action[] = [];
+      if (targetW || targetH) {
+        actions.push({ resize: { width: targetW, height: targetH } });
+      }
+      const result = await ImageManipulator.manipulateAsync(uri, actions, {
+        compress: quality,
+        format: ImageManipulator.SaveFormat.JPEG,
+        base64: true,
+      });
+      return result;
+    };
+
+    const pickTargetSize = (w?: number, h?: number) => {
+      if (!w || !h) return { width: MAX_DIMENSION, height: MAX_DIMENSION };
+      if (w >= h) {
+        return { width: MAX_DIMENSION, height: undefined };
+      }
+      return { width: undefined, height: MAX_DIMENSION };
+    };
 
     try {
+      const { width, height } = asset;
+      let target = pickTargetSize(width, height);
+      let quality = 0.7;
+      let resized = await resizeOnce(asset.uri, target.width, target.height, quality);
+      let sizeBytes = computeSizeFromBase64(resized.base64);
+
+      // Try lower qualities if still above 1MB
+      const qualitySteps = [0.6, 0.5, 0.4];
+      let stepIdx = 0;
+      while (sizeBytes > MAX_SIZE_BYTES && stepIdx < qualitySteps.length) {
+        quality = qualitySteps[stepIdx++];
+        resized = await resizeOnce(asset.uri, target.width, target.height, quality);
+        sizeBytes = computeSizeFromBase64(resized.base64);
+      }
+
+      // If still large, reduce dimensions further
+      const dimensionSteps = [800, 640];
+      let dimIdx = 0;
+      while (sizeBytes > MAX_SIZE_BYTES && dimIdx < dimensionSteps.length) {
+        const dim = dimensionSteps[dimIdx++];
+        target = pickTargetSize(width, height);
+        if (target.width) {
+          target = { width: dim, height: undefined };
+        } else {
+          target = { width: undefined, height: dim };
+        }
+        resized = await resizeOnce(asset.uri, target.width, target.height, quality);
+        sizeBytes = computeSizeFromBase64(resized.base64);
+      }
+
+      const uploadUri = resized.uri;
+      const formData = new FormData();
+      const filename = uploadUri.split('/').pop() || 'avatar.jpg';
+      const type = 'image/jpeg';
+
+      // @ts-ignore
+      formData.append('avatar', { uri: uploadUri, name: filename, type });
+    formData.append('_method', 'PUT');
+
       const response = await api.post('/profile/avatar', formData, {
         transformRequest: (data, headers) => {
           return data;
@@ -122,6 +184,13 @@ const ProfileScreen = () => {
         const parsedData = JSON.parse(cachedData);
         parsedData.avatar = response.data.avatar_url;
         await AsyncStorage.setItem('user_data', JSON.stringify(parsedData));
+      }
+
+      // Cleanup temp resized file
+      try {
+        await FileSystem.deleteAsync(uploadUri, { idempotent: true });
+      } catch (e) {
+        // ignore cleanup error
       }
     } catch (error: any) {
       console.error('Error uploading avatar:', error);

@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
-use App\Models\User;
 
 class ProfileController extends Controller
 {
@@ -17,13 +16,13 @@ class ProfileController extends Controller
         /** @var \App\Models\User $user */
         $user = Auth::user();
         $user->load(['rt', 'rw', 'userRole']);
-        
+
         if ($user->userRole) {
             $user->role = $user->userRole->role_code;
         }
 
         return response()->json([
-            'data' => $user
+            'data' => $user,
         ]);
     }
 
@@ -31,7 +30,7 @@ class ProfileController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
-        
+
         $request->validate([
             'name' => 'required|string|max:255',
             'phone' => ['required', 'string', 'max:20', Rule::unique('users')->ignore($user->id)],
@@ -65,14 +64,14 @@ class ProfileController extends Controller
 
         return response()->json([
             'message' => 'Profile updated successfully',
-            'data' => $user
+            'data' => $user,
         ]);
     }
 
     public function uploadAvatar(Request $request)
     {
         $request->validate([
-            'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'avatar' => 'required|image|max:5120',
         ]);
 
         /** @var \App\Models\User $user */
@@ -88,17 +87,17 @@ class ProfileController extends Controller
             }
 
             $path = $request->file('avatar')->store('avatars', 'public');
-            
+
             // Generate full URL
             $url = Storage::url($path);
 
             $user->update([
-                'avatar' => $url 
+                'avatar' => $url,
             ]);
 
             return response()->json([
                 'message' => 'Avatar uploaded successfully',
-                'avatar_url' => $url
+                'avatar_url' => $url,
             ]);
         }
 
@@ -115,19 +114,19 @@ class ProfileController extends Controller
         /** @var \App\Models\User $user */
         $user = Auth::user();
 
-        if (!Hash::check($request->current_password, $user->password)) {
+        if (! Hash::check($request->current_password, $user->password)) {
             return response()->json([
                 'message' => 'Password saat ini salah',
-                'errors' => ['current_password' => ['Password saat ini tidak cocok']]
+                'errors' => ['current_password' => ['Password saat ini tidak cocok']],
             ], 422);
         }
 
         $user->update([
-            'password' => Hash::make($request->password)
+            'password' => Hash::make($request->password),
         ]);
 
         return response()->json([
-            'message' => 'Password berhasil diperbarui'
+            'message' => 'Password berhasil diperbarui',
         ]);
     }
 }

@@ -1473,71 +1473,48 @@ export default function BoardingScreen() {
         renderTenantView()
       )}
 
-      {/* Context-Aware Floating Action Button */}
-      {(function() {
-         // RT Monitor Mode (No Kost) -> No FAB
-         if (isRtViewer && !isJuragan) return false;
-         
-         // If Juragan View is active (Owner/Admin)
-         if (isJuraganView) {
-             if (activeTab === 'HOUSE') return true;
-             if (activeTab === 'TENANT') return isJuragan; // Only owners can add tenants
-         }
-         
-         // Regular user (WARGA) -> Can add kost to become Juragan
-         const isRegularCitizen = ['WARGA', 'WARGA_TETAP'].includes(userRole);
-         if (isRegularCitizen && activeTab === 'HOUSE') return true;
-
-         return false;
-      })() && (
-        <TouchableOpacity
-          style={styles.fab}
-          onPress={() => {
-             if (activeTab === 'HOUSE') {
-                 // Reset form and open
-                 setKostFormData({ name: '', address: '', total_rooms: '', total_floors: '', floor_config: [] });
-                 setIsEditingKost(false);
-                 setEditingKostId(null);
-                 setKostModalVisible(true);
-             } else {
-                 // Add Tenant logic (Context-Aware)
-                 // Default to first house if exists, else null (to trigger selector)
-                 if (myBoardingHouses.length === 1) {
-                     setSelectedHouseId(myBoardingHouses[0].id);
-                 } else {
-                     setSelectedHouseId(null); 
-                 }
-                 
-                 // Reset form
-                 const d = new Date();
-                 d.setMonth(d.getMonth() + 1);
-                 
-                 setFormData({
-                    name: '',
-                    nik: '',
-                    phone: '',
-                    room_number: '',
-                    start_date: formatDateLocal(new Date()),
-                    rental_duration: '1',
-                    due_date: formatDateLocal(d),
-                    room_price: '',
-                    deposit_amount: '',
-                    gender: 'L',
-                    marital_status: 'SINGLE',
-                    occupation: '',
-                    ktp_image: null,
-                    notificationEnabled: true
-                 });
-                 setIsEditMode(false);
-                 setEditingTenantId(null);
-                 setModalVisible(true);
-             }
-          }}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="add" size={30} color="#fff" />
-        </TouchableOpacity>
-      )}
+      {/* Floating Action Button */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => {
+          if (activeTab === 'HOUSE') {
+            setKostFormData({ name: '', address: '', total_rooms: '', total_floors: '', floor_config: [] });
+            setIsEditingKost(false);
+            setEditingKostId(null);
+            setKostModalVisible(true);
+          } else {
+            if (myBoardingHouses.length === 1) {
+              setSelectedHouseId(myBoardingHouses[0].id);
+            } else {
+              setSelectedHouseId(null);
+            }
+            const d = new Date();
+            d.setMonth(d.getMonth() + 1);
+            setFormData({
+              name: '',
+              nik: '',
+              phone: '',
+              room_number: '',
+              start_date: formatDateLocal(new Date()),
+              rental_duration: '1',
+              due_date: formatDateLocal(d),
+              room_price: '',
+              deposit_amount: '',
+              gender: 'L',
+              marital_status: 'SINGLE',
+              occupation: '',
+              ktp_image: null,
+              notificationEnabled: true,
+            });
+            setIsEditMode(false);
+            setEditingTenantId(null);
+            setModalVisible(true);
+          }
+        }}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="add" size={30} color="#fff" />
+      </TouchableOpacity>
 
       {/* Add Kost Modal */}
       <Modal

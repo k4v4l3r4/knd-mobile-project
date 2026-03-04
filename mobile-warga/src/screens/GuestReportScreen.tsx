@@ -587,6 +587,7 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
   },
   listContent: {
     padding: 20,
+    paddingBottom: 100,
   },
   card: {
     backgroundColor: colors.card,

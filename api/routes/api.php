@@ -1,52 +1,50 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\WargaController;
-use App\Http\Controllers\Api\TransactionController;
-use App\Http\Controllers\Api\RondaController;
-use App\Http\Controllers\Api\ReportController;
-use App\Http\Controllers\Api\ProductController;
-use App\Http\Controllers\Api\LetterController;
 use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\Api\AssetController;
 use App\Http\Controllers\Api\AssetLoanController;
-use App\Http\Controllers\Api\GuestBookController;
-use App\Http\Controllers\Api\PollController;
-use App\Http\Controllers\Api\EmergencyController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BansosController;
+use App\Http\Controllers\Api\BoardingHouseController;
+use App\Http\Controllers\Api\CctvController;
+use App\Http\Controllers\Api\DanaCallbackController;
 use App\Http\Controllers\Api\EmergencyAlertController;
 use App\Http\Controllers\Api\EmergencyContactController;
-use App\Http\Controllers\Api\BoardingHouseController;
-use App\Http\Controllers\Api\SettingController;
-use App\Http\Controllers\Api\KelurahanIntegrationController;
-use App\Http\Controllers\Api\RegionController;
-use App\Http\Controllers\Api\SaasAuthController;
-use App\Http\Controllers\BillingController;
-use App\Http\Controllers\SuperAdmin\SuperAdminRevenueController;
-use App\Http\Controllers\SuperAdmin\SuperAdminTenantController;
-use App\Http\Controllers\SuperAdmin\SuperAdminInvoiceController;
-
-// Additional Controllers
-use App\Http\Controllers\Api\BansosController;
-use App\Http\Controllers\Api\CctvController;
+use App\Http\Controllers\Api\EmergencyController;
 use App\Http\Controllers\Api\FeeController;
+use App\Http\Controllers\Api\GuestBookController;
 use App\Http\Controllers\Api\IssueReportController;
+use App\Http\Controllers\Api\KelurahanIntegrationController;
+use App\Http\Controllers\Api\LetterController;
 use App\Http\Controllers\Api\LetterTypeController;
-use App\Http\Controllers\Api\DanaCallbackController;
 use App\Http\Controllers\Api\PatrolController;
+use App\Http\Controllers\Api\PollController;
+use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\RegionController;
+use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\RondaController;
 use App\Http\Controllers\Api\RondaFineController;
+// Additional Controllers
 use App\Http\Controllers\Api\RondaFineSettingController;
 use App\Http\Controllers\Api\RondaLocationController;
+use App\Http\Controllers\Api\SaasAuthController;
+use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\StoreController;
 use App\Http\Controllers\Api\SupportTicketController;
+use App\Http\Controllers\Api\TransactionController;
+use App\Http\Controllers\Api\WargaController;
+use App\Http\Controllers\BillingController;
+use App\Http\Controllers\SuperAdmin\SuperAdminInvoiceController;
+use App\Http\Controllers\SuperAdmin\SuperAdminRevenueController;
+use App\Http\Controllers\SuperAdmin\SuperAdminTenantController;
+use Illuminate\Support\Facades\Route;
 
 // Webhooks
 Route::post('/webhooks/flip/payment', [\App\Http\Controllers\FlipWebhookController::class, 'handlePayment']);
 Route::post('/dana/callback', [DanaCallbackController::class, 'handle']);
 
-    // Public Routes
+// Public Routes
 Route::prefix('auth')->group(function () {
     Route::post('/register-demo', [SaasAuthController::class, 'registerDemo']);
     Route::post('/register-live/step1', [SaasAuthController::class, 'registerLiveStep1']);
@@ -96,7 +94,7 @@ Route::middleware(['auth:sanctum', 'role:SUPER_ADMIN'])->prefix('super-admin')->
 Route::middleware(['auth:sanctum', 'tenant.status', 'tenant.feature'])->group(function () {
     // SaaS Status
     Route::get('/tenant/status', [SaasAuthController::class, 'checkStatus']);
-    
+
     // Billing Routes
     Route::prefix('billing')->name('billing.')->group(function () {
         Route::post('/subscribe', [BillingController::class, 'subscribe'])->name('subscribe');
@@ -124,7 +122,7 @@ Route::middleware(['auth:sanctum', 'tenant.status', 'tenant.feature'])->group(fu
         // This is exactly what CentralizedStrategy does.
         // So PaymentController::pay is basically invoking CentralizedStrategy (via Service).
         // I will route /pay to PaymentController::pay.
-        
+
         Route::post('/pay', [\App\Http\Controllers\PaymentController::class, 'pay'])->name('pay');
         Route::post('/{invoice}/confirm-manual', [\App\Http\Controllers\PaymentController::class, 'confirmManual'])->name('confirmManual');
     });
@@ -168,7 +166,7 @@ Route::middleware(['auth:sanctum', 'tenant.status', 'tenant.feature'])->group(fu
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/me', [AuthController::class, 'me']);
     Route::get('/rt/invite-code', [AuthController::class, 'getInviteCode'])->middleware('permission:user.invite'); // Get Invite Code
-    
+
     // Warga Dashboard (mobile warga) - always allow logged-in warga
     Route::get('/warga/dashboard', [App\Http\Controllers\Api\Warga\DashboardController::class, 'index']);
     Route::get('/warga/bills', [App\Http\Controllers\Api\Warga\BillController::class, 'index'])->middleware('permission:iuran.view');
@@ -182,7 +180,7 @@ Route::middleware(['auth:sanctum', 'tenant.status', 'tenant.feature'])->group(fu
     Route::get('/warga/export-pdf', [WargaController::class, 'exportPdf'])->middleware('permission:warga.view');
     Route::post('/warga/import', [WargaController::class, 'import'])->middleware('permission:warga.create');
     Route::delete('/warga/reset', [WargaController::class, 'reset'])->middleware('permission:warga.delete');
-    
+
     // Warga Resource Split for Permissions
     Route::get('warga/family', [WargaController::class, 'family']); // Family route must be before {warga}
     Route::post('warga/fix-orphans', [WargaController::class, 'fixOrphanWarga'])->middleware('permission:warga.update');
@@ -193,7 +191,7 @@ Route::middleware(['auth:sanctum', 'tenant.status', 'tenant.feature'])->group(fu
     Route::get('warga/{warga}', [WargaController::class, 'show'])->middleware('permission:warga.view');
     Route::match(['put', 'patch'], 'warga/{warga}', [WargaController::class, 'update'])->middleware('permission:warga.update');
     Route::delete('warga/{warga}', [WargaController::class, 'destroy'])->middleware('permission:warga.delete');
-    
+
     Route::post('/transactions/confirm', [TransactionController::class, 'storePublic']); // Public submission for Warga
     Route::post('/transactions/{id}/verify', [TransactionController::class, 'verify'])->middleware('permission:kas.create'); // Verify adds to kas
     Route::apiResource('transactions', TransactionController::class)->except(['show', 'update']);
@@ -206,7 +204,7 @@ Route::middleware(['auth:sanctum', 'tenant.status', 'tenant.feature'])->group(fu
     Route::post('/ronda-schedules/{scheduleId}/attendance/{userId}', [RondaController::class, 'updateAttendance']);
     Route::post('/ronda-schedules/scan-attendance', [RondaController::class, 'scanAttendance']);
     Route::apiResource('ronda-schedules', RondaController::class);
-    
+
     // Restored Resource Routes
     Route::get('announcements/{id}/comments', [AnnouncementController::class, 'getComments']);
     Route::post('announcements/{id}/comments', [AnnouncementController::class, 'comment']);
@@ -229,31 +227,31 @@ Route::middleware(['auth:sanctum', 'tenant.status', 'tenant.feature'])->group(fu
     // Voting Warga
     Route::apiResource('polls', PollController::class);
     Route::post('/polls/{poll}/vote', [PollController::class, 'vote']);
-    
+
     // Emergency
     Route::get('/emergency/contacts', [EmergencyController::class, 'getContacts']);
     Route::post('/emergency/panic', [EmergencyController::class, 'triggerPanic']);
-    Route::apiResource('emergencies', EmergencyController::class); 
+    Route::apiResource('emergencies', EmergencyController::class);
     Route::apiResource('emergency-alerts', EmergencyAlertController::class);
     Route::post('/emergency-alerts/{emergency_alert}/resolve', [EmergencyAlertController::class, 'resolve']);
     Route::apiResource('emergency-contacts', EmergencyContactController::class);
-    
+
     // Boarding House
     Route::apiResource('boarding-houses', BoardingHouseController::class);
-    
+
     // Letters
     Route::apiResource('letters', LetterController::class);
     Route::apiResource('letter-types', LetterTypeController::class); // Added
-    
+
     // Products & Stores
     Route::apiResource('products', ProductController::class);
-    
+
     // Store Admin Routes
     Route::get('/stores/my', [StoreController::class, 'myStore']); // Explicit route for "my store"
     Route::get('/admin/stores', [StoreController::class, 'index']);
     Route::post('/admin/stores/{store}/verify', [StoreController::class, 'verify']);
     Route::apiResource('stores', StoreController::class); // Added
-    
+
     // Settings
     Route::prefix('settings')->group(function () {
         // Profile
@@ -277,7 +275,7 @@ Route::middleware(['auth:sanctum', 'tenant.status', 'tenant.feature'])->group(fu
         Route::post('/admins', [SettingController::class, 'storeAdmin']);
         Route::put('/admins/{id}', [SettingController::class, 'updateAdmin']);
         Route::delete('/admins/{id}', [SettingController::class, 'deleteAdmin']);
-        
+
         // Roles
         Route::get('/roles', [SettingController::class, 'getRoles']);
         Route::post('/roles', [SettingController::class, 'storeRole']);
@@ -287,26 +285,26 @@ Route::middleware(['auth:sanctum', 'tenant.status', 'tenant.feature'])->group(fu
         Route::get('/dashboard-quick-actions', [SettingController::class, 'getDashboardQuickActions']);
         Route::post('/dashboard-quick-actions', [SettingController::class, 'saveDashboardQuickActions']);
     });
-    
+
     // Bansos
     Route::get('bansos-histories', [BansosController::class, 'history']);
     Route::post('bansos-recipients/{id}/distribute', [BansosController::class, 'distribute']);
     Route::apiResource('bansos-recipients', BansosController::class);
-    
+
     // CCTV
     Route::apiResource('cctvs', CctvController::class); // Added
-    
+
     // Fees
     Route::apiResource('fees', FeeController::class); // Added
-    
+
     // Issue Reports
     Route::apiResource('issue-reports', IssueReportController::class); // Added
-    
+
     // Patrols (Mobile)
     Route::get('/patrols/today', [PatrolController::class, 'today']); // Added specifically for Dashboard
     Route::get('/patrols/mine', [PatrolController::class, 'getMySchedule']); // Added
     Route::apiResource('patrols', PatrolController::class); // Added
-    
+
     // Notifications
     Route::get('/notifications/unread-count', [\App\Http\Controllers\Api\NotificationController::class, 'unreadCount']);
     Route::get('/notifications', [\App\Http\Controllers\Api\NotificationController::class, 'index']);
@@ -316,7 +314,8 @@ Route::middleware(['auth:sanctum', 'tenant.status', 'tenant.feature'])->group(fu
     // Profile
     Route::get('/profile', [ProfileController::class, 'show']); // Added
     Route::post('/profile', [ProfileController::class, 'update']); // Added
-    
+    Route::match(['post', 'put'], '/profile/avatar', [ProfileController::class, 'uploadAvatar']);
+
     // Ronda Fines & Settings
     Route::apiResource('ronda-fines', RondaFineController::class); // Added
     Route::post('/ronda-fines/{fine}/pay', [RondaFineController::class, 'markAsPaid']);
