@@ -349,7 +349,7 @@ class ReportController extends Controller
                         $details[] = [
                             'date' => $t->date->format('d/m/Y'),
                             'amount' => $t->amount,
-                            'category' => $t->category,
+                            'category' => $t->category ?? 'Umum', // Handle null category
                             'desc' => $t->description
                         ];
                     }

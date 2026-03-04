@@ -144,6 +144,7 @@ Route::middleware(['auth:sanctum', 'tenant.status', 'tenant.feature'])->group(fu
     Route::get('/fees/arrears', [\App\Http\Controllers\Api\FeeController::class, 'arrears']);
     // Report Routes
     Route::get('/reports/summary', [ReportController::class, 'summary']);
+    Route::get('/reports/dues', [ReportController::class, 'duesRecap']); // Fix: Add explicit route matching frontend
     Route::get('/reports/dues-recap', [ReportController::class, 'duesRecap']);
     Route::apiResource('reports', ReportController::class);
     Route::patch('/reports/{id}/status', [ReportController::class, 'updateStatus']);
