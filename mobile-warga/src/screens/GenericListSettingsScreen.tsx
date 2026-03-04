@@ -18,6 +18,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useTenant } from '../context/TenantContext';
 import { BackButton } from '../components/BackButton';
 import { settingService } from '../services/setting';
+import { authService } from '../services/auth';
 
 type SettingType = 'ACTIVITIES' | 'ROLES' | 'ADMINS' | 'FEES' | 'LETTER_TYPES';
 
@@ -56,6 +57,32 @@ export default function GenericListSettingsScreen({ onNavigate, type }: GenericL
   const [modalVisible, setModalVisible] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [formData, setFormData] = useState<any>({});
+  
+  // Toast State
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+
+  // Role Guard for Fees
+  useEffect(() => {
+    const checkAccess = async () => {
+      if (type === 'FEES') {
+        try {
+          const user = await authService.getUser();
+          const role = user?.role?.toUpperCase();
+          if (role !== 'RT' && role !== 'ADMIN_RT') {
+            Alert.alert(
+              'Akses Ditolak', 
+              'Menu Management Iuran hanya dapat diakses oleh Ketua RT.',
+              [{ text: 'OK', onPress: () => onNavigate('HOME') }]
+            );
+          }
+        } catch (error) {
+          console.error('Role check failed', error);
+        }
+      }
+    };
+    checkAccess();
+  }, [type]);
 
   const config: SettingConfig = {
     ACTIVITIES: {
@@ -146,11 +173,7 @@ export default function GenericListSettingsScreen({ onNavigate, type }: GenericL
     }
   };
 
-  const handleSave = async () => {
-    if (isExpired) {
-      Alert.alert(t('report.accessLimited'), t('report.trialExpiredAdmin'));
-      return;
-    }
+  const processSave = async () => {
     try {
       setLoading(true);
       if (editingItem) {
@@ -160,12 +183,37 @@ export default function GenericListSettingsScreen({ onNavigate, type }: GenericL
       }
       setModalVisible(false);
       fetchItems();
-      Alert.alert('Sukses', 'Data berhasil disimpan');
+      
+      // Show Toast instead of Alert
+      setToastMessage('Data berhasil disimpan');
+      setToastVisible(true);
+      setTimeout(() => setToastVisible(false), 3000);
+      
     } catch (error: any) {
       const msg = error.response?.data?.message || 'Gagal menyimpan data';
       Alert.alert('Error', msg);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (isExpired) {
+      Alert.alert(t('report.accessLimited'), t('report.trialExpiredAdmin'));
+      return;
+    }
+
+    if (type === 'FEES') {
+      Alert.alert(
+        'Konfirmasi Perubahan',
+        'Apakah Anda yakin ingin mengubah nominal iuran ini?',
+        [
+          { text: 'Batal', style: 'cancel' },
+          { text: 'Ya, Simpan', onPress: processSave }
+        ]
+      );
+    } else {
+      processSave();
     }
   };
 
@@ -326,11 +374,51 @@ export default function GenericListSettingsScreen({ onNavigate, type }: GenericL
           </View>
         </View>
       </Modal>
+
+      {/* Toast Component */}
+      {toastVisible && (
+        <View style={styles.toastContainer}>
+          <View style={styles.toast}>
+            <Ionicons name="checkmark-circle" size={24} color="#fff" />
+            <Text style={styles.toastText}>{toastMessage}</Text>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
 
 const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.create({
+  toastContainer: {
+    position: 'absolute',
+    top: 60,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 9999,
+  },
+  toast: {
+    backgroundColor: '#10b981', // Emerald 500
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 25,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.30,
+    shadowRadius: 4.65,
+    elevation: 8,
+    gap: 10,
+  },
+  toastText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
   container: {
     flex: 1,
     backgroundColor: colors.background,

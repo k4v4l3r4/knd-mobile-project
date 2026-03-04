@@ -44,7 +44,7 @@ import RondaFineReportScreen from './src/screens/RondaFineReportScreen';
 import RondaLocationScreen from './src/screens/RondaLocationScreen';
 import BansosScreen from './src/screens/BansosScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
-import ContributionReportScreen from './src/screens/ContributionReportScreen';
+import IuranScreen from './src/screens/IuranScreen';
 import BillingScreen from './src/screens/BillingScreen';
 
 import { registerForPushNotificationsAsync } from './src/services/notification';
@@ -300,7 +300,7 @@ const AppContent = () => {
       {currentScreen === 'PROFILE' && <ProfileScreen />}
       {currentScreen === 'HELP_SUPPORT' && <HelpSupportScreen onNavigate={handleNavigate} />}
       {currentScreen === 'NOTIFICATIONS' && <NotificationsScreen onNavigate={handleNavigate} />}
-      {currentScreen === 'CONTRIBUTION_REPORT' && <ContributionReportScreen onNavigate={handleNavigate} />}
+      {currentScreen === 'CONTRIBUTION_REPORT' && <IuranScreen onNavigate={handleNavigate} />}
       
       {currentScreen === 'RONDA_FINE_SETTINGS' && <RondaFineSettingsScreen navigation={{ goBack: () => setCurrentScreen('PATROL') }} />}
       {currentScreen === 'RONDA_FINE_REPORT' && <RondaFineReportScreen navigation={{ goBack: () => setCurrentScreen('PATROL') }} />}

@@ -518,7 +518,7 @@ export default function BoardingScreen() {
         setFormData({ ...formData, ktp_image: asset });
       }
     } catch (error) {
-      Alert.alert(t('common.error'), 'Gagal memproses gambar');
+      Alert.alert(t('common.error'), t('boarding.alert.imageError'));
     } finally {
       setLoading(false);
     }
@@ -1187,7 +1187,7 @@ export default function BoardingScreen() {
         <View style={{ backgroundColor: isDarkMode ? colors.background : '#fff', marginBottom: 8 }}>
           <View style={{ paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <Text style={{ fontSize: 14, fontWeight: 'bold', color: colors.textSecondary }}>
-              Total: {allTenants.length} Penghuni
+              {t('boarding.list.totalTenants', { count: allTenants.length })}
             </Text>
           </View>
           {/* Table Header to match Web Admin columns */}
@@ -1199,9 +1199,9 @@ export default function BoardingScreen() {
             borderBottomWidth: 1, 
             borderBottomColor: colors.border
           }}>
-             <Text style={{ flex: 4, fontSize: 12, fontWeight: 'bold', color: colors.textSecondary }}>NAMA / INFO</Text>
-             <Text style={{ flex: 3, fontSize: 12, fontWeight: 'bold', color: colors.textSecondary }}>KONTAK</Text>
-             <Text style={{ flex: 3, fontSize: 12, fontWeight: 'bold', color: colors.textSecondary, textAlign: 'right' }}>MASUK</Text>
+             <Text style={{ flex: 4, fontSize: 12, fontWeight: 'bold', color: colors.textSecondary }}>{t('boarding.list.headerName')}</Text>
+             <Text style={{ flex: 3, fontSize: 12, fontWeight: 'bold', color: colors.textSecondary }}>{t('boarding.list.headerContact')}</Text>
+             <Text style={{ flex: 3, fontSize: 12, fontWeight: 'bold', color: colors.textSecondary, textAlign: 'right' }}>{t('boarding.list.headerEntry')}</Text>
           </View>
         </View>
       }
@@ -1259,7 +1259,7 @@ export default function BoardingScreen() {
       ListEmptyComponent={
         <View style={styles.centerContent}>
            <MaterialCommunityIcons name="account-group-outline" size={48} color={colors.textSecondary} />
-           <Text style={[styles.emptySubtitle, { marginTop: 12 }]}>Belum ada data penghuni</Text>
+           <Text style={[styles.emptySubtitle, { marginTop: 12 }]}>{t('boarding.empty.tenant')}</Text>
         </View>
       }
       contentContainerStyle={{ paddingBottom: 120 }}
