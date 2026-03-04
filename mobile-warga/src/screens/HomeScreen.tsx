@@ -214,17 +214,17 @@ const AnnouncementItem = React.memo(({ item, index, onNavigate, onLongPress, onL
       <View style={styles.instaActions}>
         <View style={styles.instaActionsLeft}>
           <TouchableOpacity onPress={() => onLike(item)}>
-            <Ionicons name={item.is_liked ? "heart" : "heart-outline"} size={28} color={item.is_liked ? "#ef4444" : colors.text} />
+            <Ionicons name={item.is_liked ? "heart" : "heart-outline"} size={24} color={item.is_liked ? "#ef4444" : colors.text} />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => onComment(item.id)}>
-            <Ionicons name="chatbubble-outline" size={26} color={colors.text} style={{ transform: [{rotate: '-90deg'}] }} />
+            <Ionicons name="chatbubble-outline" size={24} color={colors.text} style={{ transform: [{rotate: '-90deg'}] }} />
           </TouchableOpacity>
           <TouchableOpacity>
-            <Ionicons name="paper-plane-outline" size={26} color={colors.text} />
+            <Ionicons name="paper-plane-outline" size={24} color={colors.text} />
           </TouchableOpacity>
         </View>
         <TouchableOpacity>
-           <Ionicons name="bookmark-outline" size={26} color={colors.text} />
+           <Ionicons name="bookmark-outline" size={24} color={colors.text} />
         </TouchableOpacity>
       </View>
 
@@ -236,13 +236,13 @@ const AnnouncementItem = React.memo(({ item, index, onNavigate, onLongPress, onL
         
         <Text style={styles.instaCaption} numberOfLines={2}>
           <Text style={styles.instaUsernameCaption}>{item.category || 'Admin RT'} </Text>
-          {item.title} - {item.content}
+          {item.content}
         </Text>
 
         {item.comments_count > 0 && (
           <TouchableOpacity onPress={() => onComment(item.id)}>
             <Text style={styles.instaViewComments}>
-              {t('home.viewAllComments')} {item.comments_count}
+              {t('home.viewAllComments')}
             </Text>
           </TouchableOpacity>
         )}
@@ -1499,14 +1499,10 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
   // Announcement Card (Instagram Style)
   announcementCard: {
     backgroundColor: isDarkMode ? '#1e293b' : '#fff',
-    marginBottom: 24, // Spacing between posts
+    marginBottom: 12, // Compact spacing
     borderTopWidth: 1,
     borderBottomWidth: 1,
     borderColor: isDarkMode ? '#334155' : '#f1f5f9',
-    // On mobile, often no side margins for full bleed, or small margins
-    // Let's keep small margins for "Card" feel, or remove for full "Feed" feel
-    // User asked for "Card" like Instagram, but Instagram is usually full width. 
-    // I'll stick to a slightly contained card look as it fits the app structure better.
     marginHorizontal: 0, 
     paddingVertical: 0,
   },
@@ -1517,39 +1513,39 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 6, // Compact padding
   },
   instaUserContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8, // Reduced gap
   },
   instaAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 30, // 30x30
+    height: 30,
+    borderRadius: 15,
     justifyContent: 'center',
     alignItems: 'center',
   },
   instaAvatarText: {
     color: '#fff',
     fontWeight: 'bold',
-    fontSize: 14,
+    fontSize: 12, // Reduced font size
   },
   instaUsername: {
-    fontSize: 14,
+    fontSize: 13, // Reduced font size
     fontWeight: 'bold',
     color: colors.text,
   },
   instaLocation: {
-    fontSize: 11,
+    fontSize: 10,
     color: colors.textSecondary,
   },
 
   // Image
   instaImage: {
     width: '100%',
-    aspectRatio: 1, // Square or 4/5. 1 is safe.
+    aspectRatio: 1, 
     resizeMode: 'cover',
   },
   instaPlaceholder: {
@@ -1564,42 +1560,42 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 12,
-    paddingVertical: 12,
+    paddingVertical: 6, // Compact padding
   },
   instaActionsLeft: {
     flexDirection: 'row',
-    gap: 16,
+    gap: 12, // Compact gap
     alignItems: 'center',
   },
 
   // Content
   instaContent: {
     paddingHorizontal: 12,
-    paddingBottom: 16,
+    paddingBottom: 8, // Compact padding
   },
   instaLikes: {
     fontWeight: 'bold',
     color: colors.text,
-    fontSize: 14,
-    marginBottom: 6,
+    fontSize: 13,
+    marginBottom: 2, // Compact margin
   },
   instaCaption: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.text,
-    lineHeight: 20,
+    lineHeight: 18,
   },
   instaUsernameCaption: {
     fontWeight: 'bold',
   },
   instaViewComments: {
     color: colors.textSecondary,
-    marginTop: 6,
-    fontSize: 14,
+    marginTop: 2, // Compact margin
+    fontSize: 13,
   },
   instaDate: {
     color: colors.textSecondary,
     fontSize: 10,
-    marginTop: 6,
+    marginTop: 4,
     textTransform: 'uppercase',
   },
   

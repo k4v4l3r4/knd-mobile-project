@@ -281,6 +281,8 @@ export const id = {
     retry: 'Coba Lagi',
     noAnnouncements: 'Belum ada pengumuman terbaru',
     defaultCategory: 'Pengumuman',
+    likes: 'Suka',
+    viewAllComments: 'Lihat semua komentar',
   },
   profile: {
     title: 'Profil Saya',

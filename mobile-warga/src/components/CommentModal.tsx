@@ -132,21 +132,23 @@ export default function CommentModal({ visible, announcementId, onClose }: Comme
   };
 
   const renderItem = ({ item }: { item: any }) => (
-    <View style={[styles.commentItem, { backgroundColor: isDarkMode ? '#1e293b' : '#f8fafc' }]}>
+    <View style={styles.commentItem}>
       <View style={styles.avatarContainer}>
          {item.user?.avatar ? (
             <Image source={{ uri: getStorageUrl(item.user.avatar) || '' }} style={styles.avatar} />
          ) : (
             <View style={[styles.avatar, { backgroundColor: colors.primaryLight, justifyContent: 'center', alignItems: 'center' }]}>
-                <Text style={{ color: colors.primary, fontWeight: 'bold' }}>
+                <Text style={{ color: colors.primary, fontWeight: 'bold', fontSize: 12 }}>
                     {item.user?.name?.charAt(0) || 'U'}
                 </Text>
             </View>
          )}
       </View>
       <View style={styles.commentContent}>
-        <Text style={[styles.commentUser, { color: colors.text }]}>{item.user?.name || 'Warga'}</Text>
-        <Text style={[styles.commentText, { color: colors.text }]}>{item.content}</Text>
+        <Text style={[styles.commentText, { color: colors.text }]}>
+          <Text style={[styles.commentUser, { color: colors.text }]}>{item.user?.name || 'Warga'} </Text>
+          {item.content}
+        </Text>
         <Text style={[styles.commentDate, { color: colors.textSecondary }]}>
             {new Date(item.created_at).toLocaleDateString('id-ID', {
                 day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
@@ -309,33 +311,31 @@ const styles = StyleSheet.create({
   },
   commentItem: {
     flexDirection: 'row',
-    gap: 12,
-    padding: 12,
-    borderRadius: 12,
+    gap: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
   },
   avatarContainer: {
     marginTop: 2,
   },
   avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
   },
   commentContent: {
     flex: 1,
   },
   commentUser: {
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 2,
+    fontWeight: 'bold',
   },
   commentText: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 4,
+    fontSize: 13,
+    lineHeight: 18,
   },
   commentDate: {
     fontSize: 11,
+    marginTop: 2,
   },
   inputContainer: {
     flexDirection: 'row',

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Linking, Platform, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTenant } from '../context/TenantContext';
 import { useTheme } from '../context/ThemeContext';
@@ -72,7 +72,7 @@ export const TrialBanner = () => {
   };
 
   return (
-    <SafeAreaView edges={['top']} style={{ backgroundColor }}>
+    <SafeAreaView edges={['top']} style={{ backgroundColor, paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 24) + 10 : 0 }}>
       <View style={[styles.banner, { backgroundColor }]}>
         <Text style={styles.bannerText}>
           {isCritical 
