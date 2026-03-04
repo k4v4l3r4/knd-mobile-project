@@ -26,15 +26,23 @@ class FinanceDemoSeeder extends Seeder
         
         // 1. Tambahkan Data Lama (Legacy Transactions) - jika belum ada banyak
         // Pastikan Wallet ada (Minimal 2 untuk demo transfer)
-        $cashWallet = Wallet::firstOrCreate(
-            ['rt_id' => $rtId, 'type' => 'CASH'],
-            ['name' => 'Kas Tunai', 'balance' => 0]
-        );
+        // DISABLED DEFAULT WALLET CREATION
+        $cashWallet = Wallet::where('rt_id', $rtId)->where('type', 'CASH')->first();
+        if (!$cashWallet) {
+             $this->command->info('Skipping Finance Seeding: No Cash Wallet found (Manual Setup Required).');
+             return;
+        }
 
-        $bankWallet = Wallet::firstOrCreate(
-            ['rt_id' => $rtId, 'type' => 'BANK'],
-            ['name' => 'Rekening Bank RT', 'balance' => 0]
-        );
+        // $cashWallet = Wallet::firstOrCreate(
+        //     ['rt_id' => $rtId, 'type' => 'CASH'],
+        //     ['name' => 'Kas Tunai', 'balance' => 0]
+        // );
+
+        $bankWallet = Wallet::where('rt_id', $rtId)->where('type', 'BANK')->first();
+        // $bankWallet = Wallet::firstOrCreate(
+        //     ['rt_id' => $rtId, 'type' => 'BANK'],
+        //     ['name' => 'Rekening Bank RT', 'balance' => 0]
+        // );
 
         // Legacy Expense (Pengeluaran Lama)
         $legacyExpenses = [

@@ -30,12 +30,6 @@ class TransactionController extends Controller
 
         if ($request->has('status')) {
             $query->where('status', $request->status);
-        } else {
-            // Default to VERIFIED only if not specified, OR show all? 
-            // Usually dashboard shows verified in main table.
-            // But let's keep it flexible. If no status param, maybe show all or just VERIFIED?
-            // User requested "Laporan Keuangan" (VERIFIED) vs "Menunggu Konfirmasi" (PENDING).
-            // So we will pass status param from frontend.
         }
 
         $transactions = $query->latest('date')->paginate(10);
@@ -81,8 +75,6 @@ class TransactionController extends Controller
             $transaction = Transaction::create($validated);
 
             // Update Account Balance
-            // If we didn't lock above, lock now. But we might have locked.
-            // Simplest is to find again or use the instance if we fetched it.
             $account = Wallet::lockForUpdate()->find($validated['account_id']);
             
             if ($validated['type'] === 'IN') {
@@ -193,6 +185,28 @@ class TransactionController extends Controller
                 'status' => 'PENDING', // Waiting for admin verification
             ]);
 
+            // Notify Admins
+            $admins = \App\Models\User::where('rt_id', $account->rt_id)
+                ->where(function($q) {
+                    $q->where('role', 'ADMIN_RT')
+                      ->orWhere('role', 'admin_rt')
+                      ->orWhere('role', 'RT');
+                })->get();
+
+            foreach ($admins as $admin) {
+                \App\Models\Notification::create([
+                    'tenant_id' => $admin->tenant_id,
+                    'notifiable_id' => $admin->id,
+                    'notifiable_type' => \App\Models\User::class,
+                    'title' => 'Pembayaran Tunai Baru',
+                    'message' => 'Warga ' . $user->name . ' melakukan pembayaran sebesar Rp ' . number_format($request->amount) . '. Harap verifikasi.',
+                    'type' => 'TRANSACTION_VERIFICATION',
+                    'related_id' => $transaction->id,
+                    'url' => '/finance/transactions',
+                    'is_read' => false,
+                ]);
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Bukti pembayaran berhasil dikirim. Menunggu verifikasi admin.',
@@ -203,6 +217,65 @@ class TransactionController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal mengirim bukti pembayaran: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Verify a transaction (Admin approves payment).
+     */
+    public function verify($id)
+    {
+        DB::beginTransaction();
+        try {
+            $transaction = Transaction::findOrFail($id);
+
+            if ($transaction->status === 'PAID' || $transaction->status === 'VERIFIED') {
+                return response()->json(['message' => 'Transaksi sudah diverifikasi sebelumnya.'], 400);
+            }
+
+            // Update Status
+            $transaction->status = 'PAID';
+            $transaction->save();
+
+            // Update Wallet Balance (Only NOW, after approval)
+            $account = Wallet::lockForUpdate()->find($transaction->account_id);
+            if ($transaction->type === 'IN') {
+                $account->balance += $transaction->amount;
+            } else {
+                $account->balance -= $transaction->amount;
+            }
+            $account->save();
+
+            // Notify Warga
+            $warga = \App\Models\User::find($transaction->user_id);
+            if ($warga) {
+                \App\Models\Notification::create([
+                    'tenant_id' => $warga->tenant_id,
+                    'notifiable_id' => $warga->id,
+                    'notifiable_type' => \App\Models\User::class,
+                    'title' => 'Pembayaran Diterima',
+                    'message' => 'Pembayaran Anda sebesar Rp ' . number_format($transaction->amount) . ' telah diverifikasi oleh Admin.',
+                    'type' => 'TRANSACTION_APPROVED',
+                    'related_id' => $transaction->id,
+                    'url' => '/warga/bills', // Redirect to bills history
+                    'is_read' => false,
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Transaksi berhasil diverifikasi dan saldo telah diperbarui.',
+                'data' => $transaction
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memverifikasi transaksi: ' . $e->getMessage()
             ], 500);
         }
     }

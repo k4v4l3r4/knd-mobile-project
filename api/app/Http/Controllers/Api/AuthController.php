@@ -201,38 +201,38 @@ class AuthController extends Controller
         }
 
         // Initialize Basic Data (Wallets, Fees)
-        Wallet::create(['rt_id' => $rt->id, 'name' => 'Kas Tunai RT', 'type' => 'CASH', 'balance' => 0]);
-        Fee::create(['rt_id' => $rt->id, 'name' => 'Iuran Kebersihan', 'amount' => 25000, 'is_mandatory' => true]);
-        Fee::create(['rt_id' => $rt->id, 'name' => 'Iuran Keamanan', 'amount' => 15000, 'is_mandatory' => true]);
-        ActivityCategory::create(['rt_id' => $rt->id, 'name' => 'Kerja Bakti']);
-        ActivityCategory::create(['rt_id' => $rt->id, 'name' => 'Rapat RT']);
+        // Wallet::create(['rt_id' => $rt->id, 'name' => 'Kas Tunai RT', 'type' => 'CASH', 'balance' => 0]);
+        // Fee::create(['rt_id' => $rt->id, 'name' => 'Iuran Kebersihan', 'amount' => 25000, 'is_mandatory' => true]);
+        // Fee::create(['rt_id' => $rt->id, 'name' => 'Iuran Keamanan', 'amount' => 15000, 'is_mandatory' => true]);
+        // ActivityCategory::create(['rt_id' => $rt->id, 'name' => 'Kerja Bakti']);
+        // ActivityCategory::create(['rt_id' => $rt->id, 'name' => 'Rapat RT']);
 
         // Seed Announcement
-        Announcement::create([
-            'rt_id' => $rt->id,
-            'title' => 'Selamat Datang di RT Online!',
-            'content' => 'Selamat datang di aplikasi manajemen RT. Gunakan aplikasi ini untuk mengelola warga, keuangan, dan kegiatan RT dengan mudah.',
-            'status' => 'PUBLISHED',
-        ]);
+        // Announcement::create([
+        //     'rt_id' => $rt->id,
+        //     'title' => 'Selamat Datang di RT Online!',
+        //     'content' => 'Selamat datang di aplikasi manajemen RT. Gunakan aplikasi ini untuk mengelola warga, keuangan, dan kegiatan RT dengan mudah.',
+        //     'status' => 'PUBLISHED',
+        // ]);
 
         // Seed Assets
-        Asset::create([
-            'rt_id' => $rt->id,
-            'name' => 'Kursi Lipat',
-            'description' => 'Kursi lipat besi untuk kegiatan warga',
-            'total_quantity' => 50,
-            'available_quantity' => 50,
-            'condition' => 'GOOD',
-        ]);
+        // Asset::create([
+        //     'rt_id' => $rt->id,
+        //     'name' => 'Kursi Lipat',
+        //     'description' => 'Kursi lipat besi untuk kegiatan warga',
+        //     'total_quantity' => 50,
+        //     'available_quantity' => 50,
+        //     'condition' => 'GOOD',
+        // ]);
 
-        Asset::create([
-            'rt_id' => $rt->id,
-            'name' => 'Tenda Terop',
-            'description' => 'Tenda ukuran 4x6 meter',
-            'total_quantity' => 2,
-            'available_quantity' => 2,
-            'condition' => 'GOOD',
-        ]);
+        // Asset::create([
+        //     'rt_id' => $rt->id,
+        //     'name' => 'Tenda Terop',
+        //     'description' => 'Tenda ukuran 4x6 meter',
+        //     'total_quantity' => 2,
+        //     'available_quantity' => 2,
+        //     'condition' => 'GOOD',
+        // ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
 

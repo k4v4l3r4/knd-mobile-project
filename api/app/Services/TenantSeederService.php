@@ -183,135 +183,138 @@ class TenantSeederService
 
     protected function seedFinance($tenant, $rt, $wargaList)
     {
-        // 1. Wallets
-        $cashWallet = Wallet::create([
-            'tenant_id' => $tenant->id,
-            'rt_id' => $rt->id,
-            'name' => 'Kas Tunai RT',
-            'type' => 'CASH',
-            'balance' => 0,
-        ]);
+        // USER REQUEST: Remove default finance seeding
+        // "Hapus semua fungsi seeder atau migrasi yang otomatis membuat data di tabel categories, income_categories, atau accounts."
+        
+        // 1. Wallets - REMOVED DEFAULT SEEDING
+        // $cashWallet = Wallet::create([
+        //     'tenant_id' => $tenant->id,
+        //     'rt_id' => $rt->id,
+        //     'name' => 'Kas Tunai RT',
+        //     'type' => 'CASH',
+        //     'balance' => 0,
+        // ]);
 
-        $bankWallet = Wallet::create([
-            'tenant_id' => $tenant->id,
-            'rt_id' => $rt->id,
-            'name' => 'Bank BRI',
-            'type' => 'BANK',
-            'bank_name' => 'BRI',
-            'account_number' => '1234567890',
-            'account_holder_name' => 'RT 001 Demo',
-            'balance' => 0,
-        ]);
+        // $bankWallet = Wallet::create([
+        //     'tenant_id' => $tenant->id,
+        //     'rt_id' => $rt->id,
+        //     'name' => 'Bank BRI',
+        //     'type' => 'BANK',
+        //     'bank_name' => 'BRI',
+        //     'account_number' => '1234567890',
+        //     'account_holder_name' => 'RT 001 Demo',
+        //     'balance' => 0,
+        // ]);
 
-        // 2. Fees (Iuran)
-        $feeKebersihan = Fee::create([
-            'tenant_id' => $tenant->id,
-            'rt_id' => $rt->id,
-            'name' => 'Iuran Kebersihan',
-            'amount' => 25000,
-            'is_mandatory' => true,
-        ]);
+        // 2. Fees (Iuran) - REMOVED DEFAULT SEEDING
+        // $feeKebersihan = Fee::create([
+        //     'tenant_id' => $tenant->id,
+        //     'rt_id' => $rt->id,
+        //     'name' => 'Iuran Kebersihan',
+        //     'amount' => 25000,
+        //     'is_mandatory' => true,
+        // ]);
 
-        $feeKeamanan = Fee::create([
-            'tenant_id' => $tenant->id,
-            'rt_id' => $rt->id,
-            'name' => 'Iuran Keamanan',
-            'amount' => 15000,
-            'is_mandatory' => true,
-        ]);
+        // $feeKeamanan = Fee::create([
+        //     'tenant_id' => $tenant->id,
+        //     'rt_id' => $rt->id,
+        //     'name' => 'Iuran Keamanan',
+        //     'amount' => 15000,
+        //     'is_mandatory' => true,
+        // ]);
 
-        $feeItems = [
-            [
-                'fee_id' => $feeKebersihan->id,
-                'fee_name' => $feeKebersihan->name,
-                'amount' => $feeKebersihan->amount,
-            ],
-            [
-                'fee_id' => $feeKeamanan->id,
-                'fee_name' => $feeKeamanan->name,
-                'amount' => $feeKeamanan->amount,
-            ]
-        ];
+        // $feeItems = [
+        //     [
+        //         'fee_id' => $feeKebersihan->id,
+        //         'fee_name' => $feeKebersihan->name,
+        //         'amount' => $feeKebersihan->amount,
+        //     ],
+        //     [
+        //         'fee_id' => $feeKeamanan->id,
+        //         'fee_name' => $feeKeamanan->name,
+        //         'amount' => $feeKeamanan->amount,
+        //     ]
+        // ];
 
-        // 3. Transactions
+        // 3. Transactions - REMOVED DEFAULT SEEDING
         
         // SALDO AWAL (To ensure positive balance in Dashboard)
-        Transaction::create([
-            'tenant_id' => $tenant->id,
-            'rt_id' => $rt->id,
-            'user_id' => null,
-            'account_id' => $cashWallet->id,
-            'type' => 'IN',
-            'amount' => 5000000,
-            'category' => 'Saldo Awal',
-            'description' => 'Saldo Awal Tunai',
-            'date' => now()->subMonth(),
-            'status' => 'PAID',
-        ]);
+        // Transaction::create([
+        //     'tenant_id' => $tenant->id,
+        //     'rt_id' => $rt->id,
+        //     'user_id' => null,
+        //     'account_id' => $cashWallet->id,
+        //     'type' => 'IN',
+        //     'amount' => 5000000,
+        //     'category' => 'Saldo Awal',
+        //     'description' => 'Saldo Awal Tunai',
+        //     'date' => now()->subMonth(),
+        //     'status' => 'PAID',
+        // ]);
 
-        Transaction::create([
-            'tenant_id' => $tenant->id,
-            'rt_id' => $rt->id,
-            'user_id' => null,
-            'account_id' => $bankWallet->id,
-            'type' => 'IN',
-            'amount' => 15000000,
-            'category' => 'Saldo Awal',
-            'description' => 'Saldo Awal Bank',
-            'date' => now()->subMonth(),
-            'status' => 'PAID',
-        ]);
+        // Transaction::create([
+        //     'tenant_id' => $tenant->id,
+        //     'rt_id' => $rt->id,
+        //     'user_id' => null,
+        //     'account_id' => $bankWallet->id,
+        //     'type' => 'IN',
+        //     'amount' => 15000000,
+        //     'category' => 'Saldo Awal',
+        //     'description' => 'Saldo Awal Bank',
+        //     'date' => now()->subMonth(),
+        //     'status' => 'PAID',
+        // ]);
 
         // Income (Pemasukan)
-        Transaction::create([
-            'tenant_id' => $tenant->id,
-            'rt_id' => $rt->id,
-            'user_id' => $wargaList[0]->id, // Budi
-            'account_id' => $bankWallet->id,
-            'type' => 'IN',
-            'amount' => 40000,
-            'category' => 'Iuran Warga',
-            'description' => 'Iuran Bulan Ini (Budi)',
-            'date' => now()->subDays(2),
-            'status' => 'PAID',
-            'items' => $feeItems,
-        ]);
+        // Transaction::create([
+        //     'tenant_id' => $tenant->id,
+        //     'rt_id' => $rt->id,
+        //     'user_id' => $wargaList[0]->id, // Budi
+        //     'account_id' => $bankWallet->id,
+        //     'type' => 'IN',
+        //     'amount' => 40000,
+        //     'category' => 'Iuran Warga',
+        //     'description' => 'Iuran Bulan Ini (Budi)',
+        //     'date' => now()->subDays(2),
+        //     'status' => 'PAID',
+        //     'items' => $feeItems,
+        // ]);
 
-        Transaction::create([
-            'tenant_id' => $tenant->id,
-            'rt_id' => $rt->id,
-            'user_id' => $wargaList[2]->id, // Eko
-            'account_id' => $cashWallet->id,
-            'type' => 'IN',
-            'amount' => 40000,
-            'category' => 'Iuran Warga',
-            'description' => 'Iuran Bulan Ini (Eko)',
-            'date' => now()->subDays(5),
-            'status' => 'PAID',
-            'items' => $feeItems,
-        ]);
+        // Transaction::create([
+        //     'tenant_id' => $tenant->id,
+        //     'rt_id' => $rt->id,
+        //     'user_id' => $wargaList[2]->id, // Eko
+        //     'account_id' => $cashWallet->id,
+        //     'type' => 'IN',
+        //     'amount' => 40000,
+        //     'category' => 'Iuran Warga',
+        //     'description' => 'Iuran Bulan Ini (Eko)',
+        //     'date' => now()->subDays(5),
+        //     'status' => 'PAID',
+        //     'items' => $feeItems,
+        // ]);
 
         // Expense (Pengeluaran)
-        Transaction::create([
-            'tenant_id' => $tenant->id,
-            'rt_id' => $rt->id,
-            'user_id' => null, // Admin expense
-            'account_id' => $cashWallet->id,
-            'type' => 'OUT',
-            'amount' => 150000,
-            'category' => 'Operasional',
-            'description' => 'Beli Alat Kebersihan (Sapu Lidi, Pengki)',
-            'date' => now()->subDays(1),
-            'status' => 'PAID',
-        ]);
+        // Transaction::create([
+        //     'tenant_id' => $tenant->id,
+        //     'rt_id' => $rt->id,
+        //     'user_id' => null, // Admin expense
+        //     'account_id' => $cashWallet->id,
+        //     'type' => 'OUT',
+        //     'amount' => 150000,
+        //     'category' => 'Operasional',
+        //     'description' => 'Beli Alat Kebersihan (Sapu Lidi, Pengki)',
+        //     'date' => now()->subDays(1),
+        //     'status' => 'PAID',
+        // ]);
         
         // Update balances (manual update)
-        $cashWallet->increment('balance', 5000000);
-        $bankWallet->increment('balance', 15000000);
+        // $cashWallet->increment('balance', 5000000);
+        // $bankWallet->increment('balance', 15000000);
         
-        $bankWallet->increment('balance', 40000);
-        $cashWallet->increment('balance', 40000);
-        $cashWallet->decrement('balance', 150000);
+        // $bankWallet->increment('balance', 40000);
+        // $cashWallet->increment('balance', 40000);
+        // $cashWallet->decrement('balance', 150000);
     }
 
     protected function seedRonda($tenant, $rt, $wargaList)

@@ -6,5 +6,6 @@ use App\Traits\BelongsToTenant;
 class Wallet extends Model { 
     use BelongsToTenant;
 
+    protected $table = 'finance_accounts';
     protected $guarded = ['id']; 
 }

@@ -75,43 +75,43 @@ class StarterSeeder extends Seeder
             ]);
         }
 
-        // 4. Keuangan Dasar (Wallet)
-        Wallet::firstOrCreate(
-            ['rt_id' => $rtId, 'name' => 'Kas Tunai RT'],
-            ['type' => 'CASH', 'balance' => 0]
-        );
+        // 4. Keuangan Dasar (Wallet) - DISABLED AS PER USER REQUEST (CLEAN SLATE)
+        // Wallet::firstOrCreate(
+        //     ['rt_id' => $rtId, 'name' => 'Kas Tunai RT'],
+        //     ['type' => 'CASH', 'balance' => 0]
+        // );
 
-        Wallet::firstOrCreate(
-            ['rt_id' => $rtId, 'name' => 'Bank RT (BCA)'],
-            [
-                'type' => 'BANK', 
-                'balance' => 0,
-                'bank_name' => 'BCA',
-                'account_number' => '1234567890',
-            ]
-        );
+        // Wallet::firstOrCreate(
+        //     ['rt_id' => $rtId, 'name' => 'Bank RT (BCA)'],
+        //     [
+        //         'type' => 'BANK', 
+        //         'balance' => 0,
+        //         'bank_name' => 'BCA',
+        //         'account_number' => '1234567890',
+        //     ]
+        // );
 
-        // 5. Iuran Dasar (Fee)
-        Fee::firstOrCreate(
-            ['rt_id' => $rtId, 'name' => 'Iuran Kebersihan'],
-            ['amount' => 25000, 'is_mandatory' => true, 'description' => 'Iuran bulanan pengelolaan sampah']
-        );
+        // 5. Iuran Dasar (Fee) - DISABLED
+        // Fee::firstOrCreate(
+        //     ['rt_id' => $rtId, 'name' => 'Iuran Kebersihan'],
+        //     ['amount' => 25000, 'is_mandatory' => true, 'description' => 'Iuran bulanan pengelolaan sampah']
+        // );
 
-        // 6. Kategori Kegiatan
-        ActivityCategory::firstOrCreate(
-            ['name' => 'Kerja Bakti', 'rt_id' => $rtId],
-            ['description' => 'Kegiatan bersih-bersih lingkungan']
-        );
+        // 6. Kategori Kegiatan - DISABLED
+        // ActivityCategory::firstOrCreate(
+        //     ['name' => 'Kerja Bakti', 'rt_id' => $rtId],
+        //     ['description' => 'Kegiatan bersih-bersih lingkungan']
+        // );
 
-        ActivityCategory::firstOrCreate(
-            ['name' => 'Rapat RT', 'rt_id' => $rtId],
-            ['description' => 'Pertemuan rutin warga']
-        );
+        // ActivityCategory::firstOrCreate(
+        //     ['name' => 'Rapat RT', 'rt_id' => $rtId],
+        //     ['description' => 'Pertemuan rutin warga']
+        // );
         
-        ActivityCategory::firstOrCreate(
-            ['name' => 'Posyandu', 'rt_id' => $rtId],
-            ['description' => 'Kegiatan kesehatan ibu dan anak']
-        );
+        // ActivityCategory::firstOrCreate(
+        //     ['name' => 'Posyandu', 'rt_id' => $rtId],
+        //     ['description' => 'Kegiatan kesehatan ibu dan anak']
+        // );
 
         // 7. Kontak Darurat Umum
         EmergencyContact::firstOrCreate(

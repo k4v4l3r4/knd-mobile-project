@@ -5,20 +5,8 @@ import { authEvents } from './authEvent';
 
 // Function to dynamically determine the API URL
 const getBaseUrl = () => {
-  // Use production URL for release builds
-  if (!__DEV__) {
-    return 'https://api.afnet.my.id/api';
-  }
-
-  // Development: try to infer LAN IP from Expo debugger host
-  const debuggerHost = Constants.expoConfig?.hostUri;
-  if (debuggerHost) {
-    const ip = debuggerHost.split(':')[0];
-    return `http://${ip}:8000/api`;
-  }
-
-  // Fallback to local network IP (adjust if needed)
-  return 'http://192.168.1.3:8000/api';
+  // STRICTLY use production URL as requested to avoid Network Error
+  return 'https://api.afnet.my.id/api';
 };
 
 export const BASE_URL = getBaseUrl();
@@ -27,27 +15,11 @@ console.log('API Configuration:', BASE_URL);
 export const getStorageUrl = (path: string | null) => {
   if (!path) return null;
   
-  // Determine Base Storage URL dynamically
-  const BASE_STORAGE_URL = BASE_URL.replace(/\/api$/, '/storage');
+  // Base URL is now fixed to production
+  const BASE_STORAGE_URL = 'https://api.afnet.my.id/storage';
 
   // Handle absolute URLs
   if (path.startsWith('http')) {
-     // If it matches current storage, return as is
-     if (path.startsWith(BASE_STORAGE_URL)) return path;
-
-     // Special handling for localhost/IP mismatches (e.g. emulator vs device, or dev vs prod)
-     if ((path.includes('localhost') || path.includes('127.0.0.1'))) {
-         // If we are in production (or at least using a non-local API), replace the local host
-         if (!BASE_URL.includes('localhost') && !BASE_URL.includes('127.0.0.1')) {
-             const apiHost = BASE_URL.split('/')[2].split(':')[0]; // extract IP/domain
-             // If apiHost is empty (e.g. malformed), fallback to path
-             if (!apiHost) return path;
-             
-             // Replace localhost/127.0.0.1 with the correct host
-             return path.replace('localhost', apiHost).replace('127.0.0.1', apiHost);
-         }
-     }
-     
      return path;
   }
 
