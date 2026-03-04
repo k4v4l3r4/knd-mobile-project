@@ -590,9 +590,6 @@ export default function KeuanganPage() {
                             <option key={fee.id} value={fee.name}>{fee.name}</option>
                           ))}
                         </optgroup>
-                        <option value="Kas RT">Kas RT</option>
-                        <option value="Sumbangan">Sumbangan</option>
-                        <option value="Lainnya">Lainnya</option>
                       </>
                     ) : (
                       <>
@@ -601,9 +598,6 @@ export default function KeuanganPage() {
                             <option key={act.id} value={act.name}>{act.name}</option>
                           ))}
                         </optgroup>
-                        <option value="Operasional">Operasional</option>
-                        <option value="Perbaikan">Perbaikan</option>
-                        <option value="Lainnya">Lainnya</option>
                       </>
                     )}
                   </select>

@@ -169,7 +169,7 @@ class TransactionController extends Controller
             }
 
             if (!$account) {
-                 return response()->json(['message' => 'Rekening RT belum dikonfigurasi'], 500);
+                 return response()->json(['message' => 'Harap buat Akun Kas terlebih dahulu di menu Pengaturan'], 400);
             }
 
             $transaction = Transaction::create([
