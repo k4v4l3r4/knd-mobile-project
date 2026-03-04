@@ -22,6 +22,8 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons, MaterialCommunityIcons, Feather, MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
+import * as FileSystem from 'expo-file-system';
 import api, { BASE_URL as API_URL } from '../services/api';
 import { useTheme, ThemeColors } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -82,18 +84,8 @@ export default function BoardingScreen() {
     });
   }, [boardingHouses, searchQuery, currentUser]);
 
-  // Effect to enforce RT role restrictions & Dual Role Logic
-  useEffect(() => {
-    if (isRtViewer) {
-      if (isJuragan) {
-        // Dual Role: RT + Owner -> Default to House tab, but allow switching
-        // Logic handled in renderTabs (visibility)
-      } else {
-        // Regular RT -> Force Tenant tab
-        setActiveTab('TENANT');
-      }
-    }
-  }, [isRtViewer, isJuragan]);
+  // Effect to enforce RT role restrictions & Dual Role Logic - REMOVED for universal access
+
 
   const canEdit = useMemo(() => {
     // If RT/Admin RT, only edit if they are also owner (Juragan)
@@ -480,16 +472,55 @@ export default function BoardingScreen() {
     setShowImagePickerModal(true);
   };
 
-  const launchGallery = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.5,
-    });
+  const processImage = async (uri: string) => {
+    try {
+      const manipulatedImage = await ImageManipulator.manipulateAsync(
+        uri,
+        [{ resize: { width: 800 } }], // Max width 800px for ID card
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+      );
+      
+      const fileInfo = await FileSystem.getInfoAsync(manipulatedImage.uri);
+      // @ts-ignore
+      if (fileInfo.size && fileInfo.size > 1024 * 1024) {
+        // If > 1MB, compress more
+         const manipulatedImage2 = await ImageManipulator.manipulateAsync(
+          manipulatedImage.uri,
+          [{ resize: { width: 640 } }],
+          { compress: 0.5, format: ImageManipulator.SaveFormat.JPEG }
+        );
+        return manipulatedImage2.uri;
+      }
+      return manipulatedImage.uri;
+    } catch (error) {
+      console.error('Image processing error:', error);
+      return uri; // Fallback to original
+    }
+  };
 
-    if (!result.canceled) {
-      setFormData({ ...formData, ktp_image: result.assets[0] });
+  const launchGallery = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.5,
+      });
+
+      if (!result.canceled) {
+        setLoading(true);
+        const processedUri = await processImage(result.assets[0].uri);
+        // Create compatible asset object
+        const asset = {
+           ...result.assets[0],
+           uri: processedUri
+        };
+        setFormData({ ...formData, ktp_image: asset });
+      }
+    } catch (error) {
+      Alert.alert(t('common.error'), 'Gagal memproses gambar');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -500,14 +531,26 @@ export default function BoardingScreen() {
       return;
     }
 
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.5,
-    });
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.5,
+      });
 
-    if (!result.canceled) {
-      setFormData({ ...formData, ktp_image: result.assets[0] });
+      if (!result.canceled) {
+        setLoading(true);
+        const processedUri = await processImage(result.assets[0].uri);
+        const asset = {
+           ...result.assets[0],
+           uri: processedUri
+        };
+        setFormData({ ...formData, ktp_image: asset });
+      }
+    } catch (error) {
+      Alert.alert(t('common.error'), 'Gagal memproses gambar');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -1133,11 +1176,7 @@ export default function BoardingScreen() {
           )}
           contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
           ListFooterComponent={
-             // Only show Add Kost button if NOT RT (and ideally if owner/potential owner)
-             // But prompt says RT is Read-Only.
-             canEdit ? (
-                <View style={{ height: 80 }} /> 
-             ) : null
+            <View style={{ height: 80 }} /> 
           }
         />
       );
@@ -1227,181 +1266,50 @@ export default function BoardingScreen() {
     />
   );
 
-  const renderJuraganView = () => {
+  const renderMainContent = () => {
     return (
       <View style={{ flex: 1 }}>
-        {/* Tabs - Show if not RT (Regular User/Juragan) OR if RT but also Owner (Dual Role) */}
-        {(!isRtViewer || isJuragan) && (
-          <View style={{ flexDirection: 'row', paddingHorizontal: 16, paddingTop: 16, backgroundColor: isDarkMode ? '#0f172a' : '#f1f5f9', gap: 12 }}>
-            <TouchableOpacity 
-               style={{ 
-                 flex: 1, 
-                 paddingVertical: 12, 
-                 alignItems: 'center', 
-                 borderBottomWidth: 2, 
-                 borderBottomColor: activeTab === 'HOUSE' ? colors.primary : 'transparent' 
-               }}
-               onPress={() => setActiveTab('HOUSE')}
-            >
-               <Text style={{ 
-                 fontWeight: 'bold', 
-                 color: activeTab === 'HOUSE' ? colors.primary : colors.textSecondary 
-               }}>Data Kost</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-               style={{ 
-                 flex: 1, 
-                 paddingVertical: 12, 
-                 alignItems: 'center', 
-                 borderBottomWidth: 2, 
-                 borderBottomColor: activeTab === 'TENANT' ? colors.primary : 'transparent' 
-               }}
-               onPress={() => setActiveTab('TENANT')}
-            >
-               <Text style={{ 
-                 fontWeight: 'bold', 
-                 color: activeTab === 'TENANT' ? colors.primary : colors.textSecondary 
-               }}>Data Penghuni</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+        {/* Tabs - Show for ALL roles as requested */}
+        <View style={{ flexDirection: 'row', paddingHorizontal: 16, paddingTop: 16, backgroundColor: isDarkMode ? '#0f172a' : '#f1f5f9', gap: 12 }}>
+          <TouchableOpacity 
+              style={{ 
+                flex: 1, 
+                paddingVertical: 12, 
+                alignItems: 'center', 
+                borderBottomWidth: 2, 
+                borderBottomColor: activeTab === 'HOUSE' ? colors.primary : 'transparent' 
+              }}
+              onPress={() => setActiveTab('HOUSE')}
+          >
+              <Text style={{ 
+                fontWeight: 'bold', 
+                color: activeTab === 'HOUSE' ? colors.primary : colors.textSecondary 
+              }}>{t('boarding.tabs.house')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+              style={{ 
+                flex: 1, 
+                paddingVertical: 12, 
+                alignItems: 'center', 
+                borderBottomWidth: 2, 
+                borderBottomColor: activeTab === 'TENANT' ? colors.primary : 'transparent' 
+              }}
+              onPress={() => setActiveTab('TENANT')}
+          >
+              <Text style={{ 
+                fontWeight: 'bold', 
+                color: activeTab === 'TENANT' ? colors.primary : colors.textSecondary 
+              }}>{t('boarding.tabs.tenant')}</Text>
+          </TouchableOpacity>
+        </View>
 
         {activeTab === 'HOUSE' ? renderKostList() : renderTenantList()}
       </View>
     );
   };
 
-  const renderTenantView = () => {
-    if (boardingHouses.length === 0) {
-      return (
-        <View style={styles.centerContent}>
-          <MaterialCommunityIcons name="home-search-outline" size={64} color={colors.textSecondary} />
-          <Text style={styles.emptyTitle}>{t('boarding.emptyState.title')}</Text>
-          <Text style={styles.emptySubtitle}>{t('boarding.emptyState.subtitle')}</Text>
-        </View>
-      );
-    }
-
-    const house = boardingHouses[0]; // Assuming tenant only belongs to 1 active kost
-    const myTenantData = house.tenants?.find((t: any) => 
-      (t.user_id && currentUser?.id && t.user_id == currentUser.id) || 
-      (t.user?.id && currentUser?.id && t.user.id == currentUser.id)
-    );
-
-    const handleChatOwner = () => {
-      if (house.owner?.phone) {
-        const phone = formatPhoneNumber(house.owner.phone);
-        Linking.openURL(`whatsapp://send?phone=${phone}&text=Halo, saya penghuni kost ${house.name} kamar ${myTenantData?.room_number || ''}`).catch(() => {
-          Alert.alert(t('common.error'), t('market.detail.whatsappError'));
-        });
-      } else {
-        Alert.alert(t('common.info'), t('market.detail.noWhatsapp'));
-      }
-    };
-
-    return (
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-             <MaterialCommunityIcons name="home-city" size={32} color={colors.primary} />
-             <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.cardTitle}>{house.name}</Text>
-                <Text style={styles.cardSubtitle}>{house.address}</Text>
-             </View>
-          </View>
-          
-          <View style={styles.divider} />
-          
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>{t('boarding.detail.ownerName')}</Text>
-            <Text style={styles.value}>{house.owner.name}</Text>
-          </View>
-          
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>{t('boarding.detail.ownerContact')}</Text>
-            <TouchableOpacity onPress={handleChatOwner}>
-               <Text style={[styles.value, { color: colors.primary, textDecorationLine: 'underline' }]}>
-                 {house.owner.phone || '-'}
-               </Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.infoRow}>
-             <Text style={styles.label}>{t('boarding.detail.totalRooms')}</Text>
-             <Text style={styles.value}>{house.total_rooms}</Text>
-          </View>
-        </View>
-
-        {myTenantData ? (
-          <View style={[styles.card, { marginTop: 16 }]}>
-             <Text style={styles.cardTitle}>{t('boarding.detail.myStatus')}</Text>
-             <View style={styles.divider} />
-             
-             <View style={styles.infoRow}>
-               <Text style={styles.label}>{t('boarding.form.roomNumber')}</Text>
-               <Text style={[styles.value, { fontWeight: 'bold' }]}>{myTenantData.room_number}</Text>
-             </View>
-
-             <View style={styles.infoRow}>
-               <Text style={styles.label}>{t('boarding.form.roomPrice')}</Text>
-               <Text style={styles.value}>
-                 {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Number(myTenantData.room_price || 0))}
-               </Text>
-             </View>
-
-             <View style={styles.infoRow}>
-               <Text style={styles.label}>{t('boarding.form.dueDate')}</Text>
-               <Text style={[styles.value, { color: getStatusColor(calculateRoomStatus(myTenantData)) }]}>
-                 {myTenantData.due_date ? new Date(myTenantData.due_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
-               </Text>
-             </View>
-
-             <View style={styles.infoRow}>
-               <Text style={styles.label}>{t('boarding.detail.status')}</Text>
-               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                 <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: getStatusColor(calculateRoomStatus(myTenantData)), marginRight: 6 }} />
-                 <Text style={[styles.value, { color: getStatusColor(calculateRoomStatus(myTenantData)) }]}>
-                   {t(`boarding.status.${calculateRoomStatus(myTenantData).toLowerCase().replace('_', '')}`) || calculateRoomStatus(myTenantData)}
-                 </Text>
-               </View>
-             </View>
-
-             {/* Action Buttons */}
-             <View style={{ marginTop: 16, flexDirection: 'row', gap: 12 }}>
-                <TouchableOpacity 
-                  style={[styles.modalButton, styles.submitButton, { flex: 1, backgroundColor: '#25D366' }]}
-                  onPress={handleChatOwner}
-                >
-                  <Ionicons name="logo-whatsapp" size={20} color="#fff" style={{ marginRight: 8 }} />
-                  <Text style={[styles.submitButtonText, { color: '#fff' }]}>Chat Pemilik</Text>
-                </TouchableOpacity>
-             </View>
-          </View>
-        ) : (
-          <View style={[styles.card, { marginTop: 16, alignItems: 'center', padding: 24 }]}>
-             <MaterialCommunityIcons name="account-question-outline" size={48} color={colors.textSecondary} />
-             <Text style={{ marginTop: 12, color: colors.textSecondary, textAlign: 'center' }}>
-               {t('boarding.emptyState.notRegistered')}
-             </Text>
-          </View>
-        )}
-      </ScrollView>
-    );
-  };
-
-  const isJuraganView = React.useMemo(() => {
-    const adminRoles = ['SUPER_ADMIN', 'ADMIN', 'ADMIN_RT', 'ADMIN_RW', 'SECRETARY', 'TREASURER', 'RT'];
-    const isAdmin = adminRoles.includes(userRole);
-    const isOwner = Boolean(
-      currentUser?.id &&
-      boardingHouses.some(h => h.owner_id === currentUser.id || h.owner?.id === currentUser.id)
-    );
-    return isAdmin || isOwner;
-  }, [userRole, boardingHouses, currentUser]);
-
-  const isBasicCitizen = userRole === 'WARGA' || userRole === 'WARGA_TETAP' || userRole === 'WARGA TETAP';
-  const isAccessDenied = !loading && isBasicCitizen && !isJuraganView && boardingHouses.length === 0;
-
+  // Removed separate renderTenantView and isJuraganView logic to unify the interface
+  
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
@@ -1418,7 +1326,7 @@ export default function BoardingScreen() {
             <View style={{ width: 40 }} />
             <View style={{ alignItems: 'center' }}>
               <Text style={styles.headerTitle}>
-                {isJuraganView ? t('boarding.juraganTitle') : t('boarding.tenantTitle')}
+                {t('boarding.title')}
               </Text>
               <DemoLabel />
             </View>
@@ -1426,51 +1334,39 @@ export default function BoardingScreen() {
           </View>
         </SafeAreaView>
         
-        {/* Search Bar */}
-        {(isJuraganView || isRtViewer) && (
-          <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
-            <View style={{ 
-              flexDirection: 'row', 
-              alignItems: 'center', 
-              backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.9)', 
-              borderRadius: 8, 
-              paddingHorizontal: 12,
-              height: 40
-            }}>
-              <Ionicons name="search" size={20} color={isDarkMode ? '#fff' : '#64748b'} />
-              <TextInput
-                style={{ flex: 1, marginLeft: 8, color: isDarkMode ? '#fff' : '#0f172a' }}
-                placeholder={t('common.search') || 'Cari...'}
-                placeholderTextColor={isDarkMode ? 'rgba(255,255,255,0.5)' : '#94a3b8'}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => setSearchQuery('')}>
-                  <Ionicons name="close-circle" size={18} color={isDarkMode ? 'rgba(255,255,255,0.5)' : '#94a3b8'} />
-                </TouchableOpacity>
-              )}
-            </View>
+        {/* Search Bar - Always visible */}
+        <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+          <View style={{ 
+            flexDirection: 'row', 
+            alignItems: 'center', 
+            backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.9)', 
+            borderRadius: 8, 
+            paddingHorizontal: 12,
+            height: 40
+          }}>
+            <Ionicons name="search" size={20} color={isDarkMode ? '#fff' : '#64748b'} />
+            <TextInput
+              style={{ flex: 1, marginLeft: 8, color: isDarkMode ? '#fff' : '#0f172a' }}
+              placeholder={t('common.search') || 'Cari...'}
+              placeholderTextColor={isDarkMode ? 'rgba(255,255,255,0.5)' : '#94a3b8'}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')}>
+                <Ionicons name="close-circle" size={18} color={isDarkMode ? 'rgba(255,255,255,0.5)' : '#94a3b8'} />
+              </TouchableOpacity>
+            )}
           </View>
-        )}
+        </View>
       </View>
 
       {loading ? (
         <View style={styles.centerContent}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
-      ) : isAccessDenied ? (
-        <View style={styles.centerContent}>
-          <MaterialCommunityIcons name="shield-lock-outline" size={56} color={colors.textSecondary} />
-          <Text style={[styles.emptyTitle, { marginTop: 12 }]}>{t('common.accessDenied') || 'Akses ditolak'}</Text>
-          <Text style={[styles.emptySubtitle, { textAlign: 'center', marginTop: 6 }]}>
-            {t('boarding.alert.accessDenied') || 'Menu ini hanya untuk pemilik kost, penghuni kost, atau RT.'}
-          </Text>
-        </View>
-      ) : isJuraganView ? (
-        renderJuraganView()
       ) : (
-        renderTenantView()
+        renderMainContent()
       )}
 
       {/* Floating Action Button */}
