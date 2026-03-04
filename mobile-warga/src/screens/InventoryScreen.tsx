@@ -330,7 +330,7 @@ export default function InventoryScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
       {/* Header with Pattern */}
       <View
         style={[styles.headerBackground, { backgroundColor: colors.primary }]}
@@ -682,7 +682,7 @@ export default function InventoryScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -775,7 +775,7 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
   list: {
     padding: 16,
     paddingTop: 10,
-    paddingBottom: 120,
+    paddingBottom: 130,
     gap: 16,
   },
   center: {
@@ -1010,7 +1010,7 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
   },
   fab: {
     position: 'absolute',
-    bottom: 24,
+    bottom: 110,
     right: 24,
     width: 56,
     height: 56,

@@ -18,14 +18,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import api, { getStorageUrl } from '../services/api';
 import { useTheme, ThemeColors } from '../context/ThemeContext';
 import { useTenant } from '../context/TenantContext';
 import { useLanguage } from '../context/LanguageContext';
 import { DemoLabel } from '../components/TenantStatusComponents';
 import Dropdown from '../components/Dropdown';
+import { ImagePickerModal } from '../components/ImagePickerModal';
 
 // --- Types ---
 interface User {
@@ -59,10 +58,55 @@ const CATEGORY_OPTIONS = [
   { value: 'Infrastruktur', labelKey: 'report.categories.infrastructure' },
   { value: 'Lainnya', labelKey: 'report.categories.other' },
 ];
-import { ImagePickerModal } from '../components/ImagePickerModal';
+
+class ScreenErrorBoundary extends React.Component<
+  {
+    children: React.ReactNode;
+    colors: ThemeColors;
+    onRetry: () => void;
+  },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: unknown) {
+    console.log('ReportScreen ErrorBoundary:', error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, backgroundColor: this.props.colors.background, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <Ionicons name="alert-circle-outline" size={56} color={this.props.colors.textSecondary} />
+          <Text style={{ marginTop: 12, fontSize: 18, fontWeight: '700', color: this.props.colors.text, textAlign: 'center' }}>
+            Halaman Laporan bermasalah
+          </Text>
+          <Text style={{ marginTop: 8, fontSize: 14, color: this.props.colors.textSecondary, textAlign: 'center' }}>
+            Coba muat ulang. Jika masih terjadi, mohon kirimkan log.
+          </Text>
+          <TouchableOpacity
+            onPress={() => {
+              this.setState({ hasError: false });
+              this.props.onRetry();
+            }}
+            style={{ marginTop: 16, backgroundColor: this.props.colors.primary, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12 }}
+            activeOpacity={0.8}
+          >
+            <Text style={{ color: '#fff', fontWeight: '700' }}>Muat Ulang</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 export default function ReportScreen() {
-  const navigation = useNavigation<NativeStackNavigationProp<any>>();
   const { colors, isDarkMode } = useTheme();
   const { isDemo, isExpired } = useTenant();
   const { t } = useLanguage();
@@ -101,15 +145,6 @@ export default function ReportScreen() {
       fetchReports();
     }
   }, [activeTab, statusFilter]);
-
-  // Auto-refresh when screen comes into focus (if on list tab)
-  useFocusEffect(
-    useCallback(() => {
-      if (activeTab === 'list') {
-        fetchReports();
-      }
-    }, [activeTab, statusFilter])
-  );
 
   // --- API Calls ---
 
@@ -402,13 +437,11 @@ export default function ReportScreen() {
         <Text style={styles.reportTitle}>{item.title}</Text>
         <Text style={styles.reportDescription}>{item.description}</Text>
         
-        {!!item.photo_url && (
-          <Image 
-            source={{ uri: getStorageUrl(item.photo_url) || '' }} 
-            style={styles.reportImage} 
-            resizeMode="cover"
-          />
-        )}
+        {(() => {
+          const uri = item.photo_url ? getStorageUrl(item.photo_url) : null;
+          if (!uri) return null;
+          return <Image source={{ uri }} style={styles.reportImage} resizeMode="cover" />;
+        })()}
 
         {/* Admin Actions */}
         {isAdmin && (
@@ -615,15 +648,62 @@ export default function ReportScreen() {
     </View>
   );
 
-  // TEMPORARY DEBUGGING PLACEHOLDER
   return (
-    <View style={{flex:1, backgroundColor:'white', justifyContent:'center', alignItems:'center'}}>
-      <Text style={{color:'black', fontSize:20}}>Tes Halaman Laporan</Text>
-      <Text style={{color:'gray', marginTop:10}}>Jika teks ini muncul, navigasi aman.</Text>
-    </View>
+    <ScreenErrorBoundary
+      colors={colors}
+      onRetry={() => {
+        fetchProfile();
+        if (activeTab === 'list') {
+          fetchReports();
+        }
+      }}
+    >
+      <View style={styles.container}>
+        <View style={[styles.headerBackground, { backgroundColor: isDarkMode ? '#059669' : '#047857' }]}>
+          <SafeAreaView edges={['top']} style={styles.headerContent}>
+            <View style={styles.headerRow}>
+              <View style={{ width: 40 }} />
+              <View style={{ alignItems: 'center' }}>
+                <Text style={styles.headerTitle}>{t('home.menus.report') || 'Laporan Warga'}</Text>
+                <DemoLabel />
+              </View>
+              <View style={{ width: 40 }} />
+            </View>
+
+            <View style={styles.tabContainer}>
+              <TouchableOpacity
+                style={[styles.tabButton, activeTab === 'create' && styles.tabButtonActive]}
+                onPress={() => setActiveTab('create')}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.tabText, activeTab === 'create' && styles.tabTextActive]}>
+                  {t('report.tabs.create') || 'Buat'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.tabButton, activeTab === 'list' && styles.tabButtonActive]}
+                onPress={() => setActiveTab('list')}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.tabText, activeTab === 'list' && styles.tabTextActive]}>
+                  {t('report.tabs.list') || 'Daftar'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </SafeAreaView>
+        </View>
+
+        {activeTab === 'create' ? renderCreateForm() : renderList()}
+
+        <ImagePickerModal
+          visible={imagePickerVisible}
+          onClose={() => setImagePickerVisible(false)}
+          onCamera={() => pickImage('camera')}
+          onGallery={() => pickImage('gallery')}
+        />
+      </View>
+    </ScreenErrorBoundary>
   );
-
-
 }
 
 const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.create({

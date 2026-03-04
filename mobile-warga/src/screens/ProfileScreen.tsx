@@ -104,11 +104,12 @@ const ProfileScreen = () => {
 
     // @ts-ignore
     formData.append('avatar', { uri, name: filename || 'avatar.jpg', type });
+    formData.append('_method', 'PUT');
 
     try {
       const response = await api.post('/profile/avatar', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
+        transformRequest: (data, headers) => {
+          return data;
         },
       });
 
@@ -122,8 +123,9 @@ const ProfileScreen = () => {
         parsedData.avatar = response.data.avatar_url;
         await AsyncStorage.setItem('user_data', JSON.stringify(parsedData));
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading avatar:', error);
+      console.log('Profile Upload Error:', error.response);
       Alert.alert(t('common.error'), t('profile.uploadError'));
     } finally {
       setIsUploading(false);

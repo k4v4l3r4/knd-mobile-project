@@ -8,6 +8,8 @@ use App\Models\Announcement;
 use App\Models\Transaction;
 use App\Models\Fee;
 use App\Models\Notification;
+use App\Models\BoardingHouse;
+use App\Models\BoardingTenant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -118,6 +120,10 @@ class DashboardController extends Controller
             // Fallback default values are already set
         }
 
+        // 3. Cek Status Management Kost (Juragan / Anak Kost)
+        $isJuragan = BoardingHouse::where('owner_id', $user->id)->exists();
+        $isAnakKost = BoardingTenant::where('user_id', $user->id)->where('status', 'ACTIVE')->exists();
+
         return response()->json([
             'success' => true,
             'message' => 'Dashboard data retrieved successfully',
@@ -132,6 +138,8 @@ class DashboardController extends Controller
                     'rw_name' => ($user->rt && $user->rt->rw) ? $user->rt->rw->name : null,
                     'role' => $user->role,
                 ],
+                'is_juragan' => $isJuragan,
+                'is_anak_kost' => $isAnakKost,
                 'iuran_status' => $iuranStatus,
                 'unread_notifications_count' => $unreadNotificationsCount,
                 'has_emergency' => $hasEmergency,

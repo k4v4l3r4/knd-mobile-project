@@ -44,6 +44,8 @@ interface DashboardData {
     rw_name?: string;
     role: string;
   };
+  is_juragan?: boolean;
+  is_anak_kost?: boolean;
   iuran_status: 'LUNAS' | 'BELUM_LUNAS';
   unread_notifications_count: number;
   has_emergency: boolean;
@@ -771,6 +773,8 @@ export default function HomeScreen({ onLogout, onNavigate }: HomeScreenProps) {
 
       setData({
         user: userData,
+        is_juragan: dashboardData.is_juragan || false,
+        is_anak_kost: dashboardData.is_anak_kost || false,
         iuran_status: dashboardData.iuran_status || 'LUNAS',
         unread_notifications_count: dashboardData.unread_notifications_count || 0,
         announcements: dashboardData.announcements || [],
@@ -842,11 +846,21 @@ export default function HomeScreen({ onLogout, onNavigate }: HomeScreenProps) {
     const userRole = data?.user?.role?.toUpperCase() || '';
 
     // Filter announcement and voting for WARGA/WARGA_TETAP
-    if (userRole === 'WARGA' || userRole === 'WARGA_TETAP' || userRole === 'WARGA TETAP') {
-      items = items.filter(item => item.id !== 'announcement' && item.id !== 'voting' && item.id !== 'system_settings' && item.id !== 'bansos' && item.id !== 'contribution_report');
-    }
+          if (userRole === 'WARGA' || userRole === 'WARGA_TETAP' || userRole === 'WARGA TETAP') {
+            items = items.filter(item => item.id !== 'announcement' && item.id !== 'voting' && item.id !== 'system_settings' && item.id !== 'bansos' && item.id !== 'contribution_report');
+          }
 
-    if (userRole === 'ADMIN_RT' || userRole === 'RT') {
+          // Management Kost Menu Visibility
+          // Show only if: RT/Admin OR Owner (Juragan) OR Tenant (Anak Kost)
+          const isJuragan = data?.is_juragan || false;
+          const isAnakKost = data?.is_anak_kost || false;
+          const isRT = userRole === 'RT' || userRole === 'ADMIN_RT';
+
+          if (!isJuragan && !isAnakKost && !isRT) {
+             items = items.filter(item => item.id !== 'boarding');
+          }
+
+          if (userRole === 'ADMIN_RT' || userRole === 'RT') {
       items.push({ 
         id: 'bansos',
         title: t('home.menus.bansos'), 
@@ -873,7 +887,7 @@ export default function HomeScreen({ onLogout, onNavigate }: HomeScreenProps) {
     }
 
     return items;
-  }, [onNavigate, isDemo, isTrial, language, data?.user?.role]);
+  }, [onNavigate, isDemo, isTrial, language, data?.user?.role, data?.is_juragan, data?.is_anak_kost]);
 
   const menuItems = useMemo(() => {
     if (!selectedMenuIds || selectedMenuIds.length === 0) {

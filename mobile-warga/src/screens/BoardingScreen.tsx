@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   View, 
   Text, 
@@ -44,6 +44,32 @@ export default function BoardingScreen() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [boardingHouses, setBoardingHouses] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'LIST' | 'TENANTS'>('LIST');
+
+  const allTenants = useMemo(() => {
+    const tenants: any[] = [];
+    boardingHouses.forEach(house => {
+      if (house.tenants) {
+        house.tenants.forEach((tenant: any) => {
+          tenants.push({ ...tenant, houseName: house.name, houseId: house.id });
+        });
+      }
+    });
+    return tenants;
+  }, [boardingHouses]);
+
+  // Effect to enforce RT role restrictions
+  useEffect(() => {
+    if (userRole === 'RT' || userRole === 'ADMIN_RT') {
+      setActiveTab('TENANTS');
+    }
+  }, [userRole]);
+
+  const canEdit = useMemo(() => {
+    // RT is Read-Only
+    if (userRole === 'RT' || userRole === 'ADMIN_RT') return false;
+    // Warga Biasa (Non-Owner/Non-Tenant) - Assuming restricted, but if they are here they might be owner
+    return true; 
+  }, [userRole]);
   
   const [showImagePickerModal, setShowImagePickerModal] = useState(false);
   const [actionMenuVisible, setActionMenuVisible] = useState(false);
@@ -966,7 +992,7 @@ export default function BoardingScreen() {
                   onPress={() => {
             if (item.type === 'OCCUPIED' && item.tenant) {
               handleOpenDetail(house.id, item.tenant);
-            } else {
+            } else if (canEdit) {
                       // Pre-fill room number and reset form
                       const d = new Date();
                       d.setMonth(d.getMonth() + 1);
@@ -1031,41 +1057,140 @@ export default function BoardingScreen() {
     );
   };
 
-  const renderJuraganView = () => {
-    return (
-      <View style={{ flex: 1 }}>
-        <FlatList
-          data={boardingHouses}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.cardTitle}>{item.name}</Text>
-                  <Text style={styles.cardSubtitle}>{item.address}</Text>
-                </View>
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{item.total_rooms} {t('boarding.stats.room')}</Text>
-                </View>
-              </View>
+  const renderKostList = () => (
+    <FlatList
+      data={boardingHouses}
+      keyExtractor={(item) => item.id.toString()}
+      renderItem={({ item }) => (
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardTitle}>{item.name}</Text>
+              <Text style={styles.cardSubtitle}>{item.address}</Text>
+            </View>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{item.total_rooms} {t('boarding.stats.room')}</Text>
+            </View>
+          </View>
 
-              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12 }}>
-                <TouchableOpacity 
-                  style={[styles.iconAction, { backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9' }]}
-                  onPress={() => handleOpenActionMenu('KOST', item)}
-                >
-                  <Ionicons name="ellipsis-vertical" size={20} color={colors.textSecondary} />
-                </TouchableOpacity>
-              </View>
-              
-              <View style={styles.divider} />
-              
-              {renderRoomGrid(item)}
+          {canEdit && (
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12 }}>
+              <TouchableOpacity 
+                style={[styles.iconAction, { backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9' }]}
+                onPress={() => handleOpenActionMenu('KOST', item)}
+              >
+                <Ionicons name="ellipsis-vertical" size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+          )}
+          
+          <View style={styles.divider} />
+          
+          {renderRoomGrid(item)}
 
             </View>
           )}
           contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
+          ListFooterComponent={
+             // Only show Add Kost button if NOT RT (and ideally if owner/potential owner)
+             // But prompt says RT is Read-Only.
+             canEdit ? (
+                <View style={{ height: 80 }} /> 
+             ) : null
+          }
         />
+      );
+
+  const renderTenantList = () => (
+    <FlatList
+      data={allTenants}
+      keyExtractor={(item) => (item.id ? item.id.toString() : Math.random().toString())}
+      renderItem={({ item }) => {
+        const status = calculateRoomStatus(item);
+        const statusColor = getStatusColor(status);
+        const statusText = t(`boarding.status.${status.toLowerCase().replace('_', '')}`) || status;
+        
+        return (
+        <TouchableOpacity 
+          style={[styles.card, { flexDirection: 'row', alignItems: 'center', padding: 12 }]}
+          onPress={() => handleOpenDetail(item.houseId, item)}
+        >
+          <View style={{ 
+            width: 40, height: 40, borderRadius: 20, 
+            backgroundColor: statusColor,
+            alignItems: 'center', justifyContent: 'center',
+            marginRight: 12
+          }}>
+            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 14 }}>{item.room_number}</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.cardTitle}>{item.user?.name || item.name || 'Penghuni'}</Text>
+            <Text style={{ fontSize: 12, color: colors.textSecondary }}>{item.houseName}</Text>
+            <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 2 }}>
+              Jatuh Tempo: {item.due_date ? new Date(item.due_date).toLocaleDateString('id-ID') : '-'}
+            </Text>
+          </View>
+          <View>
+             <Text style={{ 
+               fontWeight: 'bold', 
+               color: statusColor,
+               fontSize: 12
+             }}>
+               {statusText}
+             </Text>
+          </View>
+        </TouchableOpacity>
+      )}}
+      ListEmptyComponent={
+        <View style={styles.centerContent}>
+           <MaterialCommunityIcons name="account-group-outline" size={48} color={colors.textSecondary} />
+           <Text style={[styles.emptySubtitle, { marginTop: 12 }]}>Belum ada data penghuni</Text>
+        </View>
+      }
+      contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
+    />
+  );
+
+  const renderJuraganView = () => {
+    return (
+      <View style={{ flex: 1 }}>
+        {/* Tabs - Hide if RT/ADMIN_RT because they only see TENANTS */}
+        {userRole !== 'RT' && userRole !== 'ADMIN_RT' && (
+          <View style={{ flexDirection: 'row', paddingHorizontal: 16, paddingTop: 16, backgroundColor: isDarkMode ? '#0f172a' : '#f1f5f9', gap: 12 }}>
+            <TouchableOpacity 
+               style={{ 
+                 flex: 1, 
+                 paddingVertical: 12, 
+                 alignItems: 'center', 
+                 borderBottomWidth: 2, 
+                 borderBottomColor: activeTab === 'LIST' ? colors.primary : 'transparent' 
+               }}
+               onPress={() => setActiveTab('LIST')}
+            >
+               <Text style={{ 
+                 fontWeight: 'bold', 
+                 color: activeTab === 'LIST' ? colors.primary : colors.textSecondary 
+               }}>Data Kost</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+               style={{ 
+                 flex: 1, 
+                 paddingVertical: 12, 
+                 alignItems: 'center', 
+                 borderBottomWidth: 2, 
+                 borderBottomColor: activeTab === 'TENANTS' ? colors.primary : 'transparent' 
+               }}
+               onPress={() => setActiveTab('TENANTS')}
+            >
+               <Text style={{ 
+                 fontWeight: 'bold', 
+                 color: activeTab === 'TENANTS' ? colors.primary : colors.textSecondary 
+               }}>Data Penghuni</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {activeTab === 'LIST' ? renderKostList() : renderTenantList()}
       </View>
     );
   };
@@ -1198,6 +1323,9 @@ export default function BoardingScreen() {
     return isAdmin || isOwner;
   }, [userRole, boardingHouses, currentUser]);
 
+  const isBasicCitizen = userRole === 'WARGA' || userRole === 'WARGA_TETAP' || userRole === 'WARGA TETAP';
+  const isAccessDenied = !loading && isBasicCitizen && !isJuraganView && boardingHouses.length === 0;
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
@@ -1227,6 +1355,14 @@ export default function BoardingScreen() {
         <View style={styles.centerContent}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
+      ) : isAccessDenied ? (
+        <View style={styles.centerContent}>
+          <MaterialCommunityIcons name="shield-lock-outline" size={56} color={colors.textSecondary} />
+          <Text style={[styles.emptyTitle, { marginTop: 12 }]}>{t('common.accessDenied') || 'Akses ditolak'}</Text>
+          <Text style={[styles.emptySubtitle, { textAlign: 'center', marginTop: 6 }]}>
+            {t('boarding.alert.accessDenied') || 'Menu ini hanya untuk pemilik kost, penghuni kost, atau RT.'}
+          </Text>
+        </View>
       ) : isJuraganView ? (
         renderJuraganView()
       ) : (
@@ -1235,13 +1371,18 @@ export default function BoardingScreen() {
 
       {/* Floating Add Kost Button */}
       {(function() {
-        const adminRoles = ['SUPER_ADMIN', 'ADMIN', 'ADMIN_RT', 'ADMIN_RW', 'SECRETARY', 'TREASURER', 'RT'];
+        // RT/ADMIN_RT excluded from "adminRoles" for creation/FAB visibility (Read-Only)
+        const adminRoles = ['SUPER_ADMIN', 'ADMIN', 'ADMIN_RW', 'SECRETARY', 'TREASURER'];
         const isAdmin = adminRoles.includes(userRole);
         const isOwner = Boolean(
           currentUser?.id &&
           boardingHouses.some(h => h.owner_id === currentUser.id || h.owner?.id === currentUser.id)
         );
+        // Regular citizens can create if they want to become Juragan?
+        // Usually system allows it, or maybe we restrict?
+        // Assuming allow for now as per original code, but explicit exclusion of RT overrides if they are not owner.
         const isRegularCitizen = ['WARGA', 'WARGA_TETAP'].includes(userRole);
+        
         return isAdmin || isOwner || isRegularCitizen;
       })() && (
         <TouchableOpacity
@@ -1908,6 +2049,7 @@ export default function BoardingScreen() {
                       )}
 
                       {/* Action Buttons Group */}
+                      {canEdit && (
                       <View style={{ gap: 12 }}>
                         {/* Deposit Payment Button */}
                         {(selectedTenantDetail.deposit_status === 'UNPAID' || !selectedTenantDetail.deposit_status) && parseInt(selectedTenantDetail.deposit_amount) > 0 && (
@@ -1994,6 +2136,7 @@ export default function BoardingScreen() {
                             <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 14 }}>{t('boarding.tenantDetail.checkout')}</Text>
                         </TouchableOpacity>
                       </View>
+                      )}
                     </>
                   )}
                 </View>
@@ -2040,6 +2183,7 @@ export default function BoardingScreen() {
                 </View>
 
                 {/* Management Actions */}
+                {canEdit && (
                 <View style={{ marginTop: 24, gap: 12 }}>
                   <TouchableOpacity 
                     style={[styles.modalButton, { backgroundColor: '#3b82f6', justifyContent: 'center', width: '100%' }]}
@@ -2067,6 +2211,7 @@ export default function BoardingScreen() {
                      <Text style={styles.submitButtonText}>{t('boarding.tenantDetail.vacateRoom')}</Text>
                   </TouchableOpacity>
                 </View>
+                )}
 
                 <TouchableOpacity 
                   style={[styles.modalButton, styles.cancelButton, { marginTop: 12 }]}
