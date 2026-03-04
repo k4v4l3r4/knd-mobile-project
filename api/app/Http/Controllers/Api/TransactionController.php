@@ -150,6 +150,22 @@ class TransactionController extends Controller
             ], 422);
         }
 
+        // Prevent Double Post (Check if similar transaction exists within 2 minutes)
+        $existing = Transaction::where('user_id', Auth::id())
+            ->where('amount', $request->amount)
+            ->where('description', $request->description)
+            ->where('created_at', '>=', now()->subMinutes(2))
+            ->where('status', 'PENDING')
+            ->first();
+
+        if ($existing) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Transaksi serupa sudah dikirim sebelumnya (Duplicate Prevented).',
+                'data' => $existing
+            ], 200);
+        }
+
         try {
             // Upload proof
             $proofPath = null;
