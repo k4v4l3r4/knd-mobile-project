@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Announcement;
+use App\Models\Notification;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -17,16 +19,16 @@ class AnnouncementController extends Controller
     {
         $user = Auth::user();
         $query = Announcement::withCount(['likes', 'comments'])
-            ->with(['likes' => function($query) use ($user) {
+            ->with(['likes' => function ($query) use ($user) {
                 $query->where('user_id', $user->id);
             }])
             ->latest();
 
         // Filter by RT (Assuming user has rt_id)
         if ($user->rt_id) {
-            $query->where(function($q) use ($user) {
+            $query->where(function ($q) use ($user) {
                 $q->where('rt_id', $user->rt_id)
-                  ->orWhereNull('rt_id');
+                    ->orWhereNull('rt_id');
             });
         }
 
@@ -34,7 +36,7 @@ class AnnouncementController extends Controller
         // Assuming role logic. If strictly following "Manage Announcements", admin wants to see Drafts too.
         // If mobile app user (warga), usually only published.
         // Let's assume 'admin_rt' role sees all, others see published.
-        if (!in_array($user->role, ['admin_rt', 'ADMIN_RT', 'rt', 'RT'])) {
+        if (! in_array($user->role, ['admin_rt', 'ADMIN_RT', 'rt', 'RT'])) {
             $query->where('status', 'PUBLISHED');
         }
 
@@ -42,24 +44,16 @@ class AnnouncementController extends Controller
         $announcements = $query->paginate(10);
 
         // Append is_liked status
-        $announcements->getCollection()->transform(function ($announcement) use ($user) {
-            // Since we eager loaded 'likes' filtered by user_id, 
-            // if the collection is not empty, it means the user liked it.
-            // Also, because relation is loaded, the accessor getIsLikedAttribute will use the loaded relation (optimized).
-            // However, we can explicitly set it here if we want to be sure, or rely on the appends.
-            // But since 'likes' relation contains data, we might want to unset it to avoid cluttering response 
-            // if we rely on 'is_liked' attribute.
-            
-            // $announcement->is_liked is auto-appended by model. 
-            // But let's unset 'likes' relation from output to keep JSON clean.
+        $announcements->getCollection()->transform(function ($announcement) {
             $announcement->unsetRelation('likes');
+
             return $announcement;
         });
 
         return response()->json([
             'success' => true,
             'message' => 'Daftar Pengumuman',
-            'data' => $announcements
+            'data' => $announcements,
         ]);
     }
 
@@ -95,10 +89,26 @@ class AnnouncementController extends Controller
             'expires_at' => $request->expires_at,
         ]);
 
+        if ($request->status === 'PUBLISHED') {
+            $users = User::where('rt_id', $user->rt_id)->get();
+            foreach ($users as $recipient) {
+                Notification::create([
+                    'notifiable_id' => $recipient->id,
+                    'notifiable_type' => User::class,
+                    'title' => 'Pengumuman Baru',
+                    'message' => $announcement->title,
+                    'type' => 'ANNOUNCEMENT',
+                    'related_id' => $announcement->id,
+                    'url' => '/dashboard/pengumuman',
+                    'is_read' => false,
+                ]);
+            }
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Pengumuman berhasil dibuat',
-            'data' => $announcement
+            'data' => $announcement,
         ], 201);
     }
 
@@ -109,16 +119,16 @@ class AnnouncementController extends Controller
     {
         $announcement = Announcement::withCount(['likes', 'comments'])->find($id);
 
-        if (!$announcement) {
+        if (! $announcement) {
             return response()->json([
                 'success' => false,
-                'message' => 'Pengumuman tidak ditemukan'
+                'message' => 'Pengumuman tidak ditemukan',
             ], 404);
         }
 
         return response()->json([
             'success' => true,
-            'data' => $announcement
+            'data' => $announcement,
         ]);
     }
 
@@ -127,12 +137,13 @@ class AnnouncementController extends Controller
      */
     public function update(Request $request, $id)
     {
+        $user = Auth::user();
         $announcement = Announcement::find($id);
 
-        if (!$announcement) {
+        if (! $announcement) {
             return response()->json([
                 'success' => false,
-                'message' => 'Pengumuman tidak ditemukan'
+                'message' => 'Pengumuman tidak ditemukan',
             ], 404);
         }
 
@@ -158,10 +169,28 @@ class AnnouncementController extends Controller
 
         $announcement->update($data);
 
+        // Notify if status changed to PUBLISHED
+        if ($request->input('status') === 'PUBLISHED' && $announcement->wasChanged('status')) {
+            $rtId = $announcement->rt_id ?? $user?->rt_id;
+            $users = $rtId ? User::where('rt_id', $rtId)->get() : collect();
+            foreach ($users as $recipient) {
+                Notification::create([
+                    'notifiable_id' => $recipient->id,
+                    'notifiable_type' => User::class,
+                    'title' => 'Pengumuman Baru',
+                    'message' => $announcement->title,
+                    'type' => 'ANNOUNCEMENT',
+                    'related_id' => $announcement->id,
+                    'url' => '/dashboard/pengumuman',
+                    'is_read' => false,
+                ]);
+            }
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Pengumuman berhasil diperbarui',
-            'data' => $announcement
+            'data' => $announcement,
         ]);
     }
 
@@ -172,10 +201,10 @@ class AnnouncementController extends Controller
     {
         $announcement = Announcement::find($id);
 
-        if (!$announcement) {
+        if (! $announcement) {
             return response()->json([
                 'success' => false,
-                'message' => 'Pengumuman tidak ditemukan'
+                'message' => 'Pengumuman tidak ditemukan',
             ], 404);
         }
 
@@ -188,7 +217,7 @@ class AnnouncementController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Pengumuman berhasil dihapus'
+            'message' => 'Pengumuman berhasil dihapus',
         ]);
     }
 
@@ -213,7 +242,7 @@ class AnnouncementController extends Controller
             'success' => true,
             'message' => $message,
             'liked' => $liked,
-            'likes_count' => $announcement->likes()->count()
+            'likes_count' => $announcement->likes()->count(),
         ]);
     }
 
@@ -221,10 +250,10 @@ class AnnouncementController extends Controller
     {
         $announcement = Announcement::find($id);
 
-        if (!$announcement) {
+        if (! $announcement) {
             return response()->json([
                 'success' => false,
-                'message' => 'Pengumuman tidak ditemukan'
+                'message' => 'Pengumuman tidak ditemukan',
             ], 404);
         }
 
@@ -235,7 +264,7 @@ class AnnouncementController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $comments
+            'data' => $comments,
         ]);
     }
 
@@ -247,16 +276,16 @@ class AnnouncementController extends Controller
 
         $announcement = Announcement::find($id);
 
-        if (!$announcement) {
+        if (! $announcement) {
             return response()->json([
                 'success' => false,
-                'message' => 'Pengumuman tidak ditemukan'
+                'message' => 'Pengumuman tidak ditemukan',
             ], 404);
         }
 
         $comment = $announcement->comments()->create([
             'user_id' => Auth::id(),
-            'content' => $request->content
+            'content' => $request->content,
         ]);
 
         $comment->load('user:id,name,avatar');
@@ -264,7 +293,7 @@ class AnnouncementController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Komentar berhasil ditambahkan',
-            'data' => $comment
+            'data' => $comment,
         ], 201);
     }
 }

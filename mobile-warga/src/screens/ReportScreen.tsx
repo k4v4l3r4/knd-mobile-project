@@ -207,7 +207,7 @@ export default function ReportScreen() {
     }
 
     let confirmMsg = t('report.confirmStatusUpdate');
-    if (newStatus === 'PROCESSED') confirmMsg = 'Proses laporan ini?';
+    if (newStatus === 'PROCESSED') confirmMsg = 'Setujui laporan ini?';
     if (newStatus === 'DONE') confirmMsg = 'Tandai laporan ini sebagai selesai?';
     if (newStatus === 'REJECTED') confirmMsg = 'Tolak laporan ini?';
 
@@ -221,7 +221,8 @@ export default function ReportScreen() {
           onPress: async () => {
             setLoading(true);
             try {
-              await api.put(`/reports/${id}`, { status: newStatus });
+              // Use PATCH for status update as requested
+              await api.patch(`/reports/${id}/status`, { status: newStatus });
               Alert.alert(t('common.success'), t('report.statusUpdated'));
               fetchReports();
             } catch (error: any) {
@@ -452,8 +453,8 @@ export default function ReportScreen() {
                   style={[styles.actionButton, { backgroundColor: '#3b82f6' }]}
                   onPress={() => handleUpdateStatus(item.id, 'PROCESSED')}
                 >
-                  <Ionicons name="construct-outline" size={16} color="#fff" style={{ marginRight: 4 }} />
-                  <Text style={styles.actionButtonText}>Proses</Text>
+                  <Ionicons name="checkmark-circle-outline" size={16} color="#fff" style={{ marginRight: 4 }} />
+                  <Text style={styles.actionButtonText}>Setujui</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
                   style={[styles.actionButton, { backgroundColor: '#ef4444' }]}
@@ -591,7 +592,7 @@ export default function ReportScreen() {
   const renderList = () => (
     <View style={{ flex: 1 }}>
       {/* Filters */}
-      <View style={{ paddingVertical: 12, backgroundColor: colors.background }}>
+      <View style={{ paddingVertical: 12, backgroundColor: colors.background, marginTop: 32 }}>
         <ScrollView 
           horizontal 
           showsHorizontalScrollIndicator={false}
@@ -677,7 +678,7 @@ export default function ReportScreen() {
                 activeOpacity={0.8}
               >
                 <Text style={[styles.tabText, activeTab === 'create' && styles.tabTextActive]}>
-                  {t('report.tabs.create') || 'Buat'}
+                  {t('report.tabs.create') || 'Buat Laporan'}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -686,7 +687,7 @@ export default function ReportScreen() {
                 activeOpacity={0.8}
               >
                 <Text style={[styles.tabText, activeTab === 'list' && styles.tabTextActive]}>
-                  {t('report.tabs.list') || 'Daftar'}
+                  {t('report.tabs.list') || 'Daftar Laporan'}
                 </Text>
               </TouchableOpacity>
             </View>

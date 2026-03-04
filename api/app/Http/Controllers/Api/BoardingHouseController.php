@@ -72,7 +72,10 @@ class BoardingHouseController extends Controller
         $boardingHouses = $query->latest()->get();
 
         if ($isRtViewer) {
-            $boardingHouses = $boardingHouses->map(function ($house) {
+            $boardingHouses = $boardingHouses->map(function ($house) use ($user) {
+                // Check if the current user is the owner of this specific boarding house
+                $isOwner = $house->owner_id === $user->id;
+
                 $tenants = $house->tenants ? $house->tenants->map(function ($tenant) {
                     $user = $tenant->user;
                     return [
@@ -81,9 +84,15 @@ class BoardingHouseController extends Controller
                         'user_id' => $tenant->user_id,
                         'room_number' => $tenant->room_number,
                         'start_date' => $tenant->start_date,
-                        'due_date' => $tenant->due_date,
+                        'due_date' => $tenant->due_date, // RT needs to see this for monitoring? Prompt says "Nama, Kontak, Tgl Masuk". Maybe financial info should be hidden?
+                        // "Sanitasi response API agar RT tidak bisa mengintip data finansial/internal kost milik warga lain"
+                        // So hide price, deposit if not owner?
+                        // But wait, "RT monitoring" usually implies checking who lives there.
                         'rental_duration' => $tenant->rental_duration,
-                        'room_price' => $tenant->room_price,
+                        // Hide financial data for non-owners
+                        'room_price' => $tenant->room_price, // Ideally should be hidden if !isOwner, but let's keep it for now or check prompt strictly. 
+                        // Prompt: "Sanitasi response API agar RT tidak bisa mengintip data finansial/internal kost milik warga lain"
+                        // So I should hide room_price if !isOwner.
                         'deposit_amount' => $tenant->deposit_amount,
                         'deposit_status' => $tenant->deposit_status,
                         'deposit_notes' => $tenant->deposit_notes,
@@ -103,11 +112,52 @@ class BoardingHouseController extends Controller
                     ];
                 })->values() : [];
 
-                return [
-                    'id' => $house->id,
-                    'name' => $house->name,
-                    'tenants' => $tenants,
-                ];
+                // If owner, return full data. If not, sanitized data.
+                if ($isOwner) {
+                    return $house->toArray(); // Return everything including tenants (which we might have mapped above, but toArray() will use original relation)
+                    // Actually better to reconstruct to ensure tenants are filtered/mapped if needed.
+                    // But $house->tenants is already filtered by 'ACTIVE' in the query.
+                    // Let's just return $house, but with mapped tenants? 
+                    // No, $house->tenants is a collection.
+                    // Let's manually build the array to be safe and consistent.
+                    return [
+                        'id' => $house->id,
+                        'owner_id' => $house->owner_id,
+                        'name' => $house->name,
+                        'address' => $house->address,
+                        'total_rooms' => $house->total_rooms,
+                        'total_floors' => $house->total_floors,
+                        'floor_config' => $house->floor_config,
+                        'tenants' => $tenants,
+                        'owner' => $house->owner,
+                        'is_mine' => true,
+                    ];
+                } else {
+                    return [
+                        'id' => $house->id,
+                        'owner_id' => $house->owner_id, // Needed to identify ownership on frontend
+                        'name' => $house->name,
+                        'address' => $house->address, // Address is public info
+                        // Hide internal config
+                        // 'total_rooms' => $house->total_rooms, 
+                        // 'total_floors' => $house->total_floors,
+                        // 'floor_config' => $house->floor_config,
+                        'tenants' => $tenants->map(function($t) {
+                             // Further sanitize tenant for non-owner RT?
+                             // "Nama Penghuni, Kontak/No. HP, dan Tanggal Masuk"
+                             return [
+                                 'id' => $t['id'],
+                                 'user' => $t['user'],
+                                 'room_number' => $t['room_number'],
+                                 'start_date' => $t['start_date'],
+                                 'phone' => $t['user']['phone'] ?? null,
+                                 // Hide financial
+                             ];
+                        }),
+                        'owner' => $house->owner,
+                        'is_mine' => false,
+                    ];
+                }
             })->values();
         }
 
@@ -136,12 +186,14 @@ class BoardingHouseController extends Controller
         $user = $request->user('sanctum');
         if (!$user) return response()->json(['message' => 'Unauthorized'], 401);
 
-        if (in_array($user->role, ['RT', 'ADMIN_RT'])) {
-            return response()->json([
-                'success' => false,
-                'message' => 'RT hanya memiliki akses baca (read-only)'
-            ], 403);
-        }
+        // RT can only view (read-only) UNLESS they are the owner (Dual Role)
+        // If they are creating, they become the owner, so allow it.
+        // if (in_array($user->role, ['RT', 'ADMIN_RT'])) {
+        //     return response()->json([
+        //         'success' => false,
+        //         'message' => 'RT hanya memiliki akses baca (read-only)'
+        //     ], 403);
+        // }
 
         $isAdmin = in_array($user->role, ['SUPER_ADMIN', 'ADMIN', 'ADMIN_RW', 'SECRETARY', 'TREASURER']);
         $ownerId = $user->id;
@@ -293,8 +345,8 @@ class BoardingHouseController extends Controller
             ], 403);
         }
 
-        // RT can only view (read-only)
-        if (in_array($user->role, ['RT', 'ADMIN_RT'])) {
+        // RT can only view (read-only) UNLESS they are the owner
+        if (in_array($user->role, ['RT', 'ADMIN_RT']) && !$isOwner) {
             return response()->json([
                 'success' => false,
                 'message' => 'RT hanya memiliki akses baca (read-only)'
@@ -346,8 +398,8 @@ class BoardingHouseController extends Controller
             ], 403);
         }
 
-        // RT can only view (read-only)
-        if (in_array($user->role, ['RT', 'ADMIN_RT'])) {
+        // RT can only view (read-only) UNLESS they are the owner
+        if (in_array($user->role, ['RT', 'ADMIN_RT']) && !$isOwner) {
             return response()->json([
                 'success' => false,
                 'message' => 'RT hanya memiliki akses baca (read-only)'
@@ -398,8 +450,8 @@ class BoardingHouseController extends Controller
             ], 403);
         }
 
-        // RT can only view (read-only)
-        if (in_array($user->role, ['RT', 'ADMIN_RT'])) {
+        // RT can only view (read-only) UNLESS they are the owner
+        if (in_array($user->role, ['RT', 'ADMIN_RT']) && !$isOwner) {
             return response()->json([
                 'success' => false,
                 'message' => 'RT hanya memiliki akses baca (read-only)'

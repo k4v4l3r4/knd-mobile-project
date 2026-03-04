@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BansosHistory;
 use App\Models\BansosRecipient;
 use App\Models\User;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -111,6 +112,20 @@ class BansosController extends Controller
 
         $recipient->update($request->only(['status', 'notes', 'score', 'no_kk']));
 
+        // Notify User if status changes
+        if ($request->has('status')) {
+            Notification::create([
+                'notifiable_id' => $recipient->user_id,
+                'notifiable_type' => User::class,
+                'title' => 'Status Bansos Diperbarui',
+                'message' => "Status penerima bantuan sosial Anda telah diperbarui menjadi: " . $recipient->status,
+                'type' => 'BANSOS',
+                'related_id' => $recipient->id,
+                'url' => '/dashboard/bansos', // or mobile screen
+                'is_read' => false,
+            ]);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Data berhasil diperbarui',
@@ -181,6 +196,18 @@ class BansosController extends Controller
             'date_received' => $request->date_received,
             'amount' => $request->amount,
             'evidence_photo' => $evidencePath,
+        ]);
+
+        // Notify User about distribution
+        Notification::create([
+            'notifiable_id' => $recipient->user_id,
+            'notifiable_type' => User::class,
+            'title' => 'Bantuan Sosial Disalurkan',
+            'message' => "Anda telah menerima penyaluran bantuan: {$request->program_name}",
+            'type' => 'BANSOS',
+            'related_id' => $history->id,
+            'url' => '/dashboard/bansos',
+            'is_read' => false,
         ]);
 
         return response()->json([

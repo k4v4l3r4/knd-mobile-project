@@ -47,6 +47,8 @@ import NotificationsScreen from './src/screens/NotificationsScreen';
 import ContributionReportScreen from './src/screens/ContributionReportScreen';
 import BillingScreen from './src/screens/BillingScreen';
 
+import { registerForPushNotificationsAsync } from './src/services/notification';
+import * as Notifications from 'expo-notifications';
 import { BottomNav } from './src/components/BottomNav';
 import { TenantProvider, useTenant } from './src/context/TenantContext';
 import { CartProvider } from './src/context/CartContext';
@@ -87,6 +89,31 @@ const AppContent = () => {
     const hiddenScreens = ['LOGIN', 'REGISTER_RT', 'REGISTER_WARGA', 'PRODUCT_DETAIL', 'ADD_PRODUCT', 'CART', 'CHECKOUT'];
     return !hiddenScreens.includes(currentScreen);
   }, [currentScreen]);
+
+  useEffect(() => {
+    if (currentScreen === 'HOME') {
+      registerForPushNotificationsAsync().then(token => {
+        if (token) console.log('Registered for push notifications with token:', token);
+      });
+    }
+  }, [currentScreen]);
+
+  useEffect(() => {
+    const notificationListener = Notifications.addNotificationReceivedListener(notification => {
+      console.log('Notification received:', notification);
+    });
+
+    const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
+      const data = response.notification.request.content.data;
+      console.log('Notification tapped:', data);
+      setCurrentScreen('NOTIFICATIONS');
+    });
+
+    return () => {
+      notificationListener.remove();
+      responseListener.remove();
+    };
+  }, []);
 
   useEffect(() => {
     const backAction = () => {

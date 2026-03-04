@@ -213,6 +213,18 @@ class IssueReportController extends Controller
             'status' => $request->status
         ]);
 
+        // Notify User about status change
+        Notification::create([
+            'notifiable_id' => $issue->user_id,
+            'notifiable_type' => User::class,
+            'title' => 'Update Status Laporan',
+            'message' => "Laporan Anda '{$issue->title}' kini berstatus " . $request->status,
+            'type' => 'REPORT',
+            'related_id' => $issue->id,
+            'url' => '/dashboard/laporan-warga', // or mobile screen
+            'is_read' => false,
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Status laporan berhasil diperbarui',

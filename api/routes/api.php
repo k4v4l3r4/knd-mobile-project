@@ -68,6 +68,7 @@ Route::post('/register-warga', [AuthController::class, 'register']);
 
 Route::post('/register-rt', [AuthController::class, 'registerRt']); // New RT Registration (Legacy?)
 Route::post('/login', [AuthController::class, 'login'])->name('login');
+Route::post('/fcm-token', [AuthController::class, 'updateFcmToken'])->middleware('auth:sanctum');
 
 // Region Routes (Public)
 Route::prefix('regions')->group(function () {
@@ -143,13 +144,11 @@ Route::middleware(['auth:sanctum', 'tenant.status', 'tenant.feature'])->group(fu
 
     // Missing Routes Fix (Fees & Reports)
     Route::get('/fees/arrears', [\App\Http\Controllers\Api\FeeController::class, 'arrears']);
-    Route::get('/reports/summary', [\App\Http\Controllers\Api\ReportController::class, 'summary']);
-    Route::get('/reports/dues', [\App\Http\Controllers\Api\ReportController::class, 'duesRecap'])->middleware('permission:laporan.view');
-    
-    // Legacy/Frontend Report Routes (Mapped to IssueReportController)
-    // Must be defined AFTER specific /reports/... routes above to avoid conflict
-    Route::put('/reports/{id}', [\App\Http\Controllers\Api\IssueReportController::class, 'updateStatus']);
-    Route::apiResource('reports', IssueReportController::class);
+    // Report Routes
+    Route::get('/reports/summary', [ReportController::class, 'summary']);
+    Route::get('/reports/dues-recap', [ReportController::class, 'duesRecap']);
+    Route::apiResource('reports', ReportController::class);
+    Route::patch('/reports/{id}/status', [ReportController::class, 'updateStatus']);
 
     // Kas / Finance Routes
     Route::get('/rt/kas/summary', [\App\Http\Controllers\Api\KasController::class, 'summary'])->middleware('permission:kas.view');

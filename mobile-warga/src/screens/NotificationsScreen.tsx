@@ -121,25 +121,77 @@ const NotificationsScreen: React.FC<Props> = ({ onNavigate }) => {
         );
       } catch (error) {}
     }
+
+    if (onNavigate) {
+      const type = item.type?.toUpperCase();
+      switch (type) {
+        case 'LETTER':
+        case 'SURAT':
+          onNavigate('LETTER');
+          return;
+        case 'REPORT':
+        case 'LAPORAN':
+          onNavigate('REPORT');
+          return;
+        case 'BANSOS':
+        case 'AID':
+          onNavigate('BANSOS');
+          return;
+        case 'ANNOUNCEMENT':
+        case 'PENGUMUMAN':
+          onNavigate('HOME');
+          return;
+        case 'BILL':
+          onNavigate('BILLS');
+          return;
+      }
+    }
+
     handleOpenUrl(item);
   };
 
   const renderItem = ({ item }: { item: NotificationItem }) => {
     const isEmergency = ['EMERGENCY', 'SOS', 'PANIC', 'WARNING', 'PANIC_BUTTON'].includes(item.type?.toUpperCase());
     
-    const iconName = isEmergency 
-      ? 'alert-decagram-outline'
-      : item.type === 'BILL'
-        ? 'receipt-outline'
-        : item.type === 'INFO'
-          ? 'information-circle-outline'
-          : 'notifications-outline';
+    let iconName = 'notifications-outline';
+    let iconColor = colors.primary;
 
-    const iconColor = isEmergency 
-      ? '#ef4444' 
-      : item.is_read 
-        ? colors.textSecondary 
-        : colors.primary;
+    if (isEmergency) {
+      iconName = 'alert-decagram-outline';
+      iconColor = '#ef4444';
+    } else {
+      switch (item.type?.toUpperCase()) {
+        case 'BILL':
+          iconName = 'receipt-outline';
+          break;
+        case 'INFO':
+          iconName = 'information-circle-outline';
+          break;
+        case 'LETTER':
+        case 'SURAT':
+          iconName = 'file-document-outline'; // Layanan Surat
+          break;
+        case 'REPORT':
+        case 'LAPORAN':
+          iconName = 'clipboard-text-outline'; // Laporan Warga
+          break;
+        case 'BANSOS':
+        case 'AID':
+          iconName = 'gift-outline'; // Bansos/Keuangan
+          break;
+        case 'ANNOUNCEMENT':
+        case 'PENGUMUMAN':
+          iconName = 'bullhorn-outline'; // Pengumuman
+          break;
+        default:
+          iconName = 'notifications-outline';
+          break;
+      }
+      
+      if (item.is_read) {
+        iconColor = colors.textSecondary;
+      }
+    }
 
     return (
       <TouchableOpacity

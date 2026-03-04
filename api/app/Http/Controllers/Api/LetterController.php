@@ -104,8 +104,9 @@ class LetterController extends Controller
                 'notifiable_type' => \App\Models\User::class,
                 'title' => 'Surat Baru Dibuat',
                 'message' => "Admin telah membuat surat pengantar untuk Anda: {$request->type}",
-                'type' => 'SURAT',
+                'type' => 'LETTER',
                 'related_id' => $letter->id,
+                'url' => '/layanan-surat',
                 'is_read' => false
             ]);
         }

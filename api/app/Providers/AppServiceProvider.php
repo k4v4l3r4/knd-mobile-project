@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use App\Models\Permission;
 use App\Models\User;
+use App\Models\Notification;
+use App\Observers\NotificationObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -23,6 +25,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Notification::observe(NotificationObserver::class);
+
         // Register Policies
         Gate::policy(\App\Models\Invoice::class, \App\Policies\InvoicePolicy::class);
 

@@ -43,33 +43,65 @@ export default function BoardingScreen() {
   const [userRole, setUserRole] = useState('');
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [boardingHouses, setBoardingHouses] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'LIST' | 'TENANTS'>('LIST');
+  const [activeTab, setActiveTab] = useState<'HOUSE' | 'TENANT'>('HOUSE');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const isRtViewer = useMemo(() => userRole === 'RT' || userRole === 'ADMIN_RT', [userRole]);
+  
+  const myBoardingHouses = useMemo(() => {
+    if (!currentUser) return [];
+    // Filter houses owned by current user
+    return boardingHouses.filter(h => h.owner_id === currentUser.id);
+  }, [boardingHouses, currentUser]);
+
+  const isJuragan = useMemo(() => {
+    return myBoardingHouses.length > 0;
+  }, [myBoardingHouses]);
 
   const allTenants = useMemo(() => {
     const tenants: any[] = [];
     boardingHouses.forEach(house => {
       if (house.tenants) {
         house.tenants.forEach((tenant: any) => {
-          tenants.push({ ...tenant, houseName: house.name, houseId: house.id });
+          tenants.push({ 
+            ...tenant, 
+            houseName: house.name, 
+            houseId: house.id,
+            isMyTenant: house.owner_id === currentUser?.id
+          });
         });
       }
     });
-    return tenants;
-  }, [boardingHouses]);
+    return tenants.filter(t => {
+      const q = searchQuery.toLowerCase();
+      return (
+        t.user?.name?.toLowerCase().includes(q) ||
+        t.room_number?.toLowerCase().includes(q) ||
+        t.houseName?.toLowerCase().includes(q)
+      );
+    });
+  }, [boardingHouses, searchQuery, currentUser]);
 
-  // Effect to enforce RT role restrictions
+  // Effect to enforce RT role restrictions & Dual Role Logic
   useEffect(() => {
-    if (userRole === 'RT' || userRole === 'ADMIN_RT') {
-      setActiveTab('TENANTS');
+    if (isRtViewer) {
+      if (isJuragan) {
+        // Dual Role: RT + Owner -> Default to House tab, but allow switching
+        // Logic handled in renderTabs (visibility)
+      } else {
+        // Regular RT -> Force Tenant tab
+        setActiveTab('TENANT');
+      }
     }
-  }, [userRole]);
+  }, [isRtViewer, isJuragan]);
 
   const canEdit = useMemo(() => {
-    // RT is Read-Only
-    if (userRole === 'RT' || userRole === 'ADMIN_RT') return false;
-    // Warga Biasa (Non-Owner/Non-Tenant) - Assuming restricted, but if they are here they might be owner
+    // If RT/Admin RT, only edit if they are also owner (Juragan)
+    if (isRtViewer) return isJuragan;
+    // Regular Owner/Juragan
     return true; 
-  }, [userRole]);
+  }, [isRtViewer, isJuragan]);
+  
   
   const [showImagePickerModal, setShowImagePickerModal] = useState(false);
   const [actionMenuVisible, setActionMenuVisible] = useState(false);
@@ -1057,9 +1089,18 @@ export default function BoardingScreen() {
     );
   };
 
+  const filteredBoardingHouses = useMemo(() => {
+    if (!searchQuery) return boardingHouses;
+    const q = searchQuery.toLowerCase();
+    return boardingHouses.filter(h => 
+      h.name?.toLowerCase().includes(q) || 
+      h.address?.toLowerCase().includes(q)
+    );
+  }, [boardingHouses, searchQuery]);
+
   const renderKostList = () => (
     <FlatList
-      data={boardingHouses}
+      data={filteredBoardingHouses}
       keyExtractor={(item) => item.id.toString()}
       renderItem={({ item }) => (
         <View style={styles.card}>
@@ -1103,6 +1144,28 @@ export default function BoardingScreen() {
 
   const renderTenantList = () => (
     <FlatList
+      ListHeaderComponent={
+        <View style={{ backgroundColor: isDarkMode ? colors.background : '#fff', marginBottom: 8 }}>
+          <View style={{ paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={{ fontSize: 14, fontWeight: 'bold', color: colors.textSecondary }}>
+              Total: {allTenants.length} Penghuni
+            </Text>
+          </View>
+          {/* Table Header to match Web Admin columns */}
+          <View style={{ 
+            flexDirection: 'row', 
+            paddingHorizontal: 16, 
+            paddingVertical: 8, 
+            backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9',
+            borderBottomWidth: 1, 
+            borderBottomColor: colors.border
+          }}>
+             <Text style={{ flex: 4, fontSize: 12, fontWeight: 'bold', color: colors.textSecondary }}>NAMA / INFO</Text>
+             <Text style={{ flex: 3, fontSize: 12, fontWeight: 'bold', color: colors.textSecondary }}>KONTAK</Text>
+             <Text style={{ flex: 3, fontSize: 12, fontWeight: 'bold', color: colors.textSecondary, textAlign: 'right' }}>MASUK</Text>
+          </View>
+        </View>
+      }
       data={allTenants}
       keyExtractor={(item) => (item.id ? item.id.toString() : Math.random().toString())}
       renderItem={({ item }) => {
@@ -1112,32 +1175,45 @@ export default function BoardingScreen() {
         
         return (
         <TouchableOpacity 
-          style={[styles.card, { flexDirection: 'row', alignItems: 'center', padding: 12 }]}
+          style={[styles.card, { padding: 12, marginHorizontal: 16, marginBottom: 8 }]}
           onPress={() => handleOpenDetail(item.houseId, item)}
         >
-          <View style={{ 
-            width: 40, height: 40, borderRadius: 20, 
-            backgroundColor: statusColor,
-            alignItems: 'center', justifyContent: 'center',
-            marginRight: 12
-          }}>
-            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 14 }}>{item.room_number}</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.cardTitle}>{item.user?.name || item.name || 'Penghuni'}</Text>
-            <Text style={{ fontSize: 12, color: colors.textSecondary }}>{item.houseName}</Text>
-            <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 2 }}>
-              Jatuh Tempo: {item.due_date ? new Date(item.due_date).toLocaleDateString('id-ID') : '-'}
-            </Text>
-          </View>
-          <View>
-             <Text style={{ 
-               fontWeight: 'bold', 
-               color: statusColor,
-               fontSize: 12
-             }}>
-               {statusText}
-             </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+             {/* Column 1: Name & Room (Flex 4) */}
+             <View style={{ flex: 4, flexDirection: 'row', alignItems: 'center', paddingRight: 8 }}>
+                <View style={{ 
+                  width: 32, height: 32, borderRadius: 16, 
+                  backgroundColor: statusColor,
+                  alignItems: 'center', justifyContent: 'center',
+                  marginRight: 8
+                }}>
+                  <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>{item.room_number}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                   <Text style={[styles.cardTitle, { fontSize: 14 }]} numberOfLines={1}>{item.user?.name || item.name || 'Penghuni'}</Text>
+                   <Text style={{ fontSize: 11, color: colors.textSecondary }} numberOfLines={1}>{item.houseName}</Text>
+                </View>
+             </View>
+
+             {/* Column 2: Phone (Flex 3) */}
+             <View style={{ flex: 3, paddingRight: 4 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Ionicons name="call-outline" size={12} color={colors.textSecondary} style={{ marginRight: 2 }} />
+                  <Text style={{ fontSize: 12, color: colors.text }} numberOfLines={1}>
+                    {item.user?.phone || item.phone || '-'}
+                  </Text>
+                </View>
+             </View>
+
+             {/* Column 3: Date (Flex 3) */}
+             <View style={{ flex: 3, alignItems: 'flex-end' }}>
+                <Text style={{ fontSize: 12, color: colors.text }}>
+                  {item.start_date ? new Date(item.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: '2-digit' }) : '-'}
+                </Text>
+                <Text style={{ fontSize: 10, color: statusColor, fontWeight: 'bold' }}>
+                  {statusText}
+                </Text>
+             </View>
           </View>
         </TouchableOpacity>
       )}}
@@ -1147,15 +1223,15 @@ export default function BoardingScreen() {
            <Text style={[styles.emptySubtitle, { marginTop: 12 }]}>Belum ada data penghuni</Text>
         </View>
       }
-      contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
+      contentContainerStyle={{ paddingBottom: 120 }}
     />
   );
 
   const renderJuraganView = () => {
     return (
       <View style={{ flex: 1 }}>
-        {/* Tabs - Hide if RT/ADMIN_RT because they only see TENANTS */}
-        {userRole !== 'RT' && userRole !== 'ADMIN_RT' && (
+        {/* Tabs - Show if not RT (Regular User/Juragan) OR if RT but also Owner (Dual Role) */}
+        {(!isRtViewer || isJuragan) && (
           <View style={{ flexDirection: 'row', paddingHorizontal: 16, paddingTop: 16, backgroundColor: isDarkMode ? '#0f172a' : '#f1f5f9', gap: 12 }}>
             <TouchableOpacity 
                style={{ 
@@ -1163,13 +1239,13 @@ export default function BoardingScreen() {
                  paddingVertical: 12, 
                  alignItems: 'center', 
                  borderBottomWidth: 2, 
-                 borderBottomColor: activeTab === 'LIST' ? colors.primary : 'transparent' 
+                 borderBottomColor: activeTab === 'HOUSE' ? colors.primary : 'transparent' 
                }}
-               onPress={() => setActiveTab('LIST')}
+               onPress={() => setActiveTab('HOUSE')}
             >
                <Text style={{ 
                  fontWeight: 'bold', 
-                 color: activeTab === 'LIST' ? colors.primary : colors.textSecondary 
+                 color: activeTab === 'HOUSE' ? colors.primary : colors.textSecondary 
                }}>Data Kost</Text>
             </TouchableOpacity>
             <TouchableOpacity 
@@ -1178,19 +1254,19 @@ export default function BoardingScreen() {
                  paddingVertical: 12, 
                  alignItems: 'center', 
                  borderBottomWidth: 2, 
-                 borderBottomColor: activeTab === 'TENANTS' ? colors.primary : 'transparent' 
+                 borderBottomColor: activeTab === 'TENANT' ? colors.primary : 'transparent' 
                }}
-               onPress={() => setActiveTab('TENANTS')}
+               onPress={() => setActiveTab('TENANT')}
             >
                <Text style={{ 
                  fontWeight: 'bold', 
-                 color: activeTab === 'TENANTS' ? colors.primary : colors.textSecondary 
+                 color: activeTab === 'TENANT' ? colors.primary : colors.textSecondary 
                }}>Data Penghuni</Text>
             </TouchableOpacity>
           </View>
         )}
 
-        {activeTab === 'LIST' ? renderKostList() : renderTenantList()}
+        {activeTab === 'HOUSE' ? renderKostList() : renderTenantList()}
       </View>
     );
   };
@@ -1349,6 +1425,34 @@ export default function BoardingScreen() {
             <View style={{ width: 40 }} />
           </View>
         </SafeAreaView>
+        
+        {/* Search Bar */}
+        {(isJuraganView || isRtViewer) && (
+          <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+            <View style={{ 
+              flexDirection: 'row', 
+              alignItems: 'center', 
+              backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.9)', 
+              borderRadius: 8, 
+              paddingHorizontal: 12,
+              height: 40
+            }}>
+              <Ionicons name="search" size={20} color={isDarkMode ? '#fff' : '#64748b'} />
+              <TextInput
+                style={{ flex: 1, marginLeft: 8, color: isDarkMode ? '#fff' : '#0f172a' }}
+                placeholder={t('common.search') || 'Cari...'}
+                placeholderTextColor={isDarkMode ? 'rgba(255,255,255,0.5)' : '#94a3b8'}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                  <Ionicons name="close-circle" size={18} color={isDarkMode ? 'rgba(255,255,255,0.5)' : '#94a3b8'} />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        )}
       </View>
 
       {loading ? (
@@ -1369,25 +1473,66 @@ export default function BoardingScreen() {
         renderTenantView()
       )}
 
-      {/* Floating Add Kost Button */}
+      {/* Context-Aware Floating Action Button */}
       {(function() {
-        // RT/ADMIN_RT excluded from "adminRoles" for creation/FAB visibility (Read-Only)
-        const adminRoles = ['SUPER_ADMIN', 'ADMIN', 'ADMIN_RW', 'SECRETARY', 'TREASURER'];
-        const isAdmin = adminRoles.includes(userRole);
-        const isOwner = Boolean(
-          currentUser?.id &&
-          boardingHouses.some(h => h.owner_id === currentUser.id || h.owner?.id === currentUser.id)
-        );
-        // Regular citizens can create if they want to become Juragan?
-        // Usually system allows it, or maybe we restrict?
-        // Assuming allow for now as per original code, but explicit exclusion of RT overrides if they are not owner.
-        const isRegularCitizen = ['WARGA', 'WARGA_TETAP'].includes(userRole);
-        
-        return isAdmin || isOwner || isRegularCitizen;
+         // RT Monitor Mode (No Kost) -> No FAB
+         if (isRtViewer && !isJuragan) return false;
+         
+         // If Juragan View is active (Owner/Admin)
+         if (isJuraganView) {
+             if (activeTab === 'HOUSE') return true;
+             if (activeTab === 'TENANT') return isJuragan; // Only owners can add tenants
+         }
+         
+         // Regular user (WARGA) -> Can add kost to become Juragan
+         const isRegularCitizen = ['WARGA', 'WARGA_TETAP'].includes(userRole);
+         if (isRegularCitizen && activeTab === 'HOUSE') return true;
+
+         return false;
       })() && (
         <TouchableOpacity
           style={styles.fab}
-          onPress={() => setKostModalVisible(true)}
+          onPress={() => {
+             if (activeTab === 'HOUSE') {
+                 // Reset form and open
+                 setKostFormData({ name: '', address: '', total_rooms: '', total_floors: '', floor_config: [] });
+                 setIsEditingKost(false);
+                 setEditingKostId(null);
+                 setKostModalVisible(true);
+             } else {
+                 // Add Tenant logic (Context-Aware)
+                 // Default to first house if exists, else null (to trigger selector)
+                 if (myBoardingHouses.length === 1) {
+                     setSelectedHouseId(myBoardingHouses[0].id);
+                 } else {
+                     setSelectedHouseId(null); 
+                 }
+                 
+                 // Reset form
+                 const d = new Date();
+                 d.setMonth(d.getMonth() + 1);
+                 
+                 setFormData({
+                    name: '',
+                    nik: '',
+                    phone: '',
+                    room_number: '',
+                    start_date: formatDateLocal(new Date()),
+                    rental_duration: '1',
+                    due_date: formatDateLocal(d),
+                    room_price: '',
+                    deposit_amount: '',
+                    gender: 'L',
+                    marital_status: 'SINGLE',
+                    occupation: '',
+                    ktp_image: null,
+                    notificationEnabled: true
+                 });
+                 setIsEditMode(false);
+                 setEditingTenantId(null);
+                 setModalVisible(true);
+             }
+          }}
           activeOpacity={0.8}
         >
           <Ionicons name="add" size={30} color="#fff" />
@@ -1594,15 +1739,45 @@ export default function BoardingScreen() {
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
             
+            {/* Pilih Kost (Jika punya lebih dari 1) */}
+            {myBoardingHouses.length > 1 && (
+              <View style={{ marginBottom: 16 }}>
+                <Text style={styles.inputLabel}>{t('boarding.form.selectHouse') || 'Pilih Kost'}</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                  {myBoardingHouses.map((house) => (
+                    <TouchableOpacity
+                      key={house.id}
+                      style={[
+                        styles.chip,
+                        selectedHouseId === house.id && styles.chipActive,
+                        { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: colors.border }
+                      ]}
+                      onPress={() => setSelectedHouseId(house.id)}
+                    >
+                      <Text style={[
+                        styles.chipText,
+                        selectedHouseId === house.id && styles.chipTextActive
+                      ]}>{house.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
             {/* Pilih Kamar */}
             <Text style={styles.sectionHeader}>{t('boarding.selectRoom.title')}</Text>
             <View style={{ marginBottom: 20 }}>
               <TextInput
-                style={[styles.input, { backgroundColor: isDarkMode ? '#334155' : '#f1f5f9', color: colors.text }]}
+                style={[styles.input, { backgroundColor: isDarkMode ? '#334155' : '#fff', color: colors.text }]}
                 value={formData.room_number}
-                editable={false}
-                placeholder={t('boarding.selectRoom.roomNumberPlaceholder')}
+                editable={true}
+                placeholder={t('boarding.selectRoom.roomNumberPlaceholder') || 'Nomor Kamar (Contoh: 101)'}
+                placeholderTextColor={colors.textSecondary}
+                onChangeText={(text) => setFormData({...formData, room_number: text})}
               />
+              <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 4 }}>
+                {t('boarding.selectRoom.hint') || 'Masukkan nomor kamar manually atau pilih dari denah.'}
+              </Text>
             </View>
 
             {/* Identitas Penghuni */}
@@ -2749,5 +2924,25 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
       shadowOpacity: 0.3,
       shadowRadius: 8,
       elevation: 6,
+    },
+    chip: {
+      backgroundColor: isDarkMode ? '#0f172a' : '#fff',
+      borderColor: colors.border,
+      borderWidth: 1,
+      borderRadius: 20,
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+    },
+    chipActive: {
+      backgroundColor: isDarkMode ? '#1e293b' : '#e2e8f0',
+      borderColor: colors.primary,
+    },
+    chipText: {
+      color: colors.text,
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    chipTextActive: {
+      color: colors.primary,
     },
   });

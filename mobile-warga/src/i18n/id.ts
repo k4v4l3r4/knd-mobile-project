@@ -348,6 +348,10 @@ export const id = {
   report: {
     title: 'Laporan Warga',
     subtitle: 'Sampaikan keluhan atau masalah di lingkungan Anda.',
+    tabs: {
+      create: 'Buat Laporan',
+      list: 'Daftar Laporan',
+    },
     form: {
       header: 'Form Laporan',
       subHeader: 'Sampaikan keluhan atau masalah',
@@ -615,9 +619,12 @@ export const id = {
       notificationDesc: 'Kirim pengingat otomatis via WhatsApp saat tagihan jatuh tempo.',
     },
     selectRoom: {
-      title: 'Pilih Kamar',
-      roomNumberPlaceholder: 'Nomor Kamar',
-    },
+        title: 'Pilih Kamar',
+        roomNumberPlaceholder: 'Nomor Kamar',
+        hint: 'Masukkan nomor kamar secara manual atau pilih dari denah.',
+      },
+      form: {
+        selectHouse: 'Pilih Kost',
     imagePicker: {
       title: 'Pilih Foto',
       camera: 'Ambil Foto',
@@ -651,8 +658,8 @@ export const id = {
     },
     title: 'Manajemen Kost',
     tabs: {
-      list: 'List Kost',
-      tenants: 'Daftar Penghuni',
+      house: 'Data Kost',
+      tenants: 'Data Penghuni',
     },
     manage: 'Kelola',
     addKost: 'Tambah Data Kost',
@@ -910,4 +917,4 @@ export const id = {
       }
     }
   }
-};
+}};
