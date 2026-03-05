@@ -58,6 +58,10 @@ Route::post('/auth/verify-otp', [AuthController::class, 'verifyOtp']);
 Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
 Route::get('/app-settings', [SettingController::class, 'getPublicSettings']);
 
+// PDF Exports for Reports (Dues/Iuran) - Manual Token Auth in Controller
+// MOVED HERE TO BE PUBLIC (No auth:sanctum middleware) so window.open works
+Route::get('/reports/dues/pdf', [ReportController::class, 'exportDuesPdf']);
+
 // TENANT Registration (SaaS Flow)
 Route::post('/register', [SaasAuthController::class, 'register']);
 
@@ -338,4 +342,5 @@ Route::get('/rt/kas/export/pdf', [\App\Http\Controllers\Api\KasController::class
 Route::get('/rt/kas/export/expense-pdf', [\App\Http\Controllers\Api\KasController::class, 'exportExpensePdf']);
 
 // PDF Exports for Reports (Dues/Iuran) - Manual Token Auth in Controller
-Route::get('/reports/dues/pdf', [ReportController::class, 'exportDuesPdf']);
+// REMOVED from here to move to Public Routes
+// Route::get('/reports/dues/pdf', [ReportController::class, 'exportDuesPdf']);
