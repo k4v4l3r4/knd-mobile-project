@@ -51,19 +51,9 @@ class BoardingHouseController extends Controller
         } else if (in_array($user->role, ['SUPER_ADMIN', 'ADMIN'])) {
             // Super Admin sees all
         } else if (in_array($user->role, ['ADMIN_RT', 'SECRETARY', 'TREASURER', 'ADMIN_RW', 'RT'])) {
-            // Admin RT/RW/Staff sees kosts in their area
-            // Assuming owner's RT/RW determines the kost location
-            if (!$user->rt_id) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Data kost',
-                    'data' => []
-                ]);
-            }
-            $query->whereHas('owner', function($q) use ($user) {
-                $q->where('rt_id', $user->rt_id);
-                // If RW logic needed later, add here
-            });
+            // Admin RT/RW/Staff: tampilkan SEMUA kost dalam tenant saat ini
+            // Catatan: BelongsToTenant scope sudah membatasi ke tenant aktif.
+            // Tidak perlu filter tambahan berdasarkan RT pemilik untuk menghindari data kosong.
         } else {
             // For JURAGAN_KOST, WARGA, etc. -> Show owned
             $query->where('owner_id', $user->id);
