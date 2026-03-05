@@ -41,6 +41,15 @@ interface Transaction {
   description: string;
   source_type: string;
   origin: string;
+  user?: {
+    id: number;
+    name: string;
+    block: string;
+  };
+  wallet?: {
+    id: number;
+    name: string;
+  };
 }
 
 interface Account {
@@ -68,6 +77,7 @@ const FinanceReportScreen = ({ onNavigate }: { onNavigate: (screen: string) => v
   const [refreshing, setRefreshing] = useState(false);
   const [summary, setSummary] = useState<KasSummary>({ balance: 0, total_in: 0, total_out: 0 });
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [pendingTransactions, setPendingTransactions] = useState<Transaction[]>([]);
   const [userRole, setUserRole] = useState<string>('WARGA');
   const [filterType, setFilterType] = useState<'ALL' | 'IN' | 'OUT'>('ALL');
 
@@ -125,6 +135,13 @@ const FinanceReportScreen = ({ onNavigate }: { onNavigate: (screen: string) => v
       const transactionsRes = await api.get('/rt/kas/transactions');
       if (transactionsRes.data.success) {
         setTransactions(transactionsRes.data.data.data || []);
+      }
+
+      if (isAdmin) {
+        const pendingRes = await api.get('/rt/kas/pending');
+        if (pendingRes.data.success) {
+          setPendingTransactions(pendingRes.data.data || []);
+        }
       }
 
     } catch (error: any) {
@@ -253,6 +270,51 @@ const FinanceReportScreen = ({ onNavigate }: { onNavigate: (screen: string) => v
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleApprove = async (id: number) => {
+    try {
+      setLoading(true);
+      const response = await api.post(`/transactions/${id}/verify`);
+      if (response.data.success) {
+        Alert.alert('Sukses', 'Transaksi berhasil disetujui');
+        onRefresh();
+      }
+    } catch (error: any) {
+        const msg = error.response?.data?.message || 'Gagal menyetujui transaksi';
+        Alert.alert('Error', msg);
+    } finally {
+        setLoading(false);
+    }
+  };
+
+  const handleReject = async (id: number) => {
+    Alert.alert(
+        'Konfirmasi',
+        'Apakah Anda yakin ingin menolak transaksi ini?',
+        [
+            { text: 'Batal', style: 'cancel' },
+            { 
+                text: 'Tolak', 
+                style: 'destructive',
+                onPress: async () => {
+                    try {
+                        setLoading(true);
+                        const response = await api.post(`/transactions/${id}/reject`);
+                        if (response.data.success) {
+                            Alert.alert('Sukses', 'Transaksi berhasil ditolak');
+                            onRefresh();
+                        }
+                    } catch (error: any) {
+                        const msg = error.response?.data?.message || 'Gagal menolak transaksi';
+                        Alert.alert('Error', msg);
+                    } finally {
+                        setLoading(false);
+                    }
+                }
+            }
+        ]
+    );
   };
 
   const filteredTransactions = transactions.filter(t => {
@@ -399,6 +461,41 @@ const FinanceReportScreen = ({ onNavigate }: { onNavigate: (screen: string) => v
                   </View>
                   <Text style={[styles.actionText, { color: '#2563eb' }]}>Transfer</Text>
                 </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Pending Transactions Section */}
+            {isAdmin && pendingTransactions.length > 0 && (
+              <View style={styles.sectionContainer}>
+                <Text style={styles.sectionTitle}>Perlu Verifikasi ({pendingTransactions.length})</Text>
+                {pendingTransactions.map((t) => (
+                  <View key={t.id} style={styles.pendingCard}>
+                    <View style={styles.pendingHeader}>
+                        <View>
+                            <Text style={styles.pendingUser}>{t.user?.name || 'Warga'}</Text>
+                            <Text style={styles.pendingBlock}>{t.user?.block ? `Blok ${t.user.block}` : '-'}</Text>
+                        </View>
+                        <Text style={styles.pendingAmount}>{formatCurrency(t.amount)}</Text>
+                    </View>
+                    <Text style={styles.pendingDesc}>{t.description}</Text>
+                    <Text style={styles.pendingDate}>{new Date(t.created_at).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</Text>
+                    
+                    <View style={styles.pendingActions}>
+                        <TouchableOpacity 
+                            style={[styles.pendingButton, styles.rejectButton]} 
+                            onPress={() => handleReject(t.id)}
+                        >
+                            <Text style={styles.rejectText}>Tolak</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                            style={[styles.pendingButton, styles.approveButton]} 
+                            onPress={() => handleApprove(t.id)}
+                        >
+                            <Text style={styles.approveText}>Terima</Text>
+                        </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
               </View>
             )}
 
@@ -949,7 +1046,81 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 12,
-    marginLeft: 4,
+  },
+  sectionContainer: {
+    marginBottom: 24,
+  },
+  pendingCard: {
+    backgroundColor: isDarkMode ? '#1e293b' : '#fff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: isDarkMode ? '#334155' : '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  pendingHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  pendingUser: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  pendingBlock: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  pendingAmount: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#f59e0b', // Amber/Yellow for pending
+  },
+  pendingDesc: {
+    fontSize: 13,
+    color: colors.text,
+    marginBottom: 4,
+  },
+  pendingDate: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: 12,
+  },
+  pendingActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  pendingButton: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rejectButton: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.2)',
+  },
+  approveButton: {
+    backgroundColor: '#10b981',
+  },
+  rejectText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#ef4444',
+  },
+  approveText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#fff',
   },
   groupContainer: {
       marginBottom: 16,

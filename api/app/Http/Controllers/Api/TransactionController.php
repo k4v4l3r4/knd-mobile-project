@@ -303,4 +303,54 @@ class TransactionController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Reject a transaction.
+     */
+    public function reject($id)
+    {
+        DB::beginTransaction();
+        try {
+            $transaction = Transaction::findOrFail($id);
+
+            if ($transaction->status !== 'PENDING') {
+                return response()->json(['message' => 'Hanya transaksi PENDING yang bisa ditolak.'], 400);
+            }
+
+            // Update Status
+            $transaction->status = 'REJECTED';
+            $transaction->save();
+
+            // Notify Warga
+            $warga = \App\Models\User::find($transaction->user_id);
+            if ($warga) {
+                \App\Models\Notification::create([
+                    'tenant_id' => $warga->tenant_id,
+                    'notifiable_id' => $warga->id,
+                    'notifiable_type' => \App\Models\User::class,
+                    'title' => 'Pembayaran Ditolak',
+                    'message' => 'Pembayaran Anda sebesar Rp ' . number_format($transaction->amount) . ' ditolak oleh Admin.',
+                    'type' => 'TRANSACTION_REJECTED',
+                    'related_id' => $transaction->id,
+                    'url' => '/warga/bills',
+                    'is_read' => false,
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Transaksi berhasil ditolak.',
+                'data' => $transaction
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menolak transaksi: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
