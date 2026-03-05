@@ -46,6 +46,7 @@ export const settingService = {
   deleteAdmin: (id: number) => api.delete(`/settings/admins/${id}`),
 
   // Manajemen Iuran
+  getDuesRecap: (year: string, block?: string) => api.get('/reports/dues', { params: { year, block } }),
   getFees: () => api.get('/fees'),
   storeFee: (data: any) => api.post('/fees', data),
   updateFee: (id: number, data: any) => api.put(`/fees/${id}`, data),

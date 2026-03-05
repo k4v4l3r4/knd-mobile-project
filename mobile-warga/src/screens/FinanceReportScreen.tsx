@@ -13,7 +13,8 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
-  ScrollView
+  ScrollView,
+  Image
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -72,6 +73,26 @@ interface ActivityCategory {
   name: string;
 }
 
+interface DuesMonth {
+  paid: number;
+  pending: number;
+  status: 'PAID' | 'PARTIAL' | 'UNPAID';
+  details: any[];
+}
+
+interface DuesUser {
+  id: number;
+  name: string;
+  block: string;
+  photo_url: string | null;
+  role: string;
+  phone: string | null;
+  status_in_family: string;
+  is_kepala_keluarga: boolean;
+  months: Record<string, DuesMonth>;
+  total_year: number;
+}
+
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',
@@ -123,7 +144,37 @@ const FinanceReportScreen = ({ onNavigate }: { onNavigate: (screen: string) => v
   });
 
   // Check if user has admin privileges for finance
-  const isAdmin = ['ADMIN_RT', 'ADMIN_RW', 'BENDAHARA_RT'].includes(userRole);
+  const isAdmin = ['ADMIN_RT', 'ADMIN_RW', 'BENDAHARA_RT', 'RT', 'RW'].includes(userRole);
+
+  // Tab State
+  const [activeTab, setActiveTab] = useState<'FINANCE' | 'DUES'>('FINANCE');
+
+  // Dues Monitoring State
+  const [duesData, setDuesData] = useState<{ users: DuesUser[]; monthly_totals: any } | null>(null);
+  const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
+  const [selectedMonth, setSelectedMonth] = useState<string>((new Date().getMonth() + 1).toString().padStart(2, '0'));
+  const [loadingDues, setLoadingDues] = useState(false);
+
+  const fetchDuesRecap = async () => {
+    if (!isAdmin) return;
+    setLoadingDues(true);
+    try {
+      const res = await settingService.getDuesRecap(selectedYear);
+      if (res.data.success) {
+        setDuesData(res.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching dues recap:', error);
+    } finally {
+      setLoadingDues(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'DUES' && isAdmin) {
+      fetchDuesRecap();
+    }
+  }, [activeTab, selectedYear, isAdmin]);
 
   const fetchUserData = useCallback(async () => {
     try {
@@ -495,6 +546,156 @@ const FinanceReportScreen = ({ onNavigate }: { onNavigate: (screen: string) => v
     );
   };
 
+  const renderDuesTab = () => {
+    if (loadingDues && !duesData) {
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 50 }}>
+          <ActivityIndicator size="large" color="#10b981" />
+        </View>
+      );
+    }
+
+    const months = [
+      { id: '01', name: 'Jan' }, { id: '02', name: 'Feb' }, { id: '03', name: 'Mar' },
+      { id: '04', name: 'Apr' }, { id: '05', name: 'Mei' }, { id: '06', name: 'Jun' },
+      { id: '07', name: 'Jul' }, { id: '08', name: 'Agt' }, { id: '09', name: 'Sep' },
+      { id: '10', name: 'Okt' }, { id: '11', name: 'Nov' }, { id: '12', name: 'Des' },
+    ];
+
+    const filteredUsers = duesData?.users.filter(u => u.is_kepala_keluarga) || [];
+
+    return (
+      <View style={styles.listContent}>
+        {/* Year Filter */}
+        <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 16, alignItems: 'center', gap: 12 }}>
+          <TouchableOpacity 
+            onPress={() => setSelectedYear((parseInt(selectedYear) - 1).toString())}
+            style={{ padding: 8, backgroundColor: isDarkMode ? '#334155' : '#f1f5f9', borderRadius: 8 }}
+          >
+            <Ionicons name="chevron-back" size={20} color={colors.text} />
+          </TouchableOpacity>
+          <Text style={{ fontSize: 16, fontWeight: 'bold', color: colors.text }}>Tahun {selectedYear}</Text>
+          <TouchableOpacity 
+            onPress={() => setSelectedYear((parseInt(selectedYear) + 1).toString())}
+            style={{ padding: 8, backgroundColor: isDarkMode ? '#334155' : '#f1f5f9', borderRadius: 8 }}
+          >
+            <Ionicons name="chevron-forward" size={20} color={colors.text} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Month Filter */}
+        <View style={{ marginBottom: 16 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {months.map((m) => (
+              <TouchableOpacity
+                key={m.id}
+                style={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  backgroundColor: selectedMonth === m.id ? '#10b981' : (isDarkMode ? '#334155' : '#f1f5f9'),
+                  borderRadius: 20,
+                  marginRight: 8,
+                }}
+                onPress={() => setSelectedMonth(m.id)}
+              >
+                <Text style={{ 
+                  color: selectedMonth === m.id ? '#fff' : colors.text,
+                  fontWeight: selectedMonth === m.id ? 'bold' : 'normal'
+                }}>
+                  {m.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Users List */}
+        {filteredUsers.map((user) => {
+          const monthData = user.months[selectedMonth];
+          const isPaid = monthData?.status === 'PAID';
+          const isPartial = monthData?.status === 'PARTIAL';
+          
+          return (
+            <View key={user.id} style={{
+              backgroundColor: isDarkMode ? '#1e293b' : '#fff',
+              padding: 16,
+              borderRadius: 12,
+              marginBottom: 12,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.1,
+              shadowRadius: 2,
+              elevation: 2,
+              borderWidth: 1,
+              borderColor: isDarkMode ? '#334155' : '#f1f5f9'
+            }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                 <View style={{
+                    width: 40, height: 40, borderRadius: 20, backgroundColor: isDarkMode ? '#334155' : '#e2e8f0', 
+                    marginRight: 12, overflow: 'hidden', justifyContent: 'center', alignItems: 'center'
+                 }}>
+                    {user.photo_url ? (
+                      <Image source={{ uri: user.photo_url }} style={{ width: 40, height: 40 }} />
+                    ) : (
+                      <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#64748b' }}>
+                        {user.name.charAt(0)}
+                      </Text>
+                    )}
+                 </View>
+                 <View style={{ flex: 1 }}>
+                   <Text style={{ fontSize: 16, fontWeight: '600', color: colors.text }}>{user.name}</Text>
+                   <Text style={{ fontSize: 12, color: colors.textSecondary }}>Blok {user.block}</Text>
+                 </View>
+              </View>
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <View style={{
+                  paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12,
+                  backgroundColor: isPaid ? 'rgba(16, 185, 129, 0.2)' : (isPartial ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)')
+                }}>
+                  <Text style={{ 
+                    fontSize: 10, fontWeight: 'bold', 
+                    color: isPaid ? '#10b981' : (isPartial ? '#f59e0b' : '#ef4444')
+                  }}>
+                    {isPaid ? 'LUNAS' : (isPartial ? 'CICIL' : 'BELUM')}
+                  </Text>
+                </View>
+
+                {!isPaid && user.phone && (
+                  <TouchableOpacity 
+                    onPress={() => {
+                      let phone = user.phone || '';
+                      if (phone.startsWith('0')) phone = '62' + phone.substring(1);
+                      if (phone.startsWith('8')) phone = '62' + phone;
+                      Linking.openURL(`whatsapp://send?phone=${phone}&text=Halo Bapak/Ibu ${user.name}, mohon maaf mengganggu. Mengingatkan untuk pembayaran iuran bulan ini. Terima kasih.`);
+                    }}
+                    style={{
+                      width: 36, height: 36, borderRadius: 18, backgroundColor: '#25D366',
+                      justifyContent: 'center', alignItems: 'center'
+                    }}
+                  >
+                    <Ionicons name="logo-whatsapp" size={20} color="#fff" />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          );
+        })}
+        
+        {filteredUsers.length === 0 && (
+          <Text style={{ textAlign: 'center', color: colors.textSecondary, marginTop: 20 }}>
+            Tidak ada data warga.
+          </Text>
+        )}
+        
+        <View style={{ height: 100 }} />
+      </View>
+    );
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -504,9 +705,47 @@ const FinanceReportScreen = ({ onNavigate }: { onNavigate: (screen: string) => v
             <Text style={styles.headerTitle}>{t('home.menus.bills') || 'Laporan Kas'}</Text> 
             <View style={{ width: 40 }} />
           </View>
+
+          {isAdmin && (
+            <View style={{ flexDirection: 'row', paddingHorizontal: 16, marginTop: 8 }}>
+              <TouchableOpacity 
+                style={{ 
+                  flex: 1, 
+                  paddingVertical: 12, 
+                  borderBottomWidth: 2, 
+                  borderBottomColor: activeTab === 'FINANCE' ? '#10b981' : 'transparent',
+                  alignItems: 'center'
+                }}
+                onPress={() => setActiveTab('FINANCE')}
+              >
+                <Text style={{ 
+                  fontWeight: activeTab === 'FINANCE' ? 'bold' : 'normal',
+                  color: activeTab === 'FINANCE' ? '#10b981' : colors.textSecondary,
+                  fontSize: 14
+                }}>Laporan Kas</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={{ 
+                  flex: 1, 
+                  paddingVertical: 12, 
+                  borderBottomWidth: 2, 
+                  borderBottomColor: activeTab === 'DUES' ? '#10b981' : 'transparent',
+                  alignItems: 'center'
+                }}
+                onPress={() => setActiveTab('DUES')}
+              >
+                <Text style={{ 
+                  fontWeight: activeTab === 'DUES' ? 'bold' : 'normal',
+                  color: activeTab === 'DUES' ? '#10b981' : colors.textSecondary,
+                  fontSize: 14
+                }}>Monitoring Iuran</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </SafeAreaView>
       </View>
 
+      {activeTab === 'FINANCE' ? (
       <FlatList
         data={sortedDates}
         renderItem={renderGroup}
@@ -767,6 +1006,16 @@ const FinanceReportScreen = ({ onNavigate }: { onNavigate: (screen: string) => v
           ) : null
         }
       />
+      ) : (
+        <ScrollView 
+          contentContainerStyle={{ flexGrow: 1 }}
+          refreshControl={
+            <RefreshControl refreshing={loadingDues} onRefresh={fetchDuesRecap} tintColor={colors.primary} />
+          }
+        >
+          {renderDuesTab()}
+        </ScrollView>
+      )}
       
       {loading && !refreshing && (
         <View style={styles.loadingOverlay}>

@@ -324,6 +324,9 @@ class ReportController extends Controller
                 'block' => $u->block ?? 'Unassigned',
                 'photo_url' => $u->photo_url,
                 'role' => $u->role,
+                'phone' => $u->phone,
+                'status_in_family' => $u->status_in_family,
+                'is_kepala_keluarga' => $u->status_in_family === 'KEPALA_KELUARGA',
                 'months' => [],
                 'total_year' => 0
             ];
