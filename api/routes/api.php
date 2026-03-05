@@ -138,7 +138,8 @@ Route::middleware(['auth:sanctum', 'tenant.status', 'tenant.feature'])->group(fu
     Route::get('/tenant/feature-status', [\App\Http\Controllers\Api\TenantFeatureController::class, 'status']);
 
     // PDF Exports (Reports only – Kas exports handled with token auth in controller)
-    Route::get('/reports/dues/pdf', [ReportController::class, 'exportDuesPdf'])->middleware('permission:laporan.export');
+    // MOVED OUTSIDE to allow query param token auth (window.open support)
+    // Route::get('/reports/dues/pdf', [ReportController::class, 'exportDuesPdf'])->middleware('permission:laporan.export');
 
     // Missing Routes Fix (Fees & Reports)
     Route::get('/fees/arrears', [\App\Http\Controllers\Api\FeeController::class, 'arrears']);
@@ -335,3 +336,6 @@ Route::middleware(['auth:sanctum', 'tenant.status', 'tenant.feature'])->group(fu
 // PDF Exports for Kas (token-based, accessible from mobile & web-admin)
 Route::get('/rt/kas/export/pdf', [\App\Http\Controllers\Api\KasController::class, 'exportPdf']);
 Route::get('/rt/kas/export/expense-pdf', [\App\Http\Controllers\Api\KasController::class, 'exportExpensePdf']);
+
+// PDF Exports for Reports (Dues/Iuran) - Manual Token Auth in Controller
+Route::get('/reports/dues/pdf', [ReportController::class, 'exportDuesPdf']);

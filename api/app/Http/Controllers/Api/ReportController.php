@@ -243,6 +243,11 @@ class ReportController extends Controller
             return response()->json(['message' => 'User not assigned to RT'], 400);
         }
 
+        // Manual Permission Check (since route is public for window.open)
+        if (!$user->can('laporan.export')) {
+             return response()->json(['message' => 'Forbidden: You do not have permission to export reports.'], 403);
+        }
+
         $year = $request->input('year', date('Y'));
         $block = $request->input('block');
 
