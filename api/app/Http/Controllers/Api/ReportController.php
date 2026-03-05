@@ -281,8 +281,10 @@ class ReportController extends Controller
      */
     private function getDuesMatrix($rtId, $year, $block = null)
     {
-        // 1. Get Users (Warga) in RT
+        // 1. Get Users (Warga) in RT - FILTER BY KEPALA KELUARGA
+        // User requested Left Join logic: Get All Heads of Family first, then map transactions.
         $query = \App\Models\User::where('rt_id', $rtId)
+            ->where('status_in_family', 'KEPALA_KELUARGA') // Show only Heads of Family
             ->whereIn('role', ['WARGA', 'warga', 'WARGA_KOST', 'warga_kost', 'ADMIN_RT', 'admin_rt', 'RT', 'rt', 'SECRETARY', 'TREASURER']) 
             ->orderBy('block')
             ->orderBy('name');
