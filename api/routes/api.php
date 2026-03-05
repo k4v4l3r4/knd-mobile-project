@@ -40,6 +40,11 @@ use App\Http\Controllers\SuperAdmin\SuperAdminRevenueController;
 use App\Http\Controllers\SuperAdmin\SuperAdminTenantController;
 use Illuminate\Support\Facades\Route;
 
+// PDF Exports for Reports (Dues/Iuran) - Manual Token Auth in Controller
+// MOVED HERE TO BE PUBLIC (No auth:sanctum middleware) so window.open works
+// Route MUST be at the top to avoid interference
+Route::get('/reports/dues/pdf', [\App\Http\Controllers\Api\ReportController::class, 'exportDuesPdf']);
+
 // Webhooks
 Route::post('/webhooks/flip/payment', [\App\Http\Controllers\FlipWebhookController::class, 'handlePayment']);
 Route::post('/dana/callback', [DanaCallbackController::class, 'handle']);
@@ -57,10 +62,6 @@ Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/auth/verify-otp', [AuthController::class, 'verifyOtp']);
 Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
 Route::get('/app-settings', [SettingController::class, 'getPublicSettings']);
-
-// PDF Exports for Reports (Dues/Iuran) - Manual Token Auth in Controller
-// MOVED HERE TO BE PUBLIC (No auth:sanctum middleware) so window.open works
-Route::get('/reports/dues/pdf', [ReportController::class, 'exportDuesPdf']);
 
 // TENANT Registration (SaaS Flow)
 Route::post('/register', [SaasAuthController::class, 'register']);

@@ -374,8 +374,21 @@ export default function LaporanIuranPage() {
               return;
             }
             const token = Cookies.get('admin_token');
-            const url = `${process.env.NEXT_PUBLIC_API_URL}/reports/dues/pdf?year=${year}&block=ALL&token=${token}`;
-            window.open(url, '_blank');
+            
+            let baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+            // Hapus trailing slash jika ada untuk standardisasi
+            baseUrl = baseUrl.replace(/\/$/, '');
+
+            // Jika URL belum memiliki suffix /api, tambahkan secara manual
+            // Ini menangani kasus dimana env var hanya berisi domain (misal: https://api.afnet.my.id)
+            if (!baseUrl.endsWith('/api')) {
+              baseUrl += '/api';
+            }
+
+            const finalUrl = `${baseUrl}/reports/dues/pdf?year=${year}&block=ALL&token=${token}`;
+            
+            console.log("URL PDF:", finalUrl);
+            window.open(finalUrl, '_blank');
           }}
           className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium transition-colors duration-300"
         >
