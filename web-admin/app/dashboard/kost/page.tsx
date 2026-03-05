@@ -18,7 +18,6 @@ import {
   Trash2,
   Upload
 } from 'lucide-react';
-import Cookies from 'js-cookie';
 import Image from 'next/image';
 import { toast } from 'react-hot-toast';
 import { useTenant } from '@/context/TenantContext';
@@ -44,7 +43,8 @@ export default function KostPage() {
   const [formData, setFormData] = useState({
     name: '',
     address: '',
-    total_rooms: ''
+    total_rooms: '',
+    total_floors: ''
   });
 
   const [tenantFormData, setTenantFormData] = useState({
@@ -63,8 +63,7 @@ export default function KostPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const token = Cookies.get('admin_token');
-      if (isDemo || !token) {
+      if (isDemo) {
         const demoHouses = [
           {
             id: 1,
@@ -148,19 +147,14 @@ export default function KostPage() {
         setLoading(false);
         return;
       }
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/boarding-houses`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      const result = await response.json();
-      if (result.success) {
-        setBoardingHouses(result.data);
+      const response = await api.get('/boarding-houses');
+      if (response.data?.success) {
+        setBoardingHouses(response.data.data || []);
         
         // Flatten tenants for Tab 2
         const tenants: any[] = [];
-        result.data.forEach((house: any) => {
-          house.tenants.forEach((tenant: any) => {
+        (response.data.data || []).forEach((house: any) => {
+          (house.tenants || []).forEach((tenant: any) => {
             if (tenant.status === 'ACTIVE') {
               tenants.push({
                 ...tenant,
@@ -175,6 +169,9 @@ export default function KostPage() {
       }
     } catch (error) {
       console.error('Failed to fetch boarding houses:', error);
+      setBoardingHouses([]);
+      setAllTenants([]);
+      toast.error('Gagal memuat data kost');
     } finally {
       setLoading(false);
     }
@@ -221,34 +218,27 @@ export default function KostPage() {
       return;
     }
 
-    if (!formData.name || !formData.address || !formData.total_rooms) {
+    if (!formData.name || !formData.address || !formData.total_rooms || !formData.total_floors) {
       alert('Mohon lengkapi semua field');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const token = Cookies.get('admin_token');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/boarding-houses`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          address: formData.address,
-          total_rooms: parseInt(formData.total_rooms)
-        })
+      const response = await api.post('/boarding-houses', {
+        name: formData.name,
+        address: formData.address,
+        total_rooms: parseInt(formData.total_rooms, 10),
+        total_floors: parseInt(formData.total_floors, 10),
+        floor_config: null
       });
-      
-      const result = await response.json();
-      if (result.success) {
+
+      if (response.data?.success) {
         setIsModalOpen(false);
-        setFormData({ name: '', address: '', total_rooms: '' });
+        setFormData({ name: '', address: '', total_rooms: '', total_floors: '' });
         fetchData();
       } else {
-        alert(result.message || 'Gagal menambahkan kost');
+        alert(response.data?.message || 'Gagal menambahkan kost');
       }
     } catch (error) {
       console.error('Error adding kost:', error);
@@ -289,7 +279,6 @@ export default function KostPage() {
 
     setIsSubmitting(true);
     try {
-      const token = Cookies.get('admin_token');
       const formDataToSend = new FormData();
       formDataToSend.append('name', tenantFormData.name);
       formDataToSend.append('nik', tenantFormData.nik);
@@ -303,16 +292,13 @@ export default function KostPage() {
         formDataToSend.append('ktp_image', tenantFormData.ktp_image);
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/boarding-houses/${tenantFormData.boarding_house_id}/tenants`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formDataToSend
-      });
-      
-      const result = await response.json();
-      if (result.success) {
+      const response = await api.post(
+        `/boarding-houses/${tenantFormData.boarding_house_id}/tenants`,
+        formDataToSend,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
+
+      if (response.data?.success) {
         setIsPenghuniModalOpen(false);
         // Reset form
         setTenantFormData({
@@ -329,7 +315,7 @@ export default function KostPage() {
         });
         fetchData();
       } else {
-        alert(result.message || 'Gagal menambahkan penghuni');
+        alert(response.data?.message || 'Gagal menambahkan penghuni');
       }
     } catch (error) {
       console.error('Error adding tenant:', error);
@@ -352,19 +338,11 @@ export default function KostPage() {
     if (!confirm('Apakah Anda yakin ingin menghapus penghuni ini?')) return;
 
     try {
-      const token = Cookies.get('admin_token');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/boarding-houses/${houseId}/tenants/${tenantId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      const result = await response.json();
-      if (result.success) {
+      const response = await api.delete(`/boarding-houses/${houseId}/tenants/${tenantId}`);
+      if (response.data?.success) {
         fetchData();
       } else {
-        alert(result.message || 'Gagal menghapus penghuni');
+        alert(response.data?.message || 'Gagal menghapus penghuni');
       }
     } catch (error) {
       console.error('Error deleting tenant:', error);
@@ -385,19 +363,11 @@ export default function KostPage() {
     if (!confirm('Apakah Anda yakin ingin menghapus data kost ini? Data penghuni terkait juga mungkin akan terhapus.')) return;
 
     try {
-      const token = Cookies.get('admin_token');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/boarding-houses/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      const result = await response.json();
-      if (result.success) {
+      const response = await api.delete(`/boarding-houses/${id}`);
+      if (response.data?.success) {
         fetchData();
       } else {
-        alert(result.message || 'Gagal menghapus kost');
+        alert(response.data?.message || 'Gagal menghapus kost');
       }
     } catch (error) {
       console.error('Error deleting kost:', error);
@@ -405,10 +375,12 @@ export default function KostPage() {
     }
   };
 
-  const filteredHouses = boardingHouses.filter((house: any) => 
-    house.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    house.owner.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredHouses = boardingHouses.filter((house: any) => {
+    const name = (house?.name || '').toLowerCase();
+    const ownerName = (house?.owner?.name || '').toLowerCase();
+    const q = searchQuery.toLowerCase();
+    return name.includes(q) || ownerName.includes(q);
+  });
 
   const filteredTenants = allTenants.filter((tenant: any) => 
     tenant.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -650,6 +622,20 @@ export default function KostPage() {
                   value={formData.total_rooms}
                   onChange={handleInputChange}
                   placeholder="0"
+                  min="1"
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Jumlah Lantai</label>
+                <input
+                  type="number"
+                  name="total_floors"
+                  value={formData.total_floors}
+                  onChange={handleInputChange}
+                  placeholder="1"
                   min="1"
                   className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
                   required

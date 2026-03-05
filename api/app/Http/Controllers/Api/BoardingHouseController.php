@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 
 class BoardingHouseController extends Controller
 {
@@ -27,6 +28,14 @@ class BoardingHouseController extends Controller
         $query = BoardingHouse::with(['owner', 'tenants' => function ($q) {
             $q->where('status', 'ACTIVE');
         }, 'tenants.user']);
+
+        // Scope to current tenant to avoid cross-tenant phantom data
+        if (!in_array($user->role, ['SUPER_ADMIN'])) {
+            $query->where('tenant_id', $user->tenant_id)
+                  ->whereHas('owner', function ($q) use ($user) {
+                      $q->where('tenant_id', $user->tenant_id);
+                  });
+        }
 
         // Check if user is a tenant (WARGA_KOST, or regular WARGA/WARGA_TETAP who rents)
         $isTenantRole = in_array($user->role, ['WARGA_KOST', 'WARGA', 'WARGA_TETAP']);
@@ -57,6 +66,19 @@ class BoardingHouseController extends Controller
         } else {
             // For JURAGAN_KOST, WARGA, etc. -> Show owned
             $query->where('owner_id', $user->id);
+        }
+
+        // Debug context
+        try {
+            Log::info('BoardingHouse Index', [
+                'tenant_id' => $user->tenant_id,
+                'user_id' => $user->id,
+                'role' => $user->role,
+                'sql' => $query->toSql(),
+                'bindings' => $query->getBindings(),
+            ]);
+        } catch (\Throwable $e) {
+            // ignore debug errors
         }
 
         $boardingHouses = $query->latest()->get();
