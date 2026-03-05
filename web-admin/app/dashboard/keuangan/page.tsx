@@ -7,7 +7,7 @@ import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { 
   Wallet, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, 
-  Loader2, Filter, Download, Plus, FileText, RefreshCw
+  Loader2, Filter, Download, Plus, FileText, RefreshCw, Trash2
 } from 'lucide-react';
 import { DemoLabel } from "@/components/TenantStatusComponents";
 import { Button } from "@/components/ui/button";
@@ -63,6 +63,39 @@ export default function KeuanganPage() {
   const [fees, setFees] = useState<any[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
   const [isCustomCategory, setIsCustomCategory] = useState(false);
+
+  // Delete State
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [transactionToDelete, setTransactionToDelete] = useState<any>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteClick = (trx: any) => {
+    if (isDemo) {
+        toast.error("Mode Demo: Tidak dapat menghapus transaksi.");
+        return;
+    }
+    if (isExpired) return;
+    setTransactionToDelete(trx);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!transactionToDelete) return;
+    setIsDeleting(true);
+    try {
+      await api.delete(`/rt/kas/transactions/${transactionToDelete.id}`);
+      toast.success("Transaksi berhasil dihapus");
+      setIsDeleteModalOpen(false);
+      fetchData();
+      fetchAccounts();
+    } catch (error: any) {
+      console.error("Failed to delete transaction:", error);
+      toast.error(error.response?.data?.message || "Gagal menghapus transaksi");
+    } finally {
+      setIsDeleting(false);
+      setTransactionToDelete(null);
+    }
+  };
 
   useEffect(() => {
     if (!status) return;
@@ -537,13 +570,14 @@ export default function KeuanganPage() {
                   <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-200">Kategori</th>
                   <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-200">Keterangan</th>
                   <th className="px-4 py-3 font-semibold text-emerald-600 dark:text-emerald-400 text-right">Masuk</th>
-                  <th className="px-4 py-3 rounded-r-lg font-semibold text-rose-600 dark:text-rose-400 text-right">Keluar</th>
+                  <th className="px-4 py-3 font-semibold text-rose-600 dark:text-rose-400 text-right">Keluar</th>
+                  <th className="px-4 py-3 rounded-r-lg font-semibold text-slate-700 dark:text-slate-200 text-center w-16">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                 {transactions.length === 0 ? (
                     <tr>
-                        <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                        <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
                             Belum ada transaksi
                         </td>
                     </tr>
@@ -567,6 +601,15 @@ export default function KeuanganPage() {
                         </td>
                         <td className="px-4 py-3 font-medium text-right text-rose-600 dark:text-rose-400 whitespace-nowrap">
                           {tx.direction === 'OUT' ? formatCurrency(tx.amount) : '-'}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <button 
+                            onClick={() => handleDeleteClick(tx)}
+                            className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-md transition-colors"
+                            title="Hapus Transaksi"
+                          >
+                            <Trash2 size={16} />
+                          </button>
                         </td>
                       </tr>
                     ))
@@ -698,11 +741,18 @@ export default function KeuanganPage() {
                     >
                       <option value="" disabled>Pilih Kategori</option>
                       {modalType === 'IN' ? (
-                        <optgroup label="Iuran & Pemasukan">
-                          {fees.map((fee: any) => (
-                            <option key={fee.id} value={fee.name}>{fee.name}</option>
-                          ))}
-                        </optgroup>
+                        <>
+                          <optgroup label="Iuran & Pemasukan">
+                            {fees.map((fee: any) => (
+                              <option key={fee.id} value={fee.name}>{fee.name}</option>
+                            ))}
+                          </optgroup>
+                          <optgroup label="Kegiatan RT">
+                            {activities.map((act: any) => (
+                              <option key={act.id} value={act.name}>{act.name}</option>
+                            ))}
+                          </optgroup>
+                        </>
                       ) : (
                         <optgroup label="Kegiatan & Pengeluaran">
                           {activities.map((act: any) => (
@@ -759,6 +809,48 @@ export default function KeuanganPage() {
                </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-rose-600 flex items-center gap-2">
+              <Trash2 size={20} />
+              Hapus Transaksi
+            </DialogTitle>
+            <DialogDescription>
+              Apakah Anda yakin ingin menghapus transaksi ini? 
+              <br />
+              <span className="font-medium text-slate-700 dark:text-slate-300 mt-2 block">
+                "{transactionToDelete?.description}" ({transactionToDelete?.amount ? formatCurrency(transactionToDelete.amount) : 'Rp 0'})
+              </span>
+              <span className="text-xs text-slate-500 mt-1 block">
+                Tindakan ini akan membatalkan perubahan saldo.
+              </span>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)} disabled={isDeleting}>
+              Batal
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={confirmDelete}
+              disabled={isDeleting}
+              className="bg-rose-600 hover:bg-rose-700"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Menghapus...
+                </>
+              ) : (
+                'Ya, Hapus'
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

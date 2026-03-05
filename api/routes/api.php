@@ -154,6 +154,7 @@ Route::middleware(['auth:sanctum', 'tenant.status', 'tenant.feature'])->group(fu
     Route::get('/rt/kas/pending', [\App\Http\Controllers\Api\KasController::class, 'pending'])->middleware('permission:kas.view'); // New Route
     Route::get('/rt/kas/transactions', [\App\Http\Controllers\Api\KasController::class, 'index'])->middleware('permission:kas.view');
     Route::post('/rt/kas/transactions', [\App\Http\Controllers\Api\KasController::class, 'store'])->middleware('permission:kas.create');
+    Route::delete('/rt/kas/transactions/{id}', [\App\Http\Controllers\Api\KasController::class, 'destroy'])->middleware('permission:kas.create');
     Route::post('/rt/kas/transfer', [\App\Http\Controllers\Api\KasController::class, 'transfer'])->middleware('permission:kas.create');
     Route::get('/rt/finance-accounts', [\App\Http\Controllers\Api\KasController::class, 'getAccounts'])->middleware('permission:kas.view');
 

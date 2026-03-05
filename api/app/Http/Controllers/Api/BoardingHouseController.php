@@ -23,13 +23,14 @@ class BoardingHouseController extends Controller
         $user = $request->user('sanctum');
         if (!$user) return response()->json(['message' => 'Unauthorized'], 401);
 
-        $isRtViewer = in_array($user->role, ['RT', 'ADMIN_RT']);
+        $isRtViewer = in_array($user->role, ['RT', 'ADMIN_RT', 'SECRETARY', 'TREASURER', 'ADMIN_RW']);
         
+        // 1. Base Query with Eager Loading
         $query = BoardingHouse::with(['owner', 'tenants' => function ($q) {
             $q->where('status', 'ACTIVE');
         }, 'tenants.user']);
 
-        // Scope to current tenant to avoid cross-tenant phantom data
+        // 2. Strict Tenant Scope (Security)
         if (!in_array($user->role, ['SUPER_ADMIN'])) {
             $query->where('tenant_id', $user->tenant_id)
                   ->whereHas('owner', function ($q) use ($user) {
@@ -37,36 +38,71 @@ class BoardingHouseController extends Controller
                   });
         }
 
-        // Check if user is a tenant (WARGA_KOST, or regular WARGA/WARGA_TETAP who rents)
-        $isTenantRole = in_array($user->role, ['WARGA_KOST', 'WARGA', 'WARGA_TETAP']);
-        $tenant = null;
-        
-        if ($isTenantRole) {
-            $tenant = BoardingTenant::where('user_id', $user->id)
-                ->where('status', 'ACTIVE')
-                ->first();
-        }
+        // 3. Get All Data (Filter visibility in mapping)
+        // We do NOT filter by owner_id here anymore for Warga, 
+        // because Warga needs to see "Kost Warga" (other kosts) in the 2nd tab.
+        $boardingHouses = $query->latest()->get();
 
-        if ($tenant) {
-             // For Tenant, return the boarding house they live in
-             $query->where('id', $tenant->boarding_house_id);
-        } else if ($user->role === 'WARGA_KOST') {
-             // WARGA_KOST must be a tenant
-             return response()->json([
-                 'success' => true,
-                 'message' => 'Anda belum terdaftar di kost manapun',
-                 'data' => []
-             ]);
-        } else if (in_array($user->role, ['SUPER_ADMIN', 'ADMIN'])) {
-            // Super Admin sees all
-        } else if (in_array($user->role, ['ADMIN_RT', 'SECRETARY', 'TREASURER', 'ADMIN_RW', 'RT'])) {
-            // Admin RT/RW/Staff: tampilkan SEMUA kost dalam tenant saat ini
-            // Catatan: BelongsToTenant scope sudah membatasi ke tenant aktif.
-            // Tidak perlu filter tambahan berdasarkan RT pemilik untuk menghindari data kosong.
-        } else {
-            // For JURAGAN_KOST, WARGA, etc. -> Show owned
-            $query->where('owner_id', $user->id);
-        }
+        // 4. Map & Sanitize Data based on Role
+        $sanitizedData = $boardingHouses->map(function ($house) use ($user, $isRtViewer) {
+            $isOwner = $house->owner_id === $user->id;
+            
+            // Base Public Info (Available to All Warga)
+            $houseData = [
+                'id' => $house->id,
+                'name' => $house->name,
+                'address' => $house->address,
+                'owner_id' => $house->owner_id,
+                'owner' => [
+                    'id' => $house->owner->id,
+                    'name' => $house->owner->name,
+                    'phone' => $house->owner->phone, // Contact info for Warga
+                    'photo_url' => $house->owner->photo_url ?? null,
+                ],
+                'is_mine' => $isOwner,
+            ];
+
+            if ($isOwner) {
+                // === OWNER ACCESS (Full Business Data) ===
+                $houseData['total_rooms'] = $house->total_rooms;
+                $houseData['total_floors'] = $house->total_floors;
+                $houseData['floor_config'] = $house->floor_config;
+                // Full Tenant Details including Finance
+                $houseData['tenants'] = $house->tenants; 
+            } elseif ($isRtViewer) {
+                // === RT ACCESS (Monitoring / Census) ===
+                $houseData['total_rooms'] = $house->total_rooms;
+                // Tenants: Names & Status ONLY. Hide Money.
+                $houseData['tenants'] = $house->tenants->map(function ($tenant) {
+                    return [
+                        'id' => $tenant->id,
+                        'user' => [
+                            'id' => $tenant->user->id,
+                            'name' => $tenant->user->name,
+                            'nik' => $tenant->user->nik, // RT needs NIK for census
+                            'phone' => $tenant->user->phone,
+                            'gender' => $tenant->user->gender,
+                            'marital_status' => $tenant->user->marital_status,
+                            'occupation' => $tenant->user->occupation,
+                            'photo_url' => $tenant->user->photo_url ?? null,
+                        ],
+                        'room_number' => $tenant->room_number,
+                        'start_date' => $tenant->start_date,
+                        'due_date' => $tenant->due_date,
+                        // HIDDEN: room_price, deposit_amount, payment_status (maybe status is ok? Payment status is financial)
+                        // User said: "DILARANG melihat data keuangan (harga sewa/status bayar)"
+                        'status' => $tenant->status, // Active/Inactive is functional status, not financial
+                    ];
+                });
+            } else {
+                // === WARGA ACCESS (Community View) ===
+                // Hide Internal Config
+                // Hide Tenant List completely (Privacy)
+                $houseData['tenants'] = []; 
+            }
+
+            return $houseData;
+        });
 
         // Debug context
         try {
@@ -74,109 +110,14 @@ class BoardingHouseController extends Controller
                 'tenant_id' => $user->tenant_id,
                 'user_id' => $user->id,
                 'role' => $user->role,
-                'sql' => $query->toSql(),
-                'bindings' => $query->getBindings(),
+                'count' => $sanitizedData->count(),
             ]);
-        } catch (\Throwable $e) {
-            // ignore debug errors
-        }
-
-        $boardingHouses = $query->latest()->get();
-
-        if ($isRtViewer) {
-            $boardingHouses = $boardingHouses->map(function ($house) use ($user) {
-                // Check if the current user is the owner of this specific boarding house
-                $isOwner = $house->owner_id === $user->id;
-
-                $tenants = $house->tenants ? $house->tenants->map(function ($tenant) {
-                    $user = $tenant->user;
-                    return [
-                        'id' => $tenant->id,
-                        'boarding_house_id' => $tenant->boarding_house_id,
-                        'user_id' => $tenant->user_id,
-                        'room_number' => $tenant->room_number,
-                        'start_date' => $tenant->start_date,
-                        'due_date' => $tenant->due_date, // RT needs to see this for monitoring? Prompt says "Nama, Kontak, Tgl Masuk". Maybe financial info should be hidden?
-                        // "Sanitasi response API agar RT tidak bisa mengintip data finansial/internal kost milik warga lain"
-                        // So hide price, deposit if not owner?
-                        // But wait, "RT monitoring" usually implies checking who lives there.
-                        'rental_duration' => $tenant->rental_duration,
-                        // Hide financial data for non-owners
-                        'room_price' => $tenant->room_price, // Ideally should be hidden if !isOwner, but let's keep it for now or check prompt strictly. 
-                        // Prompt: "Sanitasi response API agar RT tidak bisa mengintip data finansial/internal kost milik warga lain"
-                        // So I should hide room_price if !isOwner.
-                        'deposit_amount' => $tenant->deposit_amount,
-                        'deposit_status' => $tenant->deposit_status,
-                        'deposit_notes' => $tenant->deposit_notes,
-                        'payment_status' => $tenant->payment_status,
-                        'status' => $tenant->status,
-                        'notification_enabled' => $tenant->notification_enabled,
-                        'user' => $user ? [
-                            'id' => $user->id,
-                            'name' => $user->name,
-                            'nik' => $user->nik,
-                            'phone' => $user->phone,
-                            'gender' => $user->gender,
-                            'marital_status' => $user->marital_status,
-                            'occupation' => $user->occupation,
-                            'photo_url' => $user->photo_url ?? null,
-                        ] : null,
-                    ];
-                })->values() : [];
-
-                // If owner, return full data. If not, sanitized data.
-                if ($isOwner) {
-                    return $house->toArray(); // Return everything including tenants (which we might have mapped above, but toArray() will use original relation)
-                    // Actually better to reconstruct to ensure tenants are filtered/mapped if needed.
-                    // But $house->tenants is already filtered by 'ACTIVE' in the query.
-                    // Let's just return $house, but with mapped tenants? 
-                    // No, $house->tenants is a collection.
-                    // Let's manually build the array to be safe and consistent.
-                    return [
-                        'id' => $house->id,
-                        'owner_id' => $house->owner_id,
-                        'name' => $house->name,
-                        'address' => $house->address,
-                        'total_rooms' => $house->total_rooms,
-                        'total_floors' => $house->total_floors,
-                        'floor_config' => $house->floor_config,
-                        'tenants' => $tenants,
-                        'owner' => $house->owner,
-                        'is_mine' => true,
-                    ];
-                } else {
-                    return [
-                        'id' => $house->id,
-                        'owner_id' => $house->owner_id, // Needed to identify ownership on frontend
-                        'name' => $house->name,
-                        'address' => $house->address, // Address is public info
-                        // Hide internal config
-                        // 'total_rooms' => $house->total_rooms, 
-                        // 'total_floors' => $house->total_floors,
-                        // 'floor_config' => $house->floor_config,
-                        'tenants' => $tenants->map(function($t) {
-                             // Further sanitize tenant for non-owner RT?
-                             // "Nama Penghuni, Kontak/No. HP, dan Tanggal Masuk"
-                             return [
-                                 'id' => $t['id'],
-                                 'user' => $t['user'],
-                                 'room_number' => $t['room_number'],
-                                 'start_date' => $t['start_date'],
-                                 'phone' => $t['user']['phone'] ?? null,
-                                 // Hide financial
-                             ];
-                        }),
-                        'owner' => $house->owner,
-                        'is_mine' => false,
-                    ];
-                }
-            })->values();
-        }
+        } catch (\Throwable $e) {}
 
         return response()->json([
             'success' => true,
             'message' => 'List data kost',
-            'data' => $boardingHouses
+            'data' => $sanitizedData
         ]);
     }
 

@@ -267,10 +267,16 @@ const FinanceReportScreen = ({ onNavigate }: { onNavigate: (screen: string) => v
   const modalCategories = (() => {
     if (actionType === 'IN') {
       const shouldBeMandatory = feeNature === 'WAJIB';
-      return fees
+      const feeNames = fees
         .filter((f) => Boolean(f.is_mandatory) === shouldBeMandatory)
         .map((f) => f.name)
         .filter((n) => typeof n === 'string' && n.trim() !== '');
+      
+      const activityNames = activities
+        .map((a) => a.name)
+        .filter((n) => typeof n === 'string' && n.trim() !== '');
+        
+      return [...feeNames, ...activityNames];
     }
     if (actionType === 'OUT') {
       return activities
@@ -936,32 +942,112 @@ const FinanceReportScreen = ({ onNavigate }: { onNavigate: (screen: string) => v
                     </TouchableOpacity>
 
                     {showCategoryDropdown && (
-                      <View style={[styles.dropdownList, { borderColor: colors.border, backgroundColor: isDarkMode ? '#1e293b' : '#fff' }]}>
-                        {modalCategories.map((cat) => (
-                          <TouchableOpacity
-                            key={cat}
-                            style={[
-                              styles.dropdownItem,
-                              formData.sourceType === cat && { backgroundColor: isDarkMode ? 'rgba(16, 185, 129, 0.2)' : 'rgba(16, 185, 129, 0.1)' },
-                              { borderBottomColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }
-                            ]}
-                            onPress={() => {
-                              setFormData({ ...formData, sourceType: cat });
-                              setShowCategoryDropdown(false);
-                            }}
-                          >
-                            <Text style={[
-                              styles.dropdownItemText, 
-                              { color: colors.text },
-                              formData.sourceType === cat && { color: '#10b981', fontWeight: 'bold' }
-                            ]}>
-                              {cat}
+                      <View style={[styles.dropdownList, { borderColor: colors.border, backgroundColor: isDarkMode ? '#1e293b' : '#fff', maxHeight: 300 }]}>
+                        <ScrollView nestedScrollEnabled={true}>
+                        {actionType === 'IN' ? (
+                          <>
+                            <Text style={{ 
+                              color: colors.textSecondary, 
+                              fontSize: 12, 
+                              fontWeight: 'bold', 
+                              paddingHorizontal: 12, 
+                              paddingTop: 8, 
+                              paddingBottom: 4 
+                            }}>
+                              IURAN & PEMASUKAN ({feeNature})
                             </Text>
-                            {formData.sourceType === cat && (
-                              <Ionicons name="checkmark" size={18} color="#10b981" />
-                            )}
-                          </TouchableOpacity>
-                        ))}
+                            {fees
+                              .filter(f => Boolean(f.is_mandatory) === (feeNature === 'WAJIB'))
+                              .map((fee) => (
+                                <TouchableOpacity
+                                  key={`fee-${fee.id}`}
+                                  style={[
+                                    styles.dropdownItem,
+                                    formData.sourceType === fee.name && { backgroundColor: isDarkMode ? 'rgba(16, 185, 129, 0.2)' : 'rgba(16, 185, 129, 0.1)' },
+                                    { borderBottomColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }
+                                  ]}
+                                  onPress={() => {
+                                    setFormData({ ...formData, sourceType: fee.name });
+                                    setShowCategoryDropdown(false);
+                                  }}
+                                >
+                                  <Text style={[
+                                    styles.dropdownItemText, 
+                                    { color: colors.text },
+                                    formData.sourceType === fee.name && { color: '#10b981', fontWeight: 'bold' }
+                                  ]}>
+                                    {fee.name}
+                                  </Text>
+                                  {formData.sourceType === fee.name && (
+                                    <Ionicons name="checkmark" size={18} color="#10b981" />
+                                  )}
+                                </TouchableOpacity>
+                              ))}
+                            
+                            <Text style={{ 
+                              color: colors.textSecondary, 
+                              fontSize: 12, 
+                              fontWeight: 'bold', 
+                              paddingHorizontal: 12, 
+                              paddingTop: 12, 
+                              paddingBottom: 4 
+                            }}>
+                              KEGIATAN RT
+                            </Text>
+                            {activities.map((act) => (
+                              <TouchableOpacity
+                                key={`act-${act.id}`}
+                                style={[
+                                  styles.dropdownItem,
+                                  formData.sourceType === act.name && { backgroundColor: isDarkMode ? 'rgba(16, 185, 129, 0.2)' : 'rgba(16, 185, 129, 0.1)' },
+                                  { borderBottomColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }
+                                ]}
+                                onPress={() => {
+                                  setFormData({ ...formData, sourceType: act.name });
+                                  setShowCategoryDropdown(false);
+                                }}
+                              >
+                                <Text style={[
+                                  styles.dropdownItemText, 
+                                  { color: colors.text },
+                                  formData.sourceType === act.name && { color: '#10b981', fontWeight: 'bold' }
+                                ]}>
+                                  {act.name}
+                                </Text>
+                                {formData.sourceType === act.name && (
+                                  <Ionicons name="checkmark" size={18} color="#10b981" />
+                                )}
+                              </TouchableOpacity>
+                            ))}
+                          </>
+                        ) : (
+                          modalCategories.map((cat) => (
+                            <TouchableOpacity
+                              key={cat}
+                              style={[
+                                styles.dropdownItem,
+                                formData.sourceType === cat && { backgroundColor: isDarkMode ? 'rgba(16, 185, 129, 0.2)' : 'rgba(16, 185, 129, 0.1)' },
+                                { borderBottomColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }
+                              ]}
+                              onPress={() => {
+                                setFormData({ ...formData, sourceType: cat });
+                                setShowCategoryDropdown(false);
+                              }}
+                            >
+                              <Text style={[
+                                styles.dropdownItemText, 
+                                { color: colors.text },
+                                formData.sourceType === cat && { color: '#10b981', fontWeight: 'bold' }
+                              ]}>
+                                {cat}
+                              </Text>
+                              {formData.sourceType === cat && (
+                                <Ionicons name="checkmark" size={18} color="#10b981" />
+                              )}
+                            </TouchableOpacity>
+                          ))
+                        )}
+                        </ScrollView>
                       </View>
                     )}
                   </View>

@@ -39,6 +39,32 @@ class KasController extends Controller
     }
 
     /**
+     * Delete Transaction and Revert Balance.
+     */
+    public function destroy($id)
+    {
+        $user = Auth::user();
+        $transaction = Transaction::where('id', $id)->where('rt_id', $user->rt_id)->firstOrFail();
+
+        // Revert balance logic
+        $account = \App\Models\Wallet::find($transaction->account_id);
+        if ($account) {
+            if ($transaction->type === 'IN') {
+                $account->decrement('balance', $transaction->amount);
+            } else {
+                $account->increment('balance', $transaction->amount);
+            }
+        }
+
+        $transaction->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Transaksi berhasil dihapus dan saldo telah disesuaikan',
+        ]);
+    }
+
+    /**
      * Get Kas Summary (Total IN, OUT, Balance, Breakdown).
      */
     public function summary(Request $request)

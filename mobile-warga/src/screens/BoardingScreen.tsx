@@ -45,54 +45,32 @@ export default function BoardingScreen() {
   const [userRole, setUserRole] = useState('');
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [boardingHouses, setBoardingHouses] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'HOUSE' | 'TENANT'>('HOUSE');
+  const [activeTab, setActiveTab] = useState<'MY_KOST' | 'COMMUNITY_KOST'>('MY_KOST');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const isRtViewer = useMemo(() => userRole === 'RT' || userRole === 'ADMIN_RT', [userRole]);
+  const isRtViewer = useMemo(() => ['RT', 'ADMIN_RT', 'SECRETARY', 'TREASURER'].includes(userRole), [userRole]);
   
   const myBoardingHouses = useMemo(() => {
-    if (!currentUser) return [];
-    // Filter houses owned by current user
-    return boardingHouses.filter(h => h.owner_id === currentUser.id);
-  }, [boardingHouses, currentUser]);
+    return boardingHouses.filter(h => h.is_mine);
+  }, [boardingHouses]);
 
-  const isJuragan = useMemo(() => {
-    return myBoardingHouses.length > 0;
-  }, [myBoardingHouses]);
+  const communityBoardingHouses = useMemo(() => {
+    return boardingHouses.filter(h => !h.is_mine);
+  }, [boardingHouses]);
 
-  const allTenants = useMemo(() => {
-    const tenants: any[] = [];
-    boardingHouses.forEach(house => {
-      if (house.tenants) {
-        house.tenants.forEach((tenant: any) => {
-          tenants.push({ 
-            ...tenant, 
-            houseName: house.name, 
-            houseId: house.id,
-            isMyTenant: house.owner_id === currentUser?.id
-          });
-        });
-      }
-    });
-    return tenants.filter(t => {
-      const q = searchQuery.toLowerCase();
-      return (
-        t.user?.name?.toLowerCase().includes(q) ||
-        t.room_number?.toLowerCase().includes(q) ||
-        t.houseName?.toLowerCase().includes(q)
-      );
-    });
-  }, [boardingHouses, searchQuery, currentUser]);
+  // Removed old allTenants logic as it might not be needed for the new tab structure
+  // or we can adapt it if needed.
+
 
   // Effect to enforce RT role restrictions & Dual Role Logic - REMOVED for universal access
 
 
-  const canEdit = useMemo(() => {
-    // If RT/Admin RT, only edit if they are also owner (Juragan)
-    if (isRtViewer) return isJuragan;
-    // Regular Owner/Juragan
-    return true; 
-  }, [isRtViewer, isJuragan]);
+  // Role-based capabilities
+  const canCreateKost = useMemo(() => {
+    // RT/Admin can only create if they want to be an owner. 
+    // Everyone can create a kost in this system context (becoming a Juragan).
+    return true;
+  }, []);
   
   
   const [showImagePickerModal, setShowImagePickerModal] = useState(false);
@@ -924,6 +902,18 @@ export default function BoardingScreen() {
   };
 
   const renderRoomGrid = (house: any) => {
+    // Logic Privacy: Warga Biasa (non-owner, non-RT) cannot see room grid
+    if (!house.is_mine && !isRtViewer) {
+       return (
+         <View style={{ marginTop: 16, padding: 16, backgroundColor: isDarkMode ? '#1e293b' : '#f8fafc', borderRadius: 8, alignItems: 'center' }}>
+            <Ionicons name="information-circle-outline" size={24} color={colors.textSecondary} />
+            <Text style={{ marginTop: 8, color: colors.textSecondary, textAlign: 'center' }}>
+               {t('boarding.privacy.hiddenMap') || 'Denah kamar dan daftar penghuni hanya dapat dilihat oleh pemilik dan pengurus RT.'}
+            </Text>
+         </View>
+       );
+    }
+
     const totalRooms = house.total_rooms || 0;
     const totalFloors = house.total_floors || 1;
     const floorConfig = house.floor_config || [];
@@ -962,6 +952,15 @@ export default function BoardingScreen() {
         }
       }
     });
+
+    // Override status for RT Viewer (Hide Financial Status)
+    if (!house.is_mine && isRtViewer) {
+        roomSlots.forEach(slot => {
+            if (slot.type === 'OCCUPIED') {
+                slot.status = 'OCCUPIED_GENERIC'; // New status for simple "Occupied"
+            }
+        });
+    }
 
     const floors = [];
     let currentRoomIndex = 0;
@@ -1006,13 +1005,14 @@ export default function BoardingScreen() {
               <Text style={{ fontSize: 12, color: colors.textSecondary }}>{t('boarding.roomStatus.notActive')}</Text>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#10b981' }} />
+              <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: (!house.is_mine && isRtViewer) ? '#64748b' : '#10b981' }} />
               <Text style={{ fontSize: 12, color: colors.textSecondary }}>{t('boarding.roomStatus.occupied')}</Text>
             </View>
           </View>
         </View>
 
-        {/* Legend: Status Pembayaran */}
+        {/* Legend: Status Pembayaran - ONLY FOR OWNER */}
+        {house.is_mine && (
         <View style={{ marginBottom: 16 }}>
           <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textSecondary, marginBottom: 8 }}>{t('boarding.legend.paymentStatus')}</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
@@ -1030,6 +1030,7 @@ export default function BoardingScreen() {
             </View>
           </View>
         </View>
+        )}
 
         {/* Floors Loop */}
         {floors.map((floor) => (
@@ -1050,7 +1051,14 @@ export default function BoardingScreen() {
               gap: 8,
               justifyContent: 'space-between',
             }}>
-              {floor.rooms.map((item: any, index: number) => (
+              {floor.rooms.map((item: any, index: number) => {
+                // Determine color
+                let borderColor = getStatusColor(item.status);
+                if (item.status === 'OCCUPIED_GENERIC') {
+                    borderColor = '#64748b'; // Slate 500
+                }
+
+                return (
                 <TouchableOpacity
                   key={index}
                   style={{
@@ -1060,14 +1068,14 @@ export default function BoardingScreen() {
                     borderRadius: 8,
                     backgroundColor: item.type === 'EMPTY' ? (isDarkMode ? '#1e293b' : '#f8fafc') : (isDarkMode ? '#064e3b' : '#ecfdf5'),
                     borderWidth: 1.5,
-                    borderColor: getStatusColor(item.status),
+                    borderColor: borderColor,
                     justifyContent: 'center',
                     alignItems: 'center',
                   }}
                   onPress={() => {
-            if (item.type === 'OCCUPIED' && item.tenant) {
-              handleOpenDetail(house.id, item.tenant);
-            } else if (canEdit) {
+                    if (item.type === 'OCCUPIED' && item.tenant) {
+                      handleOpenDetail(house.id, item.tenant);
+                    } else if (house.is_mine) { // Use house.is_mine instead of canEdit
                       // Pre-fill room number and reset form
                       const d = new Date();
                       d.setMonth(d.getMonth() + 1);
@@ -1116,11 +1124,11 @@ export default function BoardingScreen() {
                       width: 4, 
                       height: 4, 
                       borderRadius: 2, 
-                      backgroundColor: getStatusColor(item.status),
+                      backgroundColor: borderColor,
                     }} />
                   )}
                 </TouchableOpacity>
-              ))}
+              )})}
               {/* Ghost items to ensure grid alignment */}
               {[...Array((5 - (floor.rooms.length % 5)) % 5)].map((_, i) => (
                 <View key={`ghost-${i}`} style={{ width: '18%' }} />
@@ -1132,18 +1140,30 @@ export default function BoardingScreen() {
     );
   };
 
-  const filteredBoardingHouses = useMemo(() => {
-    if (!searchQuery) return boardingHouses;
+  const filteredMyHouses = useMemo(() => {
+    if (!searchQuery) return myBoardingHouses;
     const q = searchQuery.toLowerCase();
-    return boardingHouses.filter(h => 
+    return myBoardingHouses.filter(h => 
       h.name?.toLowerCase().includes(q) || 
       h.address?.toLowerCase().includes(q)
     );
-  }, [boardingHouses, searchQuery]);
+  }, [myBoardingHouses, searchQuery]);
 
-  const renderKostList = () => (
+  const filteredCommunityHouses = useMemo(() => {
+    if (!searchQuery) return communityBoardingHouses;
+    const q = searchQuery.toLowerCase();
+    return communityBoardingHouses.filter(h => 
+      h.name?.toLowerCase().includes(q) || 
+      h.address?.toLowerCase().includes(q)
+    );
+  }, [communityBoardingHouses, searchQuery]);
+
+  const renderKostList = (data: any[]) => {
+    const canEdit = activeTab === 'MY_KOST';
+    
+    return (
     <FlatList
-      data={filteredBoardingHouses}
+      data={data}
       keyExtractor={(item) => item.id.toString()}
       renderItem={({ item }) => (
         <View style={styles.card}>
@@ -1180,91 +1200,9 @@ export default function BoardingScreen() {
           }
         />
       );
+    };
 
-  const renderTenantList = () => (
-    <FlatList
-      ListHeaderComponent={
-        <View style={{ backgroundColor: isDarkMode ? colors.background : '#fff', marginBottom: 8 }}>
-          <View style={{ paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={{ fontSize: 14, fontWeight: 'bold', color: colors.textSecondary }}>
-              {t('boarding.list.totalTenants', { count: allTenants.length })}
-            </Text>
-          </View>
-          {/* Table Header to match Web Admin columns */}
-          <View style={{ 
-            flexDirection: 'row', 
-            paddingHorizontal: 16, 
-            paddingVertical: 8, 
-            backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9',
-            borderBottomWidth: 1, 
-            borderBottomColor: colors.border
-          }}>
-             <Text style={{ flex: 4, fontSize: 12, fontWeight: 'bold', color: colors.textSecondary }}>{t('boarding.list.headerName')}</Text>
-             <Text style={{ flex: 3, fontSize: 12, fontWeight: 'bold', color: colors.textSecondary }}>{t('boarding.list.headerContact')}</Text>
-             <Text style={{ flex: 3, fontSize: 12, fontWeight: 'bold', color: colors.textSecondary, textAlign: 'right' }}>{t('boarding.list.headerEntry')}</Text>
-          </View>
-        </View>
-      }
-      data={allTenants}
-      keyExtractor={(item) => (item.id ? item.id.toString() : Math.random().toString())}
-      renderItem={({ item }) => {
-        const status = calculateRoomStatus(item);
-        const statusColor = getStatusColor(status);
-        const statusText = t(`boarding.status.${status.toLowerCase().replace('_', '')}`) || status;
-        
-        return (
-        <TouchableOpacity 
-          style={[styles.card, { padding: 12, marginHorizontal: 16, marginBottom: 8 }]}
-          onPress={() => handleOpenDetail(item.houseId, item)}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-             {/* Column 1: Name & Room (Flex 4) */}
-             <View style={{ flex: 4, flexDirection: 'row', alignItems: 'center', paddingRight: 8 }}>
-                <View style={{ 
-                  width: 32, height: 32, borderRadius: 16, 
-                  backgroundColor: statusColor,
-                  alignItems: 'center', justifyContent: 'center',
-                  marginRight: 8
-                }}>
-                  <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>{item.room_number}</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                   <Text style={[styles.cardTitle, { fontSize: 14 }]} numberOfLines={1}>{item.user?.name || item.name || 'Penghuni'}</Text>
-                   <Text style={{ fontSize: 11, color: colors.textSecondary }} numberOfLines={1}>{item.houseName}</Text>
-                </View>
-             </View>
 
-             {/* Column 2: Phone (Flex 3) */}
-             <View style={{ flex: 3, paddingRight: 4 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Ionicons name="call-outline" size={12} color={colors.textSecondary} style={{ marginRight: 2 }} />
-                  <Text style={{ fontSize: 12, color: colors.text }} numberOfLines={1}>
-                    {item.user?.phone || item.phone || '-'}
-                  </Text>
-                </View>
-             </View>
-
-             {/* Column 3: Date (Flex 3) */}
-             <View style={{ flex: 3, alignItems: 'flex-end' }}>
-                <Text style={{ fontSize: 12, color: colors.text }}>
-                  {item.start_date ? new Date(item.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: '2-digit' }) : '-'}
-                </Text>
-                <Text style={{ fontSize: 10, color: statusColor, fontWeight: 'bold' }}>
-                  {statusText}
-                </Text>
-             </View>
-          </View>
-        </TouchableOpacity>
-      )}}
-      ListEmptyComponent={
-        <View style={styles.centerContent}>
-           <MaterialCommunityIcons name="account-group-outline" size={48} color={colors.textSecondary} />
-           <Text style={[styles.emptySubtitle, { marginTop: 12 }]}>{t('boarding.empty.tenant')}</Text>
-        </View>
-      }
-      contentContainerStyle={{ paddingBottom: 120 }}
-    />
-  );
 
   const renderMainContent = () => {
     return (
@@ -1277,14 +1215,14 @@ export default function BoardingScreen() {
                 paddingVertical: 12, 
                 alignItems: 'center', 
                 borderBottomWidth: 2, 
-                borderBottomColor: activeTab === 'HOUSE' ? colors.primary : 'transparent' 
+                borderBottomColor: activeTab === 'MY_KOST' ? colors.primary : 'transparent' 
               }}
-              onPress={() => setActiveTab('HOUSE')}
+              onPress={() => setActiveTab('MY_KOST')}
           >
               <Text style={{ 
                 fontWeight: 'bold', 
-                color: activeTab === 'HOUSE' ? colors.primary : colors.textSecondary 
-              }}>{t('boarding.tabs.house')}</Text>
+                color: activeTab === 'MY_KOST' ? colors.primary : colors.textSecondary 
+              }}>{t('boarding.tabs.myKost') || 'Kost Saya'}</Text>
           </TouchableOpacity>
           <TouchableOpacity 
               style={{ 
@@ -1292,18 +1230,18 @@ export default function BoardingScreen() {
                 paddingVertical: 12, 
                 alignItems: 'center', 
                 borderBottomWidth: 2, 
-                borderBottomColor: activeTab === 'TENANT' ? colors.primary : 'transparent' 
+                borderBottomColor: activeTab === 'COMMUNITY_KOST' ? colors.primary : 'transparent' 
               }}
-              onPress={() => setActiveTab('TENANT')}
+              onPress={() => setActiveTab('COMMUNITY_KOST')}
           >
               <Text style={{ 
                 fontWeight: 'bold', 
-                color: activeTab === 'TENANT' ? colors.primary : colors.textSecondary 
-              }}>{t('boarding.tabs.tenant')}</Text>
+                color: activeTab === 'COMMUNITY_KOST' ? colors.primary : colors.textSecondary 
+              }}>{t('boarding.tabs.communityKost') || 'Kost Warga'}</Text>
           </TouchableOpacity>
         </View>
 
-        {activeTab === 'HOUSE' ? renderKostList() : renderTenantList()}
+        {activeTab === 'MY_KOST' ? renderKostList(filteredMyHouses) : renderKostList(filteredCommunityHouses)}
       </View>
     );
   };
@@ -1373,7 +1311,7 @@ export default function BoardingScreen() {
       <TouchableOpacity
         style={styles.fab}
         onPress={() => {
-          if (activeTab === 'HOUSE') {
+          if (activeTab === 'MY_KOST' && myBoardingHouses.length === 0) {
             setKostFormData({ name: '', address: '', total_rooms: '', total_floors: '', floor_config: [] });
             setIsEditingKost(false);
             setEditingKostId(null);
@@ -1951,6 +1889,9 @@ export default function BoardingScreen() {
                 {/* Status Pembayaran & Tagihan */}
                 <View style={{ marginTop: 20, marginBottom: 20 }}>
                   
+                  {/* Privacy Check: Only Owner sees financial details */}
+                  {myBoardingHouses.some(h => h.id === selectedHouseId) ? (
+                  <>
                   {/* Process Deposit Mode */}
                   {showUseDepositInput ? (
                       <View style={{ backgroundColor: isDarkMode ? '#1e293b' : '#f8fafc', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#f59e0b' }}>
@@ -2097,7 +2038,7 @@ export default function BoardingScreen() {
                       )}
 
                       {/* Action Buttons Group */}
-                      {canEdit && (
+                      {myBoardingHouses.some(h => h.id === selectedHouseId) && (
                       <View style={{ gap: 12 }}>
                         {/* Deposit Payment Button */}
                         {(selectedTenantDetail.deposit_status === 'UNPAID' || !selectedTenantDetail.deposit_status) && parseInt(selectedTenantDetail.deposit_amount) > 0 && (
@@ -2187,6 +2128,18 @@ export default function BoardingScreen() {
                       )}
                     </>
                   )}
+                  </>
+                  ) : (
+                    <View style={{ padding: 20, alignItems: 'center', backgroundColor: isDarkMode ? '#1e293b' : '#f8fafc', borderRadius: 12 }}>
+                        <Ionicons name="lock-closed-outline" size={48} color={colors.textSecondary} style={{ marginBottom: 12 }} />
+                        <Text style={{ fontSize: 16, fontWeight: '600', color: colors.text, marginBottom: 8, textAlign: 'center' }}>
+                            {t('boarding.privacy.financialRestricted') || 'Data Keuangan Dilindungi'}
+                        </Text>
+                        <Text style={{ fontSize: 14, color: colors.textSecondary, textAlign: 'center' }}>
+                            {t('boarding.privacy.financialRestrictedDesc') || 'Hanya pemilik kost yang dapat melihat status pembayaran, harga sewa, dan melakukan tindakan administrasi.'}
+                        </Text>
+                    </View>
+                  )}
                 </View>
 
                 <View style={styles.infoRow}>
@@ -2231,7 +2184,7 @@ export default function BoardingScreen() {
                 </View>
 
                 {/* Management Actions */}
-                {canEdit && (
+                {myBoardingHouses.some(h => h.id === selectedHouseId) && (
                 <View style={{ marginTop: 24, gap: 12 }}>
                   <TouchableOpacity 
                     style={[styles.modalButton, { backgroundColor: '#3b82f6', justifyContent: 'center', width: '100%' }]}
