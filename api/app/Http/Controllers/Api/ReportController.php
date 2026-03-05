@@ -283,9 +283,9 @@ class ReportController extends Controller
     {
         // 1. Get Users (Warga) in RT - FILTER BY KEPALA KELUARGA
         // User requested Left Join logic: Get All Heads of Family first, then map transactions.
+        // REMOVED ROLE FILTER to ensure ALL Heads of Family appear regardless of role (WARGA, WARGA_TETAP, etc.)
         $query = \App\Models\User::where('rt_id', $rtId)
-            ->where('status_in_family', 'KEPALA_KELUARGA') // Show only Heads of Family
-            ->whereIn('role', ['WARGA', 'warga', 'WARGA_KOST', 'warga_kost', 'ADMIN_RT', 'admin_rt', 'RT', 'rt', 'SECRETARY', 'TREASURER']) 
+            ->where('status_in_family', 'KEPALA_KELUARGA') 
             ->orderBy('block')
             ->orderBy('name');
             
