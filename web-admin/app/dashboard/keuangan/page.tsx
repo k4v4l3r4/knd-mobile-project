@@ -7,7 +7,7 @@ import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { 
   Wallet, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, 
-  Loader2, Filter, Download, Plus, FileText, RefreshCw, Trash2
+  Loader2, Filter, Download, Plus, FileText, RefreshCw, Trash2, Edit
 } from 'lucide-react';
 import { DemoLabel } from "@/components/TenantStatusComponents";
 import { Button } from "@/components/ui/button";
@@ -69,6 +69,75 @@ export default function KeuanganPage() {
   const [transactionToDelete, setTransactionToDelete] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Edit State
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [transactionToEdit, setTransactionToEdit] = useState<any>(null);
+  const [editFormData, setEditFormData] = useState({
+      amount: '',
+      description: '',
+      category: '',
+      payment_method: '',
+      account_id: ''
+  });
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const handleEditClick = (trx: any) => {
+      if (isDemo) {
+          toast.error("Mode Demo: Tidak dapat mengedit transaksi.");
+          return;
+      }
+      if (isExpired) return;
+      setTransactionToEdit(trx);
+      setEditFormData({
+          amount: trx.amount.toString(),
+          description: trx.description || '',
+          category: trx.source_type || '', // source_type is category in current API
+          payment_method: trx.payment_method || '',
+          account_id: trx.account_id ? trx.account_id.toString() : ''
+      });
+      setIsEditModalOpen(true);
+  };
+
+  const handleUpdateSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!transactionToEdit) return;
+      setIsUpdating(true);
+      try {
+          const amountVal = parseFloat(editFormData.amount);
+          if (isNaN(amountVal) || amountVal <= 0) {
+              toast.error("Nominal harus berupa angka dan lebih dari 0");
+              setIsUpdating(false);
+              return;
+          }
+
+          await api.put(`/transactions/${transactionToEdit.id}`, {
+              amount: amountVal,
+              description: editFormData.description,
+              category: editFormData.category, // Assuming source_type is mapped to category in controller
+              payment_method: editFormData.payment_method,
+              account_id: editFormData.account_id,
+              type: transactionToEdit.direction || transactionToEdit.type, // Need to send type back
+              date: transactionToEdit.created_at || transactionToEdit.date // Send original date or allow edit date?
+          });
+          
+          toast.success("Transaksi berhasil diperbarui");
+          setIsEditModalOpen(false);
+          fetchData();
+          fetchAccounts();
+      } catch (error: any) {
+          console.error("Failed to update transaction:", error);
+          if (error.response?.data?.errors) {
+              const errorMessages = Object.values(error.response.data.errors).flat().join('\n');
+              toast.error(`Gagal: ${errorMessages}`);
+          } else {
+              toast.error(error.response?.data?.message || "Gagal memperbarui transaksi");
+          }
+      } finally {
+          setIsUpdating(false);
+          setTransactionToEdit(null);
+      }
+  };
+
   const handleDeleteClick = (trx: any) => {
     if (isDemo) {
         toast.error("Mode Demo: Tidak dapat menghapus transaksi.");
@@ -83,7 +152,7 @@ export default function KeuanganPage() {
     if (!transactionToDelete) return;
     setIsDeleting(true);
     try {
-      await api.delete(`/rt/kas/transactions/${transactionToDelete.id}`);
+      await api.delete(`/transactions/${transactionToDelete.id}`);
       toast.success("Transaksi berhasil dihapus");
       setIsDeleteModalOpen(false);
       fetchData();
@@ -516,7 +585,7 @@ export default function KeuanganPage() {
                       </td>
                       <td className="py-4 text-sm font-medium text-slate-800 dark:text-slate-200">
                         {trx.user?.name || 'Warga'}
-                        <div className="text-xs text-slate-500 font-normal">Blok {trx.user?.block_id || '-'}</div>
+                        <div className="text-xs text-slate-500 font-normal">Blok {trx.user?.block || '-'}</div>
                       </td>
                       <td className="py-4 text-sm text-slate-600 dark:text-slate-300">
                         {trx.description}
@@ -567,49 +636,90 @@ export default function KeuanganPage() {
               <thead className="bg-slate-50 dark:bg-slate-700/50">
                 <tr>
                   <th className="px-4 py-3 rounded-l-lg font-semibold text-slate-700 dark:text-slate-200">Tanggal</th>
-                  <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-200">Kategori</th>
+                  <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-200">Nama & Blok</th>
+                  <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-200">Daftar Iuran</th>
+                  <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-200">Metode</th>
+                  <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-200 text-center">Status</th>
+                  <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-200 text-right">Nominal</th>
                   <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-200">Keterangan</th>
-                  <th className="px-4 py-3 font-semibold text-emerald-600 dark:text-emerald-400 text-right">Masuk</th>
-                  <th className="px-4 py-3 font-semibold text-rose-600 dark:text-rose-400 text-right">Keluar</th>
-                  <th className="px-4 py-3 rounded-r-lg font-semibold text-slate-700 dark:text-slate-200 text-center w-16">Aksi</th>
+                  <th className="px-4 py-3 rounded-r-lg font-semibold text-slate-700 dark:text-slate-200 text-center w-24">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                 {transactions.length === 0 ? (
                     <tr>
-                        <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
+                        <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
                             Belum ada transaksi
                         </td>
                     </tr>
                 ) : (
                     transactions.map((tx) => (
                       <tr key={`${tx.origin}-${tx.id}`} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
-                        <td className="px-4 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">
-                          {format(new Date(tx.created_at), "dd MMM yyyy", { locale: id })}
+                        <td className="px-4 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap align-top">
+                          {format(new Date(tx.created_at || tx.date), "dd MMM yyyy", { locale: id })}
                         </td>
-                        <td className="px-4 py-3">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap
-                            bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300`}>
-                            {tx.source_type || 'UMUM'}
-                          </span>
+                        <td className="px-4 py-3 text-slate-600 dark:text-slate-300 align-top">
+                          {tx.user ? (
+                              <div>
+                                  <div className="font-medium text-slate-800 dark:text-slate-200">{tx.user.name}</div>
+                                  <div className="text-xs text-slate-500">
+                                    Blok {tx.user.block || '-'}
+                                  </div>
+                              </div>
+                          ) : (
+                              <span className="text-slate-400 italic">Non-Warga</span>
+                          )}
                         </td>
-                        <td className="px-4 py-3 text-slate-600 dark:text-slate-300 max-w-xs truncate">
+                        <td className="px-4 py-3 text-slate-600 dark:text-slate-300 align-top">
+                           {tx.items && tx.items.length > 0 ? (
+                               <div className="flex flex-col gap-1">
+                                   {tx.items.map((item: any, idx: number) => (
+                                       <span key={idx} className="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
+                                           {item.name}
+                                       </span>
+                                   ))}
+                               </div>
+                           ) : (
+                               <span className="text-sm">{tx.source_type || tx.category || '-'}</span>
+                           )}
+                        </td>
+                        <td className="px-4 py-3 text-slate-600 dark:text-slate-300 align-top">
+                            {tx.payment_method || '-'}
+                        </td>
+                        <td className="px-4 py-3 text-center align-top">
+                            <span className={`px-2 py-1 rounded-full text-xs font-bold whitespace-nowrap
+                                ${tx.direction === 'IN' || tx.type === 'IN' 
+                                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' 
+                                    : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300'
+                                }`}>
+                                {tx.direction === 'IN' || tx.type === 'IN' ? 'MASUK' : 'KELUAR'}
+                            </span>
+                        </td>
+                        <td className="px-4 py-3 font-medium text-right whitespace-nowrap align-top">
+                             <span className={tx.direction === 'IN' || tx.type === 'IN' ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}>
+                                {formatCurrency(tx.amount)}
+                             </span>
+                        </td>
+                        <td className="px-4 py-3 text-slate-600 dark:text-slate-300 max-w-xs truncate align-top">
                           {tx.description || '-'}
                         </td>
-                        <td className="px-4 py-3 font-medium text-right text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
-                          {tx.direction === 'IN' ? formatCurrency(tx.amount) : '-'}
-                        </td>
-                        <td className="px-4 py-3 font-medium text-right text-rose-600 dark:text-rose-400 whitespace-nowrap">
-                          {tx.direction === 'OUT' ? formatCurrency(tx.amount) : '-'}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <button 
-                            onClick={() => handleDeleteClick(tx)}
-                            className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-md transition-colors"
-                            title="Hapus Transaksi"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                        <td className="px-4 py-3 text-center align-top">
+                          <div className="flex items-center justify-center gap-2">
+                              <button 
+                                onClick={() => handleEditClick(tx)}
+                                className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors"
+                                title="Edit Transaksi"
+                              >
+                                <Edit size={16} />
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteClick(tx)}
+                                className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-md transition-colors"
+                                title="Hapus Transaksi"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -805,6 +915,114 @@ export default function KeuanganPage() {
                    </>
                  ) : (
                    'Simpan Transaksi'
+                 )}
+               </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Transaction Modal */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Transaksi</DialogTitle>
+            <DialogDescription>
+              Ubah detail transaksi yang sudah ada.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpdateSubmit} className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="edit-amount">Nominal (Rp)</Label>
+              <Input
+                id="edit-amount"
+                type="number"
+                placeholder="Contoh: 500000"
+                value={editFormData.amount}
+                onChange={(e) => setEditFormData({ ...editFormData, amount: e.target.value })}
+                required
+                min="1"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-category">Kategori / Iuran</Label>
+              <div className="relative">
+                <Input
+                  id="edit-category"
+                  placeholder="Kategori Transaksi"
+                  value={editFormData.category}
+                  onChange={(e) => setEditFormData({ ...editFormData, category: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+                <Label htmlFor="edit-payment-method">Metode Pembayaran</Label>
+                <Select
+                    value={editFormData.payment_method}
+                    onValueChange={(val) => setEditFormData({ ...editFormData, payment_method: val })}
+                >
+                    <SelectTrigger>
+                        <SelectValue placeholder="Pilih Metode" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="CASH">Tunai / Cash</SelectItem>
+                        <SelectItem value="TRANSFER">Transfer Bank</SelectItem>
+                        <SelectItem value="QRIS">QRIS / E-Wallet</SelectItem>
+                        <SelectItem value="OTHER">Lainnya</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-account">Akun Kas</Label>
+              <Select
+                value={editFormData.account_id}
+                onValueChange={(val) => setEditFormData({ ...editFormData, account_id: val })}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih Akun" />
+                </SelectTrigger>
+                <SelectContent>
+                  {accounts.map(acc => (
+                    <SelectItem key={acc.id} value={acc.id.toString()}>
+                      {acc.name} ({formatCurrency(acc.balance)})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Keterangan Detail</Label>
+              <Textarea
+                id="edit-description"
+                placeholder="Deskripsi lengkap transaksi..."
+                value={editFormData.description}
+                onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                required
+              />
+            </div>
+            
+            <DialogFooter>
+               <Button type="button" variant="outline" onClick={() => setIsEditModalOpen(false)}>
+                 Batal
+               </Button>
+               <Button 
+                 type="submit" 
+                 disabled={isUpdating}
+                 className="bg-blue-600 hover:bg-blue-700"
+               >
+                 {isUpdating ? (
+                   <>
+                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                     Menyimpan...
+                   </>
+                 ) : (
+                   'Simpan Perubahan'
                  )}
                </Button>
             </DialogFooter>

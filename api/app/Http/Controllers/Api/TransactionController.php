@@ -18,7 +18,9 @@ class TransactionController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Transaction::with(['wallet', 'user']);
+        // Eager load relationships including user details (RT, RW) and wallet
+        // Note: 'items' is a JSON column on the transactions table, so it's automatically included
+        $query = Transaction::with(['wallet', 'user', 'user.rt', 'user.rw']);
 
         if ($request->has('type')) {
             $query->where('type', $request->type);
@@ -99,6 +101,56 @@ class TransactionController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal mencatat transaksi: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(TransactionRequest $request, $id)
+    {
+        DB::beginTransaction();
+        try {
+            $transaction = Transaction::lockForUpdate()->findOrFail($id);
+            $validated = $request->validated();
+            
+            // 1. Revert Old Balance Effect
+            if ($transaction->status === 'PAID' || $transaction->status === 'VERIFIED') {
+                $oldWallet = Wallet::lockForUpdate()->find($transaction->account_id);
+                if ($transaction->type === 'IN') {
+                    $oldWallet->balance -= $transaction->amount;
+                } else {
+                    $oldWallet->balance += $transaction->amount;
+                }
+                $oldWallet->save();
+            }
+
+            // 2. Update Transaction Data
+            $transaction->update($validated);
+
+            // 3. Apply New Balance Effect
+            if ($transaction->status === 'PAID' || $transaction->status === 'VERIFIED') {
+                $newWallet = Wallet::lockForUpdate()->find($validated['account_id']);
+                if ($transaction->type === 'IN') {
+                    $newWallet->balance += $validated['amount'];
+                } else {
+                    $newWallet->balance -= $validated['amount'];
+                }
+                $newWallet->save();
+            }
+
+            DB::commit();
+            return response()->json([
+                'success' => true,
+                'message' => 'Transaksi berhasil diperbarui',
+                'data' => $transaction
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal update: ' . $e->getMessage()
             ], 500);
         }
     }

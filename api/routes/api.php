@@ -204,7 +204,7 @@ Route::middleware(['auth:sanctum', 'tenant.status', 'tenant.feature'])->group(fu
     Route::post('/transactions/confirm', [TransactionController::class, 'storePublic']); // Public submission for Warga
     Route::post('/transactions/{id}/verify', [TransactionController::class, 'verify'])->middleware('permission:kas.create'); // Verify adds to kas
     Route::post('/transactions/{id}/reject', [TransactionController::class, 'reject'])->middleware('permission:kas.create'); // Reject transaction
-    Route::apiResource('transactions', TransactionController::class)->except(['show', 'update']);
+    Route::apiResource('transactions', TransactionController::class)->except(['show']);
 
     // Ronda Routes
     Route::get('/schedules', [RondaController::class, 'index']); // Alias for PatrolScreen

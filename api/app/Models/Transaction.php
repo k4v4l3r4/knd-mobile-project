@@ -25,6 +25,7 @@ class Transaction extends Model
         'proof_url',
         'dana_reference_no',
         'payment_url',
+        'payment_method',
         'status',
     ];
 

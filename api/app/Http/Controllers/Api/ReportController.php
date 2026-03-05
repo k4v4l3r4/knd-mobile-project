@@ -272,7 +272,7 @@ class ReportController extends Controller
         $data['monthly_totals'] = $monthlyTotals;
         $data['grand_total'] = $grandTotal;
         $data['year'] = $year;
-        $data['rt_name'] = $user->rt ? ('RT ' . $user->rt->rt_number . ' / RW ' . $user->rt->rw_number) : 'RT Online';
+        $data['rt_name'] = $user->rt ? ('RT ' . $user->rt->rt_number . ' / RW ' . ($user->rt->rw ? $user->rt->rw->code : '-')) : 'RT Online';
         $data['filter_block'] = $block && $block !== 'ALL' ? $block : 'Semua Blok';
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.dues_pdf', $data)

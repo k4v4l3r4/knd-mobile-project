@@ -31,6 +31,7 @@ class TransactionRequest extends FormRequest
             'items.*.name' => ['required_with:items', 'string'],
             'items.*.amount' => ['required_with:items', 'numeric'],
             'date' => ['required', 'date'],
+            'payment_method' => ['nullable', 'string', 'max:50'],
             'proof_url' => ['nullable', 'string'], // or url rule if strict
         ];
     }

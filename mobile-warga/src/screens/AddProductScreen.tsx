@@ -18,6 +18,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons, Feather, MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import api from '../services/api';
 import { useTheme, ThemeColors } from '../context/ThemeContext';
 import { useTenant } from '../context/TenantContext';
@@ -72,6 +73,21 @@ export default function AddProductScreen({ onSuccess, editingProduct }: AddProdu
   const [photos, setPhotos] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+
+  const compressImage = async (uri: string): Promise<string> => {
+    try {
+      // Resize to max width 1024px to reduce payload size
+      const manipResult = await ImageManipulator.manipulateAsync(
+        uri,
+        [{ resize: { width: 1024 } }],
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+      );
+      return manipResult.uri;
+    } catch (error) {
+      console.log('Error compressing image:', error);
+      return uri; // Return original if compression fails
+    }
+  };
   
   React.useEffect(() => {
     if (editingProduct) {
@@ -142,7 +158,8 @@ export default function AddProductScreen({ onSuccess, editingProduct }: AddProdu
       }
 
       if (!result.canceled) {
-        setPhotos([...photos, result.assets[0].uri]);
+        const compressedUri = await compressImage(result.assets[0].uri);
+        setPhotos([...photos, compressedUri]);
       }
     } catch (error) {
       console.log('Error picking image:', error);
@@ -301,7 +318,27 @@ export default function AddProductScreen({ onSuccess, editingProduct }: AddProdu
     } catch (error: any) {
       console.log('Error adding product:', error);
       console.log('Error Detail:', error.response);
-      Alert.alert(t('market.addProduct.errorTitle'), t('market.addProduct.errorMsg') + ". " + (error.response?.data?.message || error.message));
+      
+      let errorMessage = t('market.addProduct.errorMsg');
+      
+      // Handle Validation Errors
+      if (error.response?.data?.errors) {
+        const errors = error.response.data.errors;
+        const firstError = Object.values(errors)[0];
+        if (Array.isArray(firstError)) {
+            errorMessage = firstError[0];
+        } else if (typeof firstError === 'string') {
+            errorMessage = firstError;
+        } else {
+            errorMessage = 'Terjadi kesalahan validasi data.';
+        }
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message === 'Network Error') {
+        errorMessage = 'Gagal terhubung ke server. Periksa koneksi internet atau ukuran foto terlalu besar.';
+      }
+      
+      Alert.alert(t('market.addProduct.errorTitle'), errorMessage);
     } finally {
       setIsSubmitting(false);
     }
