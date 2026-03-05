@@ -55,7 +55,6 @@ export default function LaporanIuranPage() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<IuranResponse | null>(null);
   const [year, setYear] = useState(new Date().getFullYear());
-  const [selectedBlock, setSelectedBlock] = useState<string>('ALL');
   const [search, setSearch] = useState('');
   const [instructionJson, setInstructionJson] = useState('');
   const [instruction, setInstruction] = useState<any | null>(null);
@@ -253,11 +252,21 @@ export default function LaporanIuranPage() {
     }
   };
 
-  const filteredUsers = data?.users.filter(user => {
-    const matchBlock = selectedBlock === 'ALL' || user.block === selectedBlock;
-    const matchSearch = user.name.toLowerCase().includes(search.toLowerCase());
-    return matchBlock && matchSearch;
-  }) || [];
+  const filteredUsers = (data?.users || []).filter(user => {
+    const searchLower = search.toLowerCase();
+    const matchName = user.name.toLowerCase().includes(searchLower);
+    const matchBlock = (user.block || '').toLowerCase().includes(searchLower);
+    return matchName || matchBlock;
+  }).sort((a, b) => {
+    // Sort by Block first
+    const blockA = a.block || '';
+    const blockB = b.block || '';
+    const blockCompare = blockA.localeCompare(blockB, undefined, { numeric: true, sensitivity: 'base' });
+    if (blockCompare !== 0) return blockCompare;
+    
+    // Then by Name
+    return a.name.localeCompare(b.name);
+  });
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -346,7 +355,7 @@ export default function LaporanIuranPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input 
               type="text"
-              placeholder="Cari warga..."
+              placeholder="Cari nama atau blok..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-lg focus:ring-2 focus:ring-emerald-500 w-64 text-sm text-slate-800 dark:text-white placeholder:text-slate-400 transition-colors duration-300"
@@ -365,7 +374,7 @@ export default function LaporanIuranPage() {
               return;
             }
             const token = Cookies.get('admin_token');
-            const url = `${process.env.NEXT_PUBLIC_API_URL}/reports/dues/pdf?year=${year}&block=${selectedBlock}&token=${token}`;
+            const url = `${process.env.NEXT_PUBLIC_API_URL}/reports/dues/pdf?year=${year}&block=ALL&token=${token}`;
             window.open(url, '_blank');
           }}
           className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium transition-colors duration-300"
@@ -378,35 +387,6 @@ export default function LaporanIuranPage() {
       {/* Main Content */}
       <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden transition-colors duration-300">
         
-        {/* Tabs for Blocks */}
-        {data && (
-          <div className="flex overflow-x-auto border-b border-slate-200 dark:border-slate-800 custom-scrollbar">
-            <button
-              onClick={() => setSelectedBlock('ALL')}
-              className={`px-6 py-4 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
-                selectedBlock === 'ALL' 
-                  ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-900/20' 
-                  : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-              }`}
-            >
-              Semua ({data.users.length})
-            </button>
-            {Object.entries(data.blocks).map(([blockName, count]) => (
-              <button
-                key={blockName}
-                onClick={() => setSelectedBlock(blockName)}
-                className={`px-6 py-4 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
-                  selectedBlock === blockName 
-                    ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-900/20' 
-                    : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-                }`}
-              >
-                Blok {blockName} ({count})
-              </button>
-            ))}
-          </div>
-        )}
-
         {/* Table */}
         <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full text-sm text-left">
