@@ -154,4 +154,32 @@ class GuestBookController extends Controller
             'data' => $guest
         ]);
     }
+
+    public function destroy($id)
+    {
+        $guest = GuestBook::findOrFail($id);
+        $user = Auth::user();
+        $role = strtoupper($user->role ?? '');
+
+        // Only RT/Admin can delete
+        if (!in_array($role, ['RT', 'ADMIN_RT', 'SUPER_ADMIN', 'ADMIN_RW', 'SECRETARY', 'TREASURER'])) {
+             return response()->json(['message' => 'Unauthorized. Only RT/Admin can delete.'], 403);
+        }
+
+        if ($user->rt_id && $guest->rt_id !== $user->rt_id) {
+             return response()->json(['message' => 'Unauthorized RT'], 403);
+        }
+
+        // Delete photo if exists
+        if ($guest->id_card_photo) {
+            Storage::disk('public')->delete($guest->id_card_photo);
+        }
+
+        $guest->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data tamu berhasil dihapus',
+        ]);
+    }
 }

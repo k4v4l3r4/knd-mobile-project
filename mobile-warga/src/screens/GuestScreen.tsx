@@ -24,6 +24,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useTenant } from '../context/TenantContext';
 import { DemoLabel } from '../components/TenantStatusComponents';
 import { ImagePickerModal } from '../components/ImagePickerModal';
+import { authService } from '../services/auth';
 
 interface Guest {
   id: number;
@@ -56,6 +57,18 @@ export default function GuestScreen() {
   const [photo, setPhoto] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    checkUserRole();
+  }, []);
+
+  const checkUserRole = async () => {
+    const user = await authService.getUser();
+    if (user) {
+      setUserRole(user.role);
+    }
+  };
 
   useEffect(() => {
     if (activeTab === 'history') {
@@ -182,20 +195,54 @@ export default function GuestScreen() {
     setPhoto(null);
   };
 
+  const handleDelete = (id: number) => {
+    Alert.alert(
+      t('common.delete'),
+      t('guest.alert.deleteConfirm') || 'Apakah Anda yakin ingin menghapus data ini?',
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('common.delete'),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.delete(`/guest-books/${id}`);
+              setGuests(prev => prev.filter(g => g.id !== id));
+              Alert.alert(t('common.success'), t('guest.alert.deleteSuccess') || 'Data berhasil dihapus');
+            } catch (error) {
+              Alert.alert(t('common.failed'), t('guest.alert.deleteFailed') || 'Gagal menghapus data');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const renderHistoryItem = ({ item }: { item: Guest }) => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>{item.guest_name}</Text>
-        <View style={[
-          styles.statusBadge, 
-          item.status === 'CHECKED' ? styles.bgGreen : styles.bgRed
-        ]}>
-          <Text style={[
-            styles.statusText,
-            item.status === 'CHECKED' ? styles.textGreen : styles.textRed
+        <Text style={[styles.cardTitle, { flex: 1 }]}>{item.guest_name}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={[
+            styles.statusBadge, 
+            item.status === 'CHECKED' ? styles.bgGreen : styles.bgRed
           ]}>
-            {item.status === 'CHECKED' ? t('guest.status.checked') : t('guest.status.reported')}
-          </Text>
+            <Text style={[
+              styles.statusText,
+              item.status === 'CHECKED' ? styles.textGreen : styles.textRed
+            ]}>
+              {item.status === 'CHECKED' ? t('guest.status.checked') : t('guest.status.reported')}
+            </Text>
+          </View>
+          {['RT', 'ADMIN', 'SUPER_ADMIN'].includes(userRole?.toUpperCase() || '') && (
+            <TouchableOpacity 
+              onPress={() => handleDelete(item.id)}
+              style={{ marginLeft: 8, padding: 4 }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="trash-outline" size={20} color="#EF4444" />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
       

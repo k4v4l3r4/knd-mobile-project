@@ -9,7 +9,7 @@ import { toast } from 'react-hot-toast';
 import { 
   Users, Search, Filter, Plus, Calendar, 
   MapPin, Phone, User, LogOut, Camera,
-  BookOpen, Loader2, CheckCircle2, AlertCircle, X, Clock
+  BookOpen, Loader2, CheckCircle2, AlertCircle, X, Clock, Trash
 } from 'lucide-react';
 import { formatPhoneNumber } from '@/lib/phoneUtils';
 
@@ -58,7 +58,8 @@ const getImageUrl = (path: string | null) => {
 const renderGuestRows = (
   loading: boolean,
   guests: Guest[],
-  confirmCheckout: (id: number) => void
+  confirmCheckout: (id: number) => void,
+  confirmDelete: (guest: Guest) => void
 ) => {
   try {
     if (loading) {
@@ -195,15 +196,24 @@ const renderGuestRows = (
           </span>
         </td>
         <td className="px-6 py-4 text-right">
-          {guest.status === 'CHECK_IN' && (
+          <div className="flex items-center justify-end gap-2">
+            {guest.status === 'CHECK_IN' && (
+              <button
+                onClick={() => confirmCheckout(guest.id)}
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/50 hover:text-rose-700 dark:hover:text-rose-300 rounded-lg transition-colors font-bold text-xs border border-rose-100 dark:border-rose-800 shadow-sm"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                Check Out
+              </button>
+            )}
             <button
-              onClick={() => confirmCheckout(guest.id)}
-              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/50 hover:text-rose-700 dark:hover:text-rose-300 rounded-lg transition-colors font-bold text-xs border border-rose-100 dark:border-rose-800 shadow-sm"
+              onClick={() => confirmDelete(guest)}
+              className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors"
+              title="Hapus Data"
             >
-              <LogOut className="w-3.5 h-3.5" />
-              Check Out
+              <Trash size={16} />
             </button>
-          )}
+          </div>
         </td>
       </tr>
     ));
@@ -244,6 +254,11 @@ export default function GuestBookPage() {
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
   const [guestToCheckout, setGuestToCheckout] = useState<number | null>(null);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+
+  // Delete Modal State
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [guestToDelete, setGuestToDelete] = useState<Guest | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchGuests();
@@ -374,6 +389,38 @@ export default function GuestBookPage() {
     } finally {
       setIsCheckingOut(false);
       setGuestToCheckout(null);
+    }
+  };
+
+  const confirmDelete = (guest: Guest) => {
+    setGuestToDelete(guest);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (isDemo) {
+      toast.error('Mode Demo: Hapus data tidak diizinkan');
+      return;
+    }
+    // No isExpired check needed for cleanup, or maybe same as checkout?
+    // Let's keep it simple as user requested.
+
+    if (!guestToDelete) return;
+    setIsDeleting(true);
+    try {
+      await axios.delete(`/guest-books/${guestToDelete.id}`);
+      toast.success('Data tamu berhasil dihapus');
+      
+      // Update local state
+      setGuests(prev => prev.filter(g => g.id !== guestToDelete.id));
+      
+      setDeleteModalOpen(false);
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast.error('Gagal menghapus data tamu');
+    } finally {
+      setIsDeleting(false);
+      setGuestToDelete(null);
     }
   };
 
@@ -544,7 +591,7 @@ export default function GuestBookPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {renderGuestRows(loading, guests, confirmCheckout)}
+                  {renderGuestRows(loading, guests, confirmCheckout, confirmDelete)}
                 </tbody>
               </table>
             </div>
@@ -577,6 +624,38 @@ export default function GuestBookPage() {
                   className="flex-1 px-4 py-2.5 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 shadow-lg shadow-amber-500/20 transition-all active:scale-95 disabled:opacity-70 flex items-center justify-center gap-2"
                 >
                   {isCheckingOut ? <Loader2 className="animate-spin w-5 h-5" /> : 'Ya, Check Out'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- DELETE CONFIRMATION MODAL --- */}
+      {deleteModalOpen && guestToDelete && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-rose-100 dark:bg-rose-900/30 text-rose-500 dark:text-rose-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash size={32} />
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Hapus Data Kunjungan?</h3>
+              <p className="text-slate-500 dark:text-slate-400 mb-6">
+                Apakah Anda yakin ingin menghapus data kunjungan <span className="font-bold text-slate-700 dark:text-slate-300">{guestToDelete.guest_name}</span>?
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDeleteModalOpen(false)}
+                  className="flex-1 px-4 py-2.5 text-slate-600 dark:text-slate-300 font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="flex-1 px-4 py-2.5 bg-rose-500 text-white rounded-xl font-bold hover:bg-rose-600 shadow-lg shadow-rose-500/20 transition-all active:scale-95 disabled:opacity-70 flex items-center justify-center gap-2"
+                >
+                  {isDeleting ? <Loader2 className="animate-spin w-5 h-5" /> : 'Hapus'}
                 </button>
               </div>
             </div>
