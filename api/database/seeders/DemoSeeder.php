@@ -201,7 +201,7 @@ class DemoSeeder extends Seeder
                 'rt_id' => $rtId,
                 'amount' => 50000,
                 'direction' => 'IN',
-                'source_type' => 'DENDA',
+                'source_type' => 'Pemasukan Lainnya',
                 'description' => 'Denda Ronda Absen 2 Orang',
                 'created_at' => now()->subDays(3)
             ]);

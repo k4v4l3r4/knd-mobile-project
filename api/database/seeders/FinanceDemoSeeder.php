@@ -113,7 +113,7 @@ class FinanceDemoSeeder extends Seeder
                 'rt_id' => $rtId,
                 'amount' => $d['amount'],
                 'direction' => 'IN',
-                'source_type' => 'DENDA',
+                'source_type' => 'Pemasukan Lainnya',
                 'description' => $d['desc'],
                 'created_at' => $d['date']
             ]);
@@ -130,7 +130,7 @@ class FinanceDemoSeeder extends Seeder
                 'rt_id' => $rtId,
                 'amount' => $m['amount'],
                 'direction' => 'IN',
-                'source_type' => 'KAS_MANUAL',
+                'source_type' => 'Pemasukan Lainnya',
                 'description' => $m['desc'],
                 'created_at' => $m['date']
             ]);
@@ -147,7 +147,7 @@ class FinanceDemoSeeder extends Seeder
                 'rt_id' => $rtId,
                 'amount' => $o['amount'],
                 'direction' => 'OUT',
-                'source_type' => 'PENGELUARAN_RT',
+                'source_type' => 'Operasional',
                 'description' => $o['desc'],
                 'created_at' => $o['date']
             ]);

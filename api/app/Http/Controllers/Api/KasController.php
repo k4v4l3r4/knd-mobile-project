@@ -87,9 +87,16 @@ class KasController extends Controller
             ->toArray();
 
         // Merge breakdown
+        $sourceLabelMap = [
+            'DENDA' => 'Pemasukan Lainnya',
+            'KAS_MANUAL' => 'Pemasukan Lainnya',
+            'PENGELUARAN_RT' => 'Operasional',
+        ];
+
         $breakdown = [];
         foreach (array_merge($kasBreakdown, $transBreakdown) as $item) {
             $name = $item['name'];
+            $name = $sourceLabelMap[$name] ?? $name;
             if (!isset($breakdown[$name])) {
                 $breakdown[$name] = 0;
             }
@@ -119,17 +126,28 @@ class KasController extends Controller
             return response()->json(['message' => 'User not assigned to RT'], 403);
         }
 
+        $defaultWalletIdSub = \App\Models\Wallet::where('rt_id', $rtId)
+            ->select('id')
+            ->orderBy('id')
+            ->limit(1);
+
         // Fetch from KasTransactions
         $kasQuery = KasTransaction::where('rt_id', $rtId)
             ->select(
                 'id',
                 'amount',
                 'direction',
-                'source_type',
+                DB::raw("CASE 
+                    WHEN source_type = 'DENDA' THEN 'Pemasukan Lainnya'
+                    WHEN source_type = 'KAS_MANUAL' THEN 'Pemasukan Lainnya'
+                    WHEN source_type = 'PENGELUARAN_RT' THEN 'Operasional'
+                    ELSE source_type
+                END as source_type"),
                 'description',
                 'created_at',
                 DB::raw("'KAS' as origin")
-            );
+            )
+            ->selectSub($defaultWalletIdSub, 'account_id');
 
         // Fetch from Transactions
         $transQuery = Transaction::where('rt_id', $rtId)
@@ -141,7 +159,8 @@ class KasController extends Controller
                 'category as source_type',
                 'description',
                 'date as created_at',
-                DB::raw("'TRANS' as origin")
+                DB::raw("'TRANS' as origin"),
+                'account_id'
             );
 
         // Apply filters
@@ -179,20 +198,48 @@ class KasController extends Controller
             'direction' => 'required|in:IN,OUT',
             'source_type' => 'required|string',
             'description' => 'required|string',
+            'account_id' => 'required|exists:wallets,id',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $transaction = KasTransaction::create([
-            'rt_id' => $rtId,
-            'amount' => $request->amount,
-            'direction' => $request->direction,
-            'source_type' => $request->source_type,
-            'description' => $request->description,
-            // source_id is null for manual transactions
-        ]);
+        $account = \App\Models\Wallet::where('rt_id', $rtId)->find($request->account_id);
+        if (!$account) {
+            return response()->json(['message' => 'Unauthorized account access'], 403);
+        }
+
+        if ($request->direction === 'OUT' && $account->balance < $request->amount) {
+            return response()->json(['message' => 'Saldo tidak mencukupi'], 422);
+        }
+
+        DB::beginTransaction();
+
+        try {
+            $transaction = Transaction::create([
+                'rt_id' => $rtId,
+                'account_id' => $account->id,
+                'user_id' => $user->id,
+                'type' => $request->direction,
+                'amount' => $request->amount,
+                'category' => $request->source_type,
+                'description' => $request->description,
+                'status' => 'PAID',
+                'date' => now(),
+            ]);
+
+            if ($request->direction === 'IN') {
+                $account->increment('balance', $request->amount);
+            } else {
+                $account->decrement('balance', $request->amount);
+            }
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Gagal menyimpan transaksi: ' . $e->getMessage()], 500);
+        }
 
         return response()->json([
             'success' => true,
@@ -249,7 +296,12 @@ class KasController extends Controller
             ->select(
                 'amount',
                 'direction',
-                'source_type',
+                DB::raw("CASE 
+                    WHEN source_type = 'DENDA' THEN 'Pemasukan Lainnya'
+                    WHEN source_type = 'KAS_MANUAL' THEN 'Pemasukan Lainnya'
+                    WHEN source_type = 'PENGELUARAN_RT' THEN 'Operasional'
+                    ELSE source_type
+                END as source_type"),
                 'description',
                 'created_at'
             );
@@ -362,7 +414,12 @@ class KasController extends Controller
             ->select(
                 'amount',
                 'direction',
-                'source_type',
+                DB::raw("CASE 
+                    WHEN source_type = 'DENDA' THEN 'Pemasukan Lainnya'
+                    WHEN source_type = 'KAS_MANUAL' THEN 'Pemasukan Lainnya'
+                    WHEN source_type = 'PENGELUARAN_RT' THEN 'Operasional'
+                    ELSE source_type
+                END as source_type"),
                 'description',
                 'created_at'
             );

@@ -25,6 +25,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useTenant } from '../context/TenantContext';
 import { BackButton } from '../components/BackButton';
 import api, { BASE_URL } from '../services/api';
+import { settingService } from '../services/setting';
 
 interface KasSummary {
   balance: number;
@@ -41,6 +42,7 @@ interface Transaction {
   description: string;
   source_type: string;
   origin: string;
+  account_id?: number | null;
   user?: {
     id: number;
     name: string;
@@ -57,6 +59,17 @@ interface Account {
   name: string;
   type: string;
   balance: number;
+}
+
+interface Fee {
+  id: number;
+  name: string;
+  is_mandatory: boolean;
+}
+
+interface ActivityCategory {
+  id: number;
+  name: string;
 }
 
 const formatCurrency = (amount: number) => {
@@ -86,28 +99,28 @@ const FinanceReportScreen = ({ onNavigate }: { onNavigate: (screen: string) => v
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
-  const [selectedSource, setSelectedSource] = useState<string>('ALL');
+  const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
+  const [selectedSourceAccountId, setSelectedSourceAccountId] = useState<string>('ALL');
   
   // Transaction Action State
   const [modalVisible, setModalVisible] = useState(false);
   const [actionType, setActionType] = useState<'IN' | 'OUT' | 'TRANSFER'>('IN');
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [fees, setFees] = useState<Fee[]>([]);
+  const [activities, setActivities] = useState<ActivityCategory[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [feeNature, setFeeNature] = useState<'WAJIB' | 'SUKARELA'>('WAJIB');
   
   // Form State
   const [formData, setFormData] = useState({
     amount: '',
     description: '',
     sourceType: '',
+    accountId: '',
     fromAccountId: '',
     toAccountId: ''
   });
-  
-  const INCOME_CATEGORIES = ['Iuran Warga', 'Sumbangan', 'Parkir', 'Denda', 'Lainnya'];
-  const EXPENSE_CATEGORIES = ['Operasional', 'Keamanan', 'Kebersihan', 'Listrik', 'Air', 'Perbaikan', 'Lainnya'];
-  
-  const categories = actionType === 'IN' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
 
   // Check if user has admin privileges for finance
   const isAdmin = ['ADMIN_RT', 'ADMIN_RW', 'BENDAHARA_RT'].includes(userRole);
@@ -117,15 +130,22 @@ const FinanceReportScreen = ({ onNavigate }: { onNavigate: (screen: string) => v
       const jsonValue = await AsyncStorage.getItem('user_data');
       if (jsonValue != null) {
         const userData = JSON.parse(jsonValue);
-        setUserRole(userData.role || 'WARGA');
+        const role = userData.role || 'WARGA';
+        setUserRole(role);
+        return role;
       }
     } catch (e) {
       console.error('Failed to load user data', e);
     }
+    return 'WARGA';
   }, []);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (roleArg?: string) => {
     try {
+      // Determine admin status based on passed role or current state
+      const targetRole = roleArg || userRole;
+      const checkIsAdmin = ['ADMIN_RT', 'ADMIN_RW', 'BENDAHARA_RT'].includes(targetRole);
+
       // Fetch sequentially to avoid concurrency issues with dev server
       const summaryRes = await api.get('/rt/kas/summary');
       if (summaryRes.data.success) {
@@ -137,7 +157,7 @@ const FinanceReportScreen = ({ onNavigate }: { onNavigate: (screen: string) => v
         setTransactions(transactionsRes.data.data.data || []);
       }
 
-      if (isAdmin) {
+      if (checkIsAdmin) {
         const pendingRes = await api.get('/rt/kas/pending');
         if (pendingRes.data.success) {
           setPendingTransactions(pendingRes.data.data || []);
@@ -156,7 +176,7 @@ const FinanceReportScreen = ({ onNavigate }: { onNavigate: (screen: string) => v
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [userRole]); // Depend on userRole for refreshes
 
   const fetchAccounts = async () => {
     try {
@@ -169,13 +189,42 @@ const FinanceReportScreen = ({ onNavigate }: { onNavigate: (screen: string) => v
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+      const [feesRes, activitiesRes] = await Promise.all([
+        settingService.getFees(),
+        settingService.getActivities(),
+      ]);
+
+      const feeData = feesRes?.data?.data || feesRes?.data || [];
+      const activityData = activitiesRes?.data?.data || activitiesRes?.data || [];
+
+      setFees(Array.isArray(feeData) ? feeData : []);
+      setActivities(Array.isArray(activityData) ? activityData : []);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
+
   useEffect(() => {
-    fetchUserData().then(() => fetchData());
+    fetchUserData().then((role) => fetchData(role));
+    fetchAccounts();
+    fetchCategories();
   }, [fetchUserData, fetchData]);
+
+  useEffect(() => {
+    setSelectedCategory('ALL');
+  }, [filterType]);
+
+  useEffect(() => {
+    setSelectedSourceAccountId('ALL');
+  }, [filterType]);
 
   const onRefresh = () => {
     setRefreshing(true);
     fetchData();
+    fetchAccounts();
+    fetchCategories();
   };
 
   const handleDownloadReport = async () => {
@@ -198,20 +247,54 @@ const FinanceReportScreen = ({ onNavigate }: { onNavigate: (screen: string) => v
 
   const openActionModal = (type: 'IN' | 'OUT' | 'TRANSFER') => {
     setActionType(type);
+    const defaultAccountId = accounts.length > 0 ? String(accounts[0].id) : '';
     setFormData({
       amount: '',
       description: '',
-      sourceType: type === 'IN' ? 'Iuran Warga' : 'Operasional',
+      sourceType: '',
+      accountId: defaultAccountId,
       fromAccountId: '',
       toAccountId: ''
     });
+    setFeeNature('WAJIB');
     setShowCategoryDropdown(false);
     setModalVisible(true);
     
-    if (type === 'TRANSFER') {
-      fetchAccounts();
-    }
+    fetchAccounts();
+    fetchCategories();
   };
+
+  const modalCategories = (() => {
+    if (actionType === 'IN') {
+      const shouldBeMandatory = feeNature === 'WAJIB';
+      return fees
+        .filter((f) => Boolean(f.is_mandatory) === shouldBeMandatory)
+        .map((f) => f.name)
+        .filter((n) => typeof n === 'string' && n.trim() !== '');
+    }
+    if (actionType === 'OUT') {
+      return activities
+        .map((a) => a.name)
+        .filter((n) => typeof n === 'string' && n.trim() !== '');
+    }
+    return [];
+  })();
+
+  useEffect(() => {
+    if (!modalVisible) return;
+    if (actionType === 'TRANSFER') return;
+    if (!formData.accountId && accounts.length > 0) {
+      setFormData(prev => ({ ...prev, accountId: String(accounts[0].id) }));
+    }
+  }, [accounts, modalVisible, actionType, formData.accountId]);
+
+  useEffect(() => {
+    if (!modalVisible) return;
+    if (actionType !== 'IN') return;
+    if (formData.sourceType && !modalCategories.includes(formData.sourceType)) {
+      setFormData(prev => ({ ...prev, sourceType: '' }));
+    }
+  }, [feeNature, fees, modalVisible, actionType, formData.sourceType, modalCategories]);
 
   const handleSubmit = async () => {
     if (isExpired) {
@@ -230,6 +313,15 @@ const FinanceReportScreen = ({ onNavigate }: { onNavigate: (screen: string) => v
       }
       if (formData.fromAccountId === formData.toAccountId) {
         Alert.alert('Error', 'Akun asal dan tujuan tidak boleh sama');
+        return;
+      }
+    } else {
+      if (!formData.accountId) {
+        Alert.alert('Error', 'Pilih sumber kas (Kas & Bank)');
+        return;
+      }
+      if (!formData.sourceType) {
+        Alert.alert('Error', 'Pilih kategori transaksi');
         return;
       }
     }
@@ -252,6 +344,7 @@ const FinanceReportScreen = ({ onNavigate }: { onNavigate: (screen: string) => v
       } else {
         payload = {
           ...payload,
+          account_id: Number(formData.accountId),
           direction: actionType,
           source_type: formData.sourceType
         };
@@ -321,8 +414,15 @@ const FinanceReportScreen = ({ onNavigate }: { onNavigate: (screen: string) => v
     // Type Filter
     if (filterType !== 'ALL' && t.direction !== filterType) return false;
 
-    // Source Filter
-    if (selectedSource !== 'ALL' && t.source_type !== selectedSource) return false;
+    // Source (Wallet) Filter
+    if (selectedSourceAccountId !== 'ALL') {
+      const tAccountId = t.wallet?.id ?? t.account_id ?? null;
+      if (!tAccountId) return false;
+      if (String(tAccountId) !== selectedSourceAccountId) return false;
+    }
+
+    // Category Filter
+    if (selectedCategory !== 'ALL' && t.source_type !== selectedCategory) return false;
 
     // Date Range Filter
     const tDate = new Date(t.created_at || new Date());
@@ -502,7 +602,7 @@ const FinanceReportScreen = ({ onNavigate }: { onNavigate: (screen: string) => v
             {/* Income Breakdown for Admin */}
             {isAdmin && summary.breakdown && Object.keys(summary.breakdown).length > 0 && (
               <View style={styles.walletsContainer}>
-                <Text style={[styles.sectionTitle, { marginLeft: 0, fontSize: 14, marginBottom: 8 }]}>Sumber Pemasukan</Text>
+                <Text style={[styles.sectionTitle, { marginLeft: 0, fontSize: 14, marginBottom: 8 }]}>Kategori Pemasukan</Text>
                 {Object.entries(summary.breakdown).map(([name, amount], index) => (
                   <View key={index} style={styles.walletItem}>
                     <View style={styles.walletIcon}>
@@ -564,6 +664,33 @@ const FinanceReportScreen = ({ onNavigate }: { onNavigate: (screen: string) => v
 
             {/* Advanced Filters */}
             <View style={styles.advancedFilters}>
+                <View style={styles.sourceLabelRow}>
+                    <Text style={styles.sourceLabel}>Sumber:</Text>
+                    <Text style={styles.sourceValue}>
+                      {selectedSourceAccountId === 'ALL'
+                        ? 'Semua'
+                        : accounts.find((a) => String(a.id) === selectedSourceAccountId)?.name || '-'}
+                    </Text>
+                </View>
+
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.sourceFilterScroll}>
+                    <TouchableOpacity 
+                        style={[styles.sourceChip, selectedSourceAccountId === 'ALL' && styles.sourceChipActive]}
+                        onPress={() => setSelectedSourceAccountId('ALL')}
+                    >
+                        <Text style={[styles.sourceChipText, selectedSourceAccountId === 'ALL' && styles.sourceChipTextActive]}>Semua</Text>
+                    </TouchableOpacity>
+                    {accounts.map((acc) => (
+                        <TouchableOpacity 
+                            key={acc.id}
+                            style={[styles.sourceChip, selectedSourceAccountId === String(acc.id) && styles.sourceChipActive]}
+                            onPress={() => setSelectedSourceAccountId(String(acc.id))}
+                        >
+                            <Text style={[styles.sourceChipText, selectedSourceAccountId === String(acc.id) && styles.sourceChipTextActive]}>{acc.name}</Text>
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
+
                 {/* Date Range */}
                 <View style={styles.dateFilterRow}>
                     <TouchableOpacity 
@@ -595,24 +722,28 @@ const FinanceReportScreen = ({ onNavigate }: { onNavigate: (screen: string) => v
                     )}
                 </View>
 
-                {/* Source Filter */}
+                {/* Category Filter */}
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.sourceFilterScroll}>
                     <TouchableOpacity 
-                        style={[styles.sourceChip, selectedSource === 'ALL' && styles.sourceChipActive]}
-                        onPress={() => setSelectedSource('ALL')}
+                        style={[styles.sourceChip, selectedCategory === 'ALL' && styles.sourceChipActive]}
+                        onPress={() => setSelectedCategory('ALL')}
                     >
-                        <Text style={[styles.sourceChipText, selectedSource === 'ALL' && styles.sourceChipTextActive]}>Semua</Text>
+                        <Text style={[styles.sourceChipText, selectedCategory === 'ALL' && styles.sourceChipTextActive]}>Semua</Text>
                     </TouchableOpacity>
-                    {Array.from(new Set([
-                        ...(filterType === 'IN' || filterType === 'ALL' ? INCOME_CATEGORIES : []),
-                        ...(filterType === 'OUT' || filterType === 'ALL' ? EXPENSE_CATEGORIES : [])
-                    ])).map(src => (
+                    {Array.from(
+                        new Set(
+                            transactions
+                                .filter((t) => (filterType === 'ALL' ? true : t.direction === filterType))
+                                .map((t) => t.source_type)
+                                .filter((v) => typeof v === 'string' && v.trim() !== '')
+                        )
+                    ).map((cat) => (
                         <TouchableOpacity 
-                            key={src}
-                            style={[styles.sourceChip, selectedSource === src && styles.sourceChipActive]}
-                            onPress={() => setSelectedSource(src)}
+                            key={cat}
+                            style={[styles.sourceChip, selectedCategory === cat && styles.sourceChipActive]}
+                            onPress={() => setSelectedCategory(cat)}
                         >
-                            <Text style={[styles.sourceChipText, selectedSource === src && styles.sourceChipTextActive]}>{src}</Text>
+                            <Text style={[styles.sourceChipText, selectedCategory === cat && styles.sourceChipTextActive]}>{cat}</Text>
                         </TouchableOpacity>
                     ))}
                 </ScrollView>
@@ -739,47 +870,102 @@ const FinanceReportScreen = ({ onNavigate }: { onNavigate: (screen: string) => v
               </View>
 
               {actionType !== 'TRANSFER' ? (
-                <View style={styles.formGroup}>
-                  <Text style={[styles.label, { color: colors.text }]}>Kategori / Sumber</Text>
-                  
-                  <TouchableOpacity 
-                    style={[styles.dropdownButton, { borderColor: colors.border, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#fff' }]}
-                    onPress={() => setShowCategoryDropdown(!showCategoryDropdown)}
-                  >
-                    <Text style={[styles.dropdownButtonText, { color: colors.text }]}>{formData.sourceType}</Text>
-                    <Ionicons name={showCategoryDropdown ? "chevron-up" : "chevron-down"} size={20} color={colors.textSecondary} />
-                  </TouchableOpacity>
+                <>
+                  <View style={styles.formGroup}>
+                    <Text style={[styles.label, { color: colors.text }]}>Sumber (Kas & Bank)</Text>
+                    {accounts.length > 0 ? (
+                      <View style={styles.accountList}>
+                        {accounts.map(acc => (
+                          <TouchableOpacity
+                            key={acc.id}
+                            style={[
+                              styles.accountOption,
+                              { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' },
+                              formData.accountId === String(acc.id) && { borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)' }
+                            ]}
+                            onPress={() => setFormData({ ...formData, accountId: String(acc.id) })}
+                          >
+                            <Text style={[styles.accountName, { color: colors.text }]}>{acc.name}</Text>
+                            <Text style={styles.accountBalance}>{formatCurrency(acc.balance)}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    ) : (
+                      <Text style={{ color: colors.textSecondary, fontStyle: 'italic' }}>Belum ada akun kas. Hubungi Admin.</Text>
+                    )}
+                  </View>
 
-                  {showCategoryDropdown && (
-                    <View style={[styles.dropdownList, { borderColor: colors.border, backgroundColor: isDarkMode ? '#1e293b' : '#fff' }]}>
-                      {categories.map((cat) => (
+                  {actionType === 'IN' && (
+                    <View style={styles.formGroup}>
+                      <Text style={[styles.label, { color: colors.text }]}>Sifat Iuran</Text>
+                      <View style={styles.natureRow}>
                         <TouchableOpacity
-                          key={cat}
                           style={[
-                            styles.dropdownItem,
-                            formData.sourceType === cat && { backgroundColor: isDarkMode ? 'rgba(16, 185, 129, 0.2)' : 'rgba(16, 185, 129, 0.1)' },
-                            { borderBottomColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }
+                            styles.natureOption,
+                            feeNature === 'WAJIB' && styles.natureOptionActive
                           ]}
-                          onPress={() => {
-                            setFormData({ ...formData, sourceType: cat });
-                            setShowCategoryDropdown(false);
-                          }}
+                          onPress={() => setFeeNature('WAJIB')}
                         >
-                          <Text style={[
-                            styles.dropdownItemText, 
-                            { color: colors.text },
-                            formData.sourceType === cat && { color: '#10b981', fontWeight: 'bold' }
-                          ]}>
-                            {cat}
-                          </Text>
-                          {formData.sourceType === cat && (
-                            <Ionicons name="checkmark" size={18} color="#10b981" />
-                          )}
+                          <Text style={[styles.natureText, feeNature === 'WAJIB' && styles.natureTextActive]}>Wajib</Text>
                         </TouchableOpacity>
-                      ))}
+                        <TouchableOpacity
+                          style={[
+                            styles.natureOption,
+                            feeNature === 'SUKARELA' && styles.natureOptionActive
+                          ]}
+                          onPress={() => setFeeNature('SUKARELA')}
+                        >
+                          <Text style={[styles.natureText, feeNature === 'SUKARELA' && styles.natureTextActive]}>Sukarela</Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   )}
-                </View>
+
+                  <View style={styles.formGroup}>
+                    <Text style={[styles.label, { color: colors.text }]}>Kategori</Text>
+                    
+                    <TouchableOpacity 
+                      style={[styles.dropdownButton, { borderColor: colors.border, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#fff' }]}
+                      onPress={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                      disabled={modalCategories.length === 0}
+                    >
+                      <Text style={[styles.dropdownButtonText, { color: colors.text }]}>
+                        {formData.sourceType ? formData.sourceType : modalCategories.length > 0 ? 'Pilih kategori' : 'Belum ada kategori'}
+                      </Text>
+                      <Ionicons name={showCategoryDropdown ? "chevron-up" : "chevron-down"} size={20} color={colors.textSecondary} />
+                    </TouchableOpacity>
+
+                    {showCategoryDropdown && (
+                      <View style={[styles.dropdownList, { borderColor: colors.border, backgroundColor: isDarkMode ? '#1e293b' : '#fff' }]}>
+                        {modalCategories.map((cat) => (
+                          <TouchableOpacity
+                            key={cat}
+                            style={[
+                              styles.dropdownItem,
+                              formData.sourceType === cat && { backgroundColor: isDarkMode ? 'rgba(16, 185, 129, 0.2)' : 'rgba(16, 185, 129, 0.1)' },
+                              { borderBottomColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }
+                            ]}
+                            onPress={() => {
+                              setFormData({ ...formData, sourceType: cat });
+                              setShowCategoryDropdown(false);
+                            }}
+                          >
+                            <Text style={[
+                              styles.dropdownItemText, 
+                              { color: colors.text },
+                              formData.sourceType === cat && { color: '#10b981', fontWeight: 'bold' }
+                            ]}>
+                              {cat}
+                            </Text>
+                            {formData.sourceType === cat && (
+                              <Ionicons name="checkmark" size={18} color="#10b981" />
+                            )}
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                </>
               ) : (
                 <>
                   <View style={styles.formGroup}>
@@ -1248,6 +1434,32 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     fontSize: 12,
     color: '#059669',
   },
+  natureRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  natureOption: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: isDarkMode ? '#334155' : '#e2e8f0',
+    backgroundColor: isDarkMode ? '#1e293b' : '#fff',
+  },
+  natureOptionActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  natureText: {
+    textAlign: 'center',
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textSecondary,
+  },
+  natureTextActive: {
+    color: '#fff',
+  },
   dropdownButton: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1280,6 +1492,23 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
   },
   advancedFilters: {
     marginBottom: 24,
+  },
+  sourceLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    paddingHorizontal: 4,
+  },
+  sourceLabel: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  sourceValue: {
+    fontSize: 13,
+    color: colors.text,
+    fontWeight: '700',
   },
   dateFilterRow: {
     flexDirection: 'row',

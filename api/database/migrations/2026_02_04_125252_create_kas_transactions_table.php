@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('rt_id')->index(); // No constraint to allow flexibility, or constrained('wilayah_rts') if table exists. Assuming simple index for now or constrained if I'm sure. User said "rt_id" is FK. I'll use standard foreignId without strict constraint if table name is unsure, but usually it is 'wilayah_rts'. I will check other migrations or just use index to be safe given "multi RT" context. Let's stick to simple bigInteger + index for safety unless I check.
             // Actually, in previous context, "rt_id" is used. I'll use index.
             
-            $table->string('source_type')->comment('DENDA, IURAN, DONASI');
+            $table->string('source_type')->comment('Kategori transaksi (contoh: Iuran Warga, Sampah, Operasional)');
             $table->unsignedBigInteger('source_id')->nullable();
             $table->bigInteger('amount');
             $table->string('direction')->comment('IN, OUT');

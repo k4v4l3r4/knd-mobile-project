@@ -55,6 +55,7 @@ export default function KeuanganPage() {
     amount: '',
     source_type: '',
     description: '',
+    account_id: '',
     from_account_id: '',
     to_account_id: ''
   });
@@ -133,9 +134,9 @@ export default function KeuanganPage() {
           total_out: 2500000,
           balance: 5000000,
           breakdown: {
-            IURAN: 5000000,
-            DENDA: 500000,
-            LAINNYA: 2000000
+            'Iuran Warga': 5000000,
+            Sampah: 500000,
+            'Pemasukan Lainnya': 2000000
           }
         };
         const now = new Date();
@@ -144,7 +145,7 @@ export default function KeuanganPage() {
             id: 1,
             origin: "demo",
             created_at: now.toISOString(),
-            source_type: "IURAN",
+            source_type: "Iuran Warga",
             description: "Iuran rutin bulan ini",
             direction: "IN",
             amount: 3000000
@@ -153,8 +154,8 @@ export default function KeuanganPage() {
             id: 2,
             origin: "demo",
             created_at: now.toISOString(),
-            source_type: "DENDA",
-            description: "Denda keterlambatan iuran",
+            source_type: "Sampah",
+            description: "Iuran sampah bulan ini",
             direction: "IN",
             amount: 500000
           },
@@ -261,6 +262,7 @@ export default function KeuanganPage() {
       amount: '',
       source_type: '', // Force user to select from dropdown
       description: '',
+      account_id: accounts[0]?.id ? accounts[0].id.toString() : '',
       from_account_id: '',
       to_account_id: ''
     });
@@ -290,9 +292,14 @@ export default function KeuanganPage() {
         return;
       }
 
-      // Validation for Source Type (Category)
+      // Validation for Category
       if (modalType !== 'TRANSFER' && !formData.source_type.trim()) {
-        toast.error("Mohon pilih atau isi Kategori/Sumber transaksi");
+        toast.error("Mohon pilih atau isi Kategori transaksi");
+        setIsSubmitting(false);
+        return;
+      }
+      if (modalType !== 'TRANSFER' && !formData.account_id) {
+        toast.error("Mohon pilih Akun kas (Kas & Bank)");
         setIsSubmitting(false);
         return;
       }
@@ -310,7 +317,8 @@ export default function KeuanganPage() {
             amount: amountVal,
             direction: modalType,
             source_type: formData.source_type,
-            description: formData.description
+            description: formData.description,
+            account_id: formData.account_id
         });
         toast.success(`Berhasil menambahkan ${modalType === 'IN' ? 'pemasukan' : 'pengeluaran'}`);
       }
@@ -526,7 +534,7 @@ export default function KeuanganPage() {
               <thead className="bg-slate-50 dark:bg-slate-700/50">
                 <tr>
                   <th className="px-4 py-3 rounded-l-lg font-semibold text-slate-700 dark:text-slate-200">Tanggal</th>
-                  <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-200">Sumber</th>
+                  <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-200">Kategori</th>
                   <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-200">Keterangan</th>
                   <th className="px-4 py-3 font-semibold text-emerald-600 dark:text-emerald-400 text-right">Masuk</th>
                   <th className="px-4 py-3 rounded-r-lg font-semibold text-rose-600 dark:text-rose-400 text-right">Keluar</th>
@@ -547,10 +555,7 @@ export default function KeuanganPage() {
                         </td>
                         <td className="px-4 py-3">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap
-                            ${tx.source_type === 'DENDA' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' : 
-                              tx.source_type === 'IURAN' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' :
-                              'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
-                            }`}>
+                            bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300`}>
                             {tx.source_type || 'UMUM'}
                           </span>
                         </td>
@@ -651,56 +656,74 @@ export default function KeuanganPage() {
             </div>
 
             {modalType !== 'TRANSFER' && (
+              <>
                 <div className="space-y-2">
-                <Label htmlFor="source">Kategori / Sumber</Label>
-                <div className="relative">
-                  <select
-                    id="source"
-                    value={isCustomCategory ? 'Lainnya' : formData.source_type}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val === 'Lainnya') {
-                        setIsCustomCategory(true);
-                        setFormData({ ...formData, source_type: '' });
-                      } else {
-                        setIsCustomCategory(false);
-                        setFormData({ ...formData, source_type: val });
-                      }
-                    }}
-                    className="flex h-10 w-full items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950 dark:ring-offset-slate-950 dark:placeholder:text-slate-400 dark:focus:ring-slate-300"
-                    required={!isCustomCategory}
+                  <Label htmlFor="account">Akun Kas</Label>
+                  <Select
+                    value={formData.account_id}
+                    onValueChange={(val) => setFormData({ ...formData, account_id: val })}
+                    required
                   >
-                    <option value="" disabled>Pilih Kategori</option>
-                    {modalType === 'IN' ? (
-                      <>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih Akun (Kas & Bank)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {accounts.map(acc => (
+                        <SelectItem key={acc.id} value={acc.id.toString()}>
+                          {acc.name} ({formatCurrency(acc.balance)})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="source">Kategori</Label>
+                  <div className="relative">
+                    <select
+                      id="source"
+                      value={isCustomCategory ? 'Lainnya' : formData.source_type}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === 'Lainnya') {
+                          setIsCustomCategory(true);
+                          setFormData({ ...formData, source_type: '' });
+                        } else {
+                          setIsCustomCategory(false);
+                          setFormData({ ...formData, source_type: val });
+                        }
+                      }}
+                      className="flex h-10 w-full items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950 dark:ring-offset-slate-950 dark:placeholder:text-slate-400 dark:focus:ring-slate-300"
+                      required={!isCustomCategory}
+                    >
+                      <option value="" disabled>Pilih Kategori</option>
+                      {modalType === 'IN' ? (
                         <optgroup label="Iuran & Pemasukan">
                           {fees.map((fee: any) => (
                             <option key={fee.id} value={fee.name}>{fee.name}</option>
                           ))}
                         </optgroup>
-                      </>
-                    ) : (
-                      <>
+                      ) : (
                         <optgroup label="Kegiatan & Pengeluaran">
                           {activities.map((act: any) => (
                             <option key={act.id} value={act.name}>{act.name}</option>
                           ))}
                         </optgroup>
-                      </>
-                    )}
-                  </select>
+                      )}
+                    </select>
+                  </div>
+                  {isCustomCategory && (
+                    <Input
+                      placeholder="Tulis kategori manual..."
+                      className="mt-2"
+                      value={formData.source_type}
+                      onChange={(e) => setFormData({ ...formData, source_type: e.target.value })}
+                      required
+                      autoFocus
+                    />
+                  )}
                 </div>
-                {isCustomCategory && (
-                  <Input
-                    placeholder="Tulis kategori manual..."
-                    className="mt-2"
-                    value={formData.source_type}
-                    onChange={(e) => setFormData({ ...formData, source_type: e.target.value })}
-                    required
-                    autoFocus
-                  />
-                )}
-                </div>
+              </>
             )}
 
             <div className="space-y-2">
