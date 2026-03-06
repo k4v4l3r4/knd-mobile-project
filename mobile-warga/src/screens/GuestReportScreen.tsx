@@ -305,14 +305,18 @@ export default function GuestReportScreen() {
                 <View style={styles.formGroup}>
                   <Text style={styles.label}>{t('guest.form.phone')}</Text>
                   <TextInput
-                    style={styles.input}
-                    value={formData.guest_phone}
-                    onChangeText={t => setFormData({...formData, guest_phone: t})}
-                    keyboardType="phone-pad"
-                    placeholder="08..."
-                    placeholderTextColor={colors.textSecondary}
-                    maxLength={15}
-                  />
+            style={styles.input}
+            value={formData.guest_phone}
+            onChangeText={t => {
+              let val = t;
+              if (val.startsWith('0')) val = '62' + val.substring(1);
+              setFormData({...formData, guest_phone: val});
+            }}
+            keyboardType="phone-pad"
+            placeholder="628..."
+            placeholderTextColor={colors.textSecondary}
+            maxLength={15}
+          />
                 </View>
 
                 <View style={styles.formGroup}>

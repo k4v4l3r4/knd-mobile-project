@@ -321,8 +321,12 @@ const ProfileScreen = () => {
                 borderColor: isDarkMode ? '#334155' : '#e2e8f0'
               }]}
               value={user.phone}
-              onChangeText={(text) => setUser({ ...user, phone: text })}
-              placeholder="08xxxxxxxxxx"
+              onChangeText={(text) => {
+                let formatted = text;
+                if (formatted.startsWith('0')) formatted = '62' + formatted.substring(1);
+                setUser({ ...user, phone: formatted });
+              }}
+              placeholder="628..."
               keyboardType="phone-pad"
               maxLength={15}
               placeholderTextColor={colors.textSecondary}

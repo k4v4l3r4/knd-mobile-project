@@ -94,7 +94,7 @@ export default function EmergencyPage() {
             user: {
               id: 1,
               name: 'Budi Santoso',
-              phone: '081234567801'
+              phone: '6281234567801'
             }
           },
           {
@@ -108,13 +108,13 @@ export default function EmergencyPage() {
             user: {
               id: 2,
               name: 'Siti Aminah',
-              phone: '081234567802'
+              phone: '6281234567802'
             }
           }
         ];
         const demoContacts: Contact[] = [
-          { id: 1, name: 'Ketua RT 01', number: '081234567800', type: 'PENGURUS' },
-          { id: 2, name: 'Satpam Kompleks', number: '081234567899', type: 'SATPAM' },
+          { id: 1, name: 'Ketua RT 01', number: '6281234567800', type: 'PENGURUS' },
+          { id: 2, name: 'Satpam Kompleks', number: '6281234567899', type: 'SATPAM' },
           { id: 3, name: 'Polsek Setempat', number: '110', type: 'POLISI' }
         ];
         setAlerts(demoAlerts);
@@ -456,9 +456,15 @@ export default function EmergencyPage() {
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 tracking-wider">Nomor Telepon</Label>
                   <Input 
+                    type="tel"
+                    inputMode="numeric"
                     value={newContact.number} 
-                    onChange={e => setNewContact({...newContact, number: e.target.value})}
-                    placeholder="08..."
+                    onChange={e => {
+                      let val = e.target.value.replace(/\D/g, '');
+                      if (val.startsWith('0')) val = '62' + val.substring(1);
+                      setNewContact({...newContact, number: val});
+                    }}
+                    placeholder="628..."
                     required 
                     className="rounded-xl border-slate-200 dark:border-slate-700 focus:ring-emerald-500 bg-white dark:bg-slate-900 dark:text-white"
                   />

@@ -1606,12 +1606,18 @@ export default function BoardingScreen() {
             <Text style={styles.inputLabel}>{t('boarding.identity.whatsapp')}</Text>
             <TextInput
               style={styles.input}
-              placeholder={t('boarding.identity.whatsappPlaceholder')}
+              placeholder="628..."
               placeholderTextColor={colors.textSecondary}
-              keyboardType="numeric"
+              keyboardType="phone-pad"
               maxLength={15}
               value={formData.phone}
-              onChangeText={(text) => setFormData({...formData, phone: text.replace(/[^0-9]/g, '')})}
+              onChangeText={(text) => {
+                let val = text.replace(/[^0-9]/g, '');
+                if (val.startsWith('0')) {
+                  val = '62' + val.substring(1);
+                }
+                setFormData({...formData, phone: val});
+              }}
             />
 
             <Text style={styles.inputLabel}>{t('boarding.identity.nik')}</Text>

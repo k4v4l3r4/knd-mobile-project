@@ -49,6 +49,7 @@ export default function GuestScreen() {
 
   // Form State
   const [guestName, setGuestName] = useState('');
+  const [guestPhone, setGuestPhone] = useState('');
   const [guestNik, setGuestNik] = useState('');
   const [relation, setRelation] = useState('');
   const [duration, setDuration] = useState('');
@@ -153,6 +154,7 @@ export default function GuestScreen() {
     try {
       const formData = new FormData();
       formData.append('guest_name', guestName);
+      if (guestPhone) formData.append('guest_phone', guestPhone);
       formData.append('guest_nik', guestNik);
       formData.append('relation', relation);
       formData.append('duration_days', duration);
@@ -188,6 +190,7 @@ export default function GuestScreen() {
 
   const resetForm = () => {
     setGuestName('');
+    setGuestPhone('');
     setGuestNik('');
     setRelation('');
     setDuration('');
@@ -328,6 +331,25 @@ export default function GuestScreen() {
                 value={guestName}
                 onChangeText={setGuestName}
                 placeholder={t('guest.form.namePlaceholder')}
+                placeholderTextColor={colors.textSecondary}
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>{t('guest.form.phone')}</Text>
+              <TextInput
+                style={styles.input}
+                value={guestPhone}
+                onChangeText={(text) => {
+                  // Auto-replace leading 0 with 62
+                  if (text.startsWith('0')) {
+                    setGuestPhone('62' + text.slice(1));
+                  } else {
+                    setGuestPhone(text);
+                  }
+                }}
+                keyboardType="phone-pad"
+                placeholder="628..."
                 placeholderTextColor={colors.textSecondary}
               />
             </View>

@@ -273,10 +273,14 @@ export default function WalletSettingsScreen({ onNavigate }: WalletSettingsScree
                     <TextInput
             style={styles.input}
             value={formData.account_number}
-            onChangeText={(text) => setFormData({ ...formData, account_number: text })}
+            onChangeText={(text) => {
+              let val = text;
+              if (val.startsWith('0')) val = '62' + val.substring(1);
+              setFormData({ ...formData, account_number: val });
+            }}
             keyboardType="phone-pad"
             maxLength={15}
-            placeholder="Contoh: 08123456789"
+            placeholder="628..."
             placeholderTextColor={colors.textSecondary}
           />
                   </View>

@@ -1455,9 +1455,15 @@ export default function WargaPage() {
                                 type="tel"
                                 maxLength={15}
                                 value={formData.phone}
-                                onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                                onChange={(e) => {
+                                    let val = e.target.value.replace(/\D/g, '');
+                                    if (val.startsWith('0')) {
+                                        val = '62' + val.substring(1);
+                                    }
+                                    setFormData({...formData, phone: val});
+                                }}
                                 className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all dark:text-white"
-                                placeholder="08xxxxxxxxxx"
+                                placeholder="628..."
                             />
                         </div>
                         <div className="space-y-1.5">

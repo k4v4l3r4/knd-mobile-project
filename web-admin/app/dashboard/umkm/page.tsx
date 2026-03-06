@@ -208,7 +208,7 @@ export default function UmkmPage() {
           id: 1,
           name: 'Budi Santoso',
           email: 'budi.santoso@example.com',
-          phone: '081234567801',
+          phone: '6281234567801',
           role: 'ADMIN_RT',
           photo_url: null,
           rt_id: 1
@@ -237,7 +237,7 @@ export default function UmkmPage() {
             id: 1,
             name: 'Budi Santoso',
             email: 'budi.santoso@example.com',
-            phone: '081234567801',
+            phone: '6281234567801',
             role: 'ADMIN_RT',
             photo_url: null,
             rt_id: 1
@@ -245,7 +245,7 @@ export default function UmkmPage() {
           description: 'Warung kebutuhan sehari-hari warga RT 001.',
           image_url: null,
           category: 'FOOD',
-          contact: '081234567801',
+          contact: '6281234567801',
           address: 'Jl. Melati No. 10, RT 001',
           products: []
         };
@@ -274,7 +274,7 @@ export default function UmkmPage() {
               id: 2,
               name: 'Siti Aminah',
               email: 'siti.aminah@example.com',
-              phone: '081234567802',
+              phone: '6281234567802',
               role: 'WARGA',
               photo_url: null,
               rt_id: 1
@@ -282,7 +282,7 @@ export default function UmkmPage() {
             description: 'Katering rumahan untuk acara keluarga dan kantor.',
             image_url: null,
             category: 'FOOD',
-            contact: '081234567802',
+            contact: '6281234567802',
             address: 'Jl. Mawar No. 5, RT 001',
             products: []
           }
@@ -326,7 +326,7 @@ export default function UmkmPage() {
             price: '25000',
             category: 'FOOD',
             image_url: null,
-            whatsapp: '081234567801',
+            whatsapp: '6281234567801',
             created_at: new Date().toISOString(),
             store: {
               id: 1,
@@ -337,7 +337,7 @@ export default function UmkmPage() {
                 id: 1,
                 name: 'Budi Santoso',
                 email: 'budi.santoso@example.com',
-                phone: '081234567801',
+                phone: '6281234567801',
                 role: 'ADMIN_RT',
                 photo_url: null,
                 rt_id: 1
@@ -345,7 +345,7 @@ export default function UmkmPage() {
               description: 'Warung kebutuhan sehari-hari warga RT 001.',
               image_url: null,
               category: 'FOOD',
-              contact: '081234567801',
+              contact: '6281234567801',
               address: 'Jl. Melati No. 10, RT 001',
               products: []
             },
@@ -353,7 +353,7 @@ export default function UmkmPage() {
               id: 1,
               name: 'Budi Santoso',
               email: 'budi.santoso@example.com',
-              phone: '081234567801',
+              phone: '6281234567801',
               role: 'ADMIN_RT',
               photo_url: null,
               rt_id: 1
@@ -367,7 +367,7 @@ export default function UmkmPage() {
             price: '15000',
             category: 'SERVICE',
             image_url: null,
-            whatsapp: '081234567802',
+            whatsapp: '6281234567802',
             created_at: new Date().toISOString(),
             store: {
               id: 2,
@@ -378,7 +378,7 @@ export default function UmkmPage() {
                 id: 2,
                 name: 'Andi Wijaya',
                 email: 'andi.wijaya@example.com',
-                phone: '081234567802',
+                phone: '6281234567802',
                 role: 'WARGA',
                 photo_url: null,
                 rt_id: 1
@@ -386,7 +386,7 @@ export default function UmkmPage() {
               description: 'Layanan cuci motor panggilan di lingkungan RT.',
               image_url: null,
               category: 'SERVICE',
-              contact: '081234567802',
+              contact: '6281234567802',
               address: 'Jl. Kenanga No. 3, RT 001',
               products: []
             },
@@ -394,7 +394,7 @@ export default function UmkmPage() {
               id: 2,
               name: 'Andi Wijaya',
               email: 'andi.wijaya@example.com',
-              phone: '081234567802',
+              phone: '6281234567802',
               role: 'WARGA',
               photo_url: null,
               rt_id: 1

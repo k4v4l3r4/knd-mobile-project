@@ -27,6 +27,7 @@ import { useTenant } from '../context/TenantContext';
 import { BackButton } from '../components/BackButton';
 import api, { BASE_URL } from '../services/api';
 import { settingService } from '../services/setting';
+import { formatPhoneNumber } from '../utils/phoneUtils';
 
 interface KasSummary {
   balance: number;
@@ -667,9 +668,7 @@ const FinanceReportScreen = ({ onNavigate }: { onNavigate: (screen: string) => v
                 {!isPaid && user.phone && (
                   <TouchableOpacity 
                     onPress={() => {
-                      let phone = user.phone || '';
-                      if (phone.startsWith('0')) phone = '62' + phone.substring(1);
-                      if (phone.startsWith('8')) phone = '62' + phone;
+                      const phone = formatPhoneNumber(user.phone);
                       Linking.openURL(`whatsapp://send?phone=${phone}&text=Halo Bapak/Ibu ${user.name}, mohon maaf mengganggu. Mengingatkan untuk pembayaran iuran bulan ini. Terima kasih.`);
                     }}
                     style={{

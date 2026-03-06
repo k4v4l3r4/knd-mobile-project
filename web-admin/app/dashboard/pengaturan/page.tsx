@@ -1397,12 +1397,16 @@ export default function SettingsPage() {
                             <div className="sm:col-span-2">
                               <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">No. WhatsApp Sekretariat</label>
                               <input
-                                type="text"
-                                value={profile.contact_phone || ''}
-                                onChange={(e) => setProfile({ ...profile, contact_phone: e.target.value })}
-                                className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none text-slate-800 dark:text-slate-100"
-                                placeholder="Contoh: 081234567890"
-                              />
+                      type="text"
+                      value={profile.contact_phone || ''}
+                      onChange={(e) => {
+                        let val = e.target.value;
+                        if (val.startsWith('0')) val = '62' + val.substring(1);
+                        setProfile({ ...profile, contact_phone: val });
+                      }}
+                      className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none text-slate-800 dark:text-slate-100"
+                      placeholder="628..."
+                    />
                             </div>
                           </div>
                         </div>
@@ -2142,10 +2146,14 @@ export default function SettingsPage() {
                   <input
                     type="text"
                     value={currentWallet.account_number || ''}
-                    onChange={(e) => setCurrentWallet({ ...currentWallet, account_number: e.target.value })}
-                    className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all outline-none font-medium text-slate-800 dark:text-white"
-                    placeholder="Contoh: 08123456789"
-                  />
+          onChange={(e) => {
+            let val = e.target.value;
+            if (val.startsWith('0')) val = '62' + val.substring(1);
+            setCurrentWallet({ ...currentWallet, account_number: val })
+          }}
+          className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all outline-none font-medium text-slate-800 dark:text-white"
+          placeholder="628..."
+        />
                   <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
                     Nomor ini akan ditampilkan kepada warga untuk konfirmasi pembayaran tunai.
                   </p>

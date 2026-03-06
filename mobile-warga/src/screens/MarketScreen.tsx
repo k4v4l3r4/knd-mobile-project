@@ -808,14 +808,18 @@ export default function MarketScreen({ onNavigate }: MarketScreenProps) {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>{t('market.createStore.contact')}</Text>
               <TextInput
-            style={styles.input}
-            value={storeContact}
-            onChangeText={setStoreContact}
-            placeholder={t('market.createStore.contactPlaceholder')}
-            keyboardType="phone-pad"
-            maxLength={15}
-            placeholderTextColor={colors.textSecondary}
-          />
+                style={styles.input}
+                value={storeContact}
+                onChangeText={(text) => {
+                  let val = text;
+                  if (val.startsWith('0')) val = '62' + val.substring(1);
+                  setStoreContact(val);
+                }}
+                placeholder="628..."
+                keyboardType="phone-pad"
+                maxLength={15}
+                placeholderTextColor={colors.textSecondary}
+              />
             </View>
 
             <View style={styles.inputGroup}>
@@ -960,8 +964,12 @@ export default function MarketScreen({ onNavigate }: MarketScreenProps) {
               <TextInput
                 style={styles.input}
                 value={storeContact}
-                onChangeText={setStoreContact}
-                placeholder="Contoh: 628123456789"
+                onChangeText={(text) => {
+                  let val = text;
+                  if (val.startsWith('0')) val = '62' + val.substring(1);
+                  setStoreContact(val);
+                }}
+                placeholder="628..."
                 keyboardType="phone-pad"
                 maxLength={15}
                 placeholderTextColor={colors.textSecondary}

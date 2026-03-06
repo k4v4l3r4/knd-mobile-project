@@ -475,9 +475,18 @@ export default function GuestBookPage() {
                   type="text"
                   maxLength={15}
                   className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600"
-                  placeholder="08..."
+                  placeholder="628..."
                   value={formData.guest_phone}
-                  onChange={e => setFormData({...formData, guest_phone: e.target.value})}
+                  onChange={e => {
+                    let val = e.target.value;
+                    // Auto-replace leading 0 with 62
+                    if (val.startsWith('0')) {
+                      val = '62' + val.slice(1);
+                    }
+                    // Allow only numbers
+                    val = val.replace(/[^0-9]/g, '');
+                    setFormData({...formData, guest_phone: val});
+                  }}
                 />
               </div>
 

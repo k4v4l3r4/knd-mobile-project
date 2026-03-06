@@ -1177,8 +1177,15 @@ export default function WargaListScreen({ }: WargaListScreenProps) {
                             style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 12, color: colors.text, fontSize: 16 }}
                             value={editForm.phone}
                             keyboardType="phone-pad"
+                            placeholder="628..."
+                            placeholderTextColor={colors.textSecondary}
                             maxLength={15}
-                            onChangeText={(text) => { setEditForm({...editForm, phone: text}); setHasUnsavedChanges(true); }}
+                            onChangeText={(text) => {
+                              let val = text;
+                              if (val.startsWith('0')) val = '62' + val.substring(1);
+                              setEditForm({...editForm, phone: val});
+                              setHasUnsavedChanges(true);
+                            }}
                           />
                         </View>
 

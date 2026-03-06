@@ -87,7 +87,7 @@ export default function MyStorePage() {
             id: 1,
             name: 'Budi Santoso',
             email: 'budi.santoso@example.com',
-            phone: '081234567801',
+            phone: '6281234567801',
             role: 'ADMIN_RT',
             photo_url: null,
             rt_id: 1
@@ -95,7 +95,7 @@ export default function MyStorePage() {
           description: 'Warung kebutuhan sehari-hari warga RT 01.',
           image_url: null,
           category: 'FOOD',
-          contact: '081234567801',
+          contact: '6281234567801',
           address: 'Jl. Melati No. 10, RT 01',
           products: []
         };

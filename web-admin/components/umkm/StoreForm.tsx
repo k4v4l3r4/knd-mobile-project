@@ -303,8 +303,12 @@ export default function StoreForm({
                       id="contact" 
                       maxLength={15}
                       value={contact} 
-                      onChange={(e) => setContact(e.target.value)} 
-                      placeholder="081234567890"
+                      onChange={(e) => {
+                        let val = e.target.value;
+                        if (val.startsWith('0')) val = '62' + val.substring(1);
+                        setContact(val);
+                      }} 
+                      placeholder="628..."
                       required
                     />
                   </div>

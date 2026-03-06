@@ -251,7 +251,17 @@ export default function KostPage() {
   // Handlers for Tenant Form
   const handleTenantInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setTenantFormData(prev => ({ ...prev, [name]: value }));
+    
+    if (name === 'phone') {
+      // Auto-format: 08 -> 628
+      let formattedValue = value;
+      if (formattedValue.startsWith('0')) {
+        formattedValue = '62' + formattedValue.substring(1);
+      }
+      setTenantFormData(prev => ({ ...prev, [name]: formattedValue }));
+    } else {
+      setTenantFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -760,15 +770,21 @@ export default function KostPage() {
                    <h4 className="font-medium text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-700 pb-2">Kontak & Penempatan</h4>
                    
                    <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Nomor HP (WhatsApp)</label>
-                    <input
-                      type="tel"
-                      name="phone"
-                      value={tenantFormData.phone}
-                      onChange={handleTenantInputChange}
-                      className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition"
-                      placeholder="08..."
-                    />
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      No. HP / WhatsApp <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                      <input
+                        type="tel"
+                        name="phone"
+                        value={tenantFormData.phone}
+                        onChange={handleTenantInputChange}
+                        className="w-full pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition"
+                        placeholder="628..."
+                        required
+                      />
+                    </div>
                   </div>
 
                   <div>

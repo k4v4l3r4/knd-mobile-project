@@ -307,9 +307,13 @@ export default function ProfilePage() {
                   <input
                     type="text"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) => {
+                      let val = e.target.value;
+                      if (val.startsWith('0')) val = '62' + val.substring(1);
+                      setPhone(val);
+                    }}
                     className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                    placeholder="08xxxxxxxx"
+                    placeholder="628..."
                     required
                   />
                 </div>
