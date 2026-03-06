@@ -48,20 +48,31 @@ class AuthController extends Controller
             'status_in_family' => 'nullable|string',
         ]);
 
-        $rtId = $validated['rt_id'] ?? null;
+        $rtId = null;
         $tenantId = null;
+        $rwId = null;
 
-        if (!$rtId && !empty($validated['invite_code'])) {
-            // Fix: Use invite_code column (already correct) and ensure we get tenant_id
+        // Priority 1: Invite Code (Strongest validation)
+        if (!empty($validated['invite_code'])) {
             $rt = WilayahRt::where('invite_code', $validated['invite_code'])->first();
             if ($rt) {
                 $rtId = $rt->id;
-                $tenantId = $rt->tenant_id; // Capture tenant_id from RT
-            }
-        } elseif ($rtId) {
-            $rt = WilayahRt::find($rtId);
-            if ($rt) {
                 $tenantId = $rt->tenant_id;
+                $rwId = $rt->rw_id;
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Kode Undangan tidak valid',
+                ], 422);
+            }
+        } 
+        // Priority 2: RT ID (Only if no invite code)
+        elseif (!empty($validated['rt_id'])) {
+            $rt = WilayahRt::find($validated['rt_id']);
+            if ($rt) {
+                $rtId = $rt->id;
+                $tenantId = $rt->tenant_id;
+                $rwId = $rt->rw_id;
             }
         }
 
@@ -70,18 +81,6 @@ class AuthController extends Controller
                 'success' => false,
                 'message' => 'RT ID or valid Invite Code is required',
             ], 422);
-        }
-
-        // Get RW ID from RT
-        // If $rt is already fetched above, use it. Otherwise find it.
-        if (!isset($rt)) {
-             $rt = WilayahRt::find($rtId);
-        }
-        
-        $rwId = $rt ? $rt->rw_id : null;
-        // Update tenantId if not set yet (e.g. passed rt_id directly)
-        if (!$tenantId && $rt) {
-            $tenantId = $rt->tenant_id;
         }
 
         // Use Global Mapper for standardization

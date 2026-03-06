@@ -59,8 +59,37 @@ class TransactionController extends Controller
         \Illuminate\Support\Facades\Log::info('Transaction Store Payload:', $request->all());
         $validated = $request->validated();
         
+        // 1. Secure Wallet Lookup & Validation
+        $wallet = Wallet::find($validated['account_id']);
+        if (!$wallet) {
+            return response()->json(['message' => 'Dompet/Kas tidak ditemukan.'], 404);
+        }
+
+        // 2. Tenant/Scope Validation
+        $user = Auth::user();
+        if ($user->role !== 'SUPER_ADMIN') {
+            // Strict RT Check for ADMIN_RT
+            if ($user->role === 'ADMIN_RT' && $wallet->rt_id != $user->rt_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Akses Ditolak: Anda tidak dapat mencatat transaksi di dompet RT lain.',
+                ], 403);
+            }
+
+            // RW Check for ADMIN_RW
+            if ($user->role === 'ADMIN_RW') {
+                $walletRt = \App\Models\WilayahRt::find($wallet->rt_id);
+                if (!$walletRt || $walletRt->rw_id != $user->rw_id) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Akses Ditolak: Dompet ini berada di luar wilayah RW Anda.',
+                    ], 403);
+                }
+            }
+        }
+
         // Add additional info
-        $validated['rt_id'] = Wallet::find($validated['account_id'])->rt_id;
+        $validated['rt_id'] = $wallet->rt_id;
         $validated['user_id'] = Auth::id();
         
         // Default admin transactions are verified immediately
@@ -71,8 +100,11 @@ class TransactionController extends Controller
         try {
             // Check Balance for Expenses
             if (in_array($validated['type'], ['OUT', 'EXPENSE'])) {
-                $wallet = Wallet::lockForUpdate()->find($validated['account_id']);
-                if ($wallet->balance < $validated['amount']) {
+                // Use the already fetched wallet, but lock it now?
+                // Better to lock properly in transaction
+                $walletLocked = Wallet::lockForUpdate()->find($validated['account_id']);
+                
+                if ($walletLocked->balance < $validated['amount']) {
                     DB::rollBack();
                     return response()->json([
                         'success' => false,
