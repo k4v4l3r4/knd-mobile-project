@@ -171,10 +171,10 @@ class KasController extends Controller
                 END as source_type"),
                 'description',
                 'created_at',
-                DB::raw("'KAS' as origin"),
-                DB::raw("NULL as payment_method")
+                DB::raw("'KAS' as origin")
             )
-            ->selectSub($defaultWalletIdSub, 'account_id');
+            ->selectSub($defaultWalletIdSub, 'account_id')
+            ->addSelect(DB::raw("NULL as payment_method"));
 
         // Fetch from Transactions
         $transQuery = Transaction::where('rt_id', $rtId)
