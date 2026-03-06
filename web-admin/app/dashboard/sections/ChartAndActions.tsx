@@ -4,6 +4,28 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { UserPlus, Wallet, Megaphone, ArrowRight, Clock, Activity } from 'lucide-react';
 import Link from 'next/link';
 
+function CustomTooltip({ active, payload, label }: any) {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white p-4 rounded-xl shadow-xl border border-slate-100">
+        <p className="text-sm font-semibold text-slate-800 mb-2">{label}</p>
+        <div className="space-y-1">
+          <p className="text-xs font-medium text-indigo-600 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+            Masuk: Rp {payload[0].value.toLocaleString('id-ID')}
+          </p>
+          <p className="text-xs font-medium text-pink-500 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-pink-500"></span>
+            Keluar: Rp {payload[1].value.toLocaleString('id-ID')}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
+
 export default function ChartAndActions({ data }: { data: any }) {
   const chartData = data?.trend_chart || [
     { month: 'Jan', income: 5000000, expense: 2000000 },
@@ -37,27 +59,6 @@ export default function ChartAndActions({ data }: { data: any }) {
       shadow: 'shadow-cyan-200/50'
     },
   ];
-
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white p-4 rounded-xl shadow-xl border border-slate-100">
-          <p className="text-sm font-semibold text-slate-800 mb-2">{label}</p>
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-indigo-600 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
-              Masuk: Rp {payload[0].value.toLocaleString('id-ID')}
-            </p>
-            <p className="text-xs font-medium text-pink-500 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-pink-500"></span>
-              Keluar: Rp {payload[1].value.toLocaleString('id-ID')}
-            </p>
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

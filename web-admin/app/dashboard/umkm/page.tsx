@@ -1083,7 +1083,7 @@ export default function UmkmPage() {
                         {/* Store Identity Card */}
                         <div className="bg-white dark:bg-slate-800 p-4 rounded-[20px] border border-slate-100 dark:border-slate-700 shadow-sm flex items-center gap-4 mb-8 group hover:border-emerald-200 dark:hover:border-emerald-800 transition-colors cursor-pointer">
                            <div className="w-14 h-14 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden relative border-2 border-white dark:border-slate-600 shadow-md group-hover:scale-105 transition-transform">
-                              /* eslint-disable-next-line @next/next/no-img-element */
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img 
                                 key={new Date().getTime()}
                                 src={getImageUrl(selectedProduct.store?.image_url || selectedProduct.store?.user?.photo_url) || `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedProduct.store?.name || 'Store')}`}
@@ -1219,7 +1219,7 @@ export default function UmkmPage() {
                     <span className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 px-2.5 py-1.5 rounded-lg border border-slate-100 dark:border-slate-700">
                        <MapPin size={14} className="text-emerald-600"/> 
                        {(() => {
-                          let rtId = Number(selectedProduct.store?.rt_id || 0);
+                          const rtId = Number(selectedProduct.store?.rt_id || 0);
                           
                           const shippingFee = Number(selectedProduct.shipping_fee_flat || 0);
                           const isLocal = selectedProduct.shipping_type === 'LOCAL';

@@ -30,7 +30,7 @@ import { useTenant } from '@/context/TenantContext';
 
 const formatPhoneNumber = (phone: string) => {
     if (!phone) return '';
-    let p = phone.trim();
+    const p = phone.trim();
     if (p.startsWith('0')) return '62' + p.slice(1);
     if (!p.startsWith('62')) return '62' + p;
     return p;

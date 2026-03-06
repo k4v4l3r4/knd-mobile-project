@@ -2975,7 +2975,7 @@ export default function SettingsPage() {
             </div>
             <h3 className="text-2xl font-bold text-center text-slate-800 dark:text-white mb-2">Hapus Data?</h3>
             <p className="text-center text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
-              Apakah Anda yakin ingin menghapus <span className="font-bold text-slate-800 dark:text-slate-200">"{itemToDelete.name}"</span>? 
+              Apakah Anda yakin ingin menghapus <span className="font-bold text-slate-800 dark:text-slate-200">&quot;{itemToDelete.name}&quot;</span>? 
               <br/>Tindakan ini tidak dapat dibatalkan.
             </p>
             <div className="flex gap-4">

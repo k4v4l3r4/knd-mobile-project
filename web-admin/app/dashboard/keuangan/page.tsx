@@ -1042,7 +1042,7 @@ export default function KeuanganPage() {
               Apakah Anda yakin ingin menghapus transaksi ini? 
               <br />
               <span className="font-medium text-slate-700 dark:text-slate-300 mt-2 block">
-                "{transactionToDelete?.description}" ({transactionToDelete?.amount ? formatCurrency(transactionToDelete.amount) : 'Rp 0'})
+                &quot;{transactionToDelete?.description}&quot; ({transactionToDelete?.amount ? formatCurrency(transactionToDelete.amount) : 'Rp 0'})
               </span>
               <span className="text-xs text-slate-500 mt-1 block">
                 Tindakan ini akan membatalkan perubahan saldo.

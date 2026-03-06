@@ -532,7 +532,7 @@ export default function EmergencyPage() {
               </div>
               <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Tandai Situasi Aman?</h3>
               <p className="text-slate-500 dark:text-slate-400 text-sm">
-                Pastikan kondisi lapangan sudah benar-benar terkendali. Status akan diubah menjadi "Resolved".
+                Pastikan kondisi lapangan sudah benar-benar terkendali. Status akan diubah menjadi &quot;Resolved&quot;.
               </p>
             </div>
             <div className="flex gap-3">

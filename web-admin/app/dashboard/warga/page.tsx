@@ -1230,7 +1230,7 @@ export default function WargaPage() {
                               Kode Kelurahan
                             </p>
                             <p className="text-xs mt-2 text-blue-600/80 dark:text-blue-400/80">
-                              * Gunakan tombol "Download Template" untuk mendapatkan contoh format yang terbaru.
+                              * Gunakan tombol &quot;Download Template&quot; untuk mendapatkan contoh format yang terbaru.
                             </p>
                         </div>
                     </div>
@@ -1419,7 +1419,9 @@ export default function WargaPage() {
                                     setBirthDateInput(value);
                                     const parts = value.split(/[\/\-]/);
                                     if (parts.length === 3) {
-                                        let [d, m, y] = parts;
+                                        const [dRaw, mRaw, y] = parts;
+                                        let d = dRaw;
+                                        let m = mRaw;
                                         d = d.padStart(2, '0');
                                         m = m.padStart(2, '0');
                                         if (y.length === 4) {

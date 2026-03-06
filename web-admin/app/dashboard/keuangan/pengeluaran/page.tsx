@@ -109,7 +109,7 @@ export default function ExpensePage() {
 
   const handleItemChange = (index: number, field: keyof TransactionItem, value: any) => {
     const newItems = [...formData.items];
-    // @ts-ignore
+    // @ts-expect-error: dynamic key assignment into TransactionItem union field
     newItems[index][field] = value;
     setFormData({ ...formData, items: newItems });
   };

@@ -561,7 +561,7 @@ export default function LaporanWargaPage() {
             </div>
             <h3 className="text-2xl font-extrabold text-center text-slate-800 dark:text-white mb-2">Hapus Laporan?</h3>
             <p className="text-center text-slate-500 dark:text-slate-400 mb-8 leading-relaxed font-medium">
-              Apakah Anda yakin ingin menghapus laporan <span className="font-bold text-slate-800 dark:text-white">"{reportToDelete.title}"</span>? 
+              Apakah Anda yakin ingin menghapus laporan <span className="font-bold text-slate-800 dark:text-white">&quot;{reportToDelete.title}&quot;</span>? 
               <br/>Tindakan ini tidak dapat dibatalkan.
             </p>
             <div className="flex gap-4">

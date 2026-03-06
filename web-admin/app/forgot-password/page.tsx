@@ -17,7 +17,7 @@ import api from '@/lib/api';
 
 const formatPhoneNumber = (phone: string) => {
     if (!phone) return '';
-    let p = phone.trim();
+    const p = phone.trim();
     if (p.startsWith('0')) return '62' + p.slice(1);
     if (!p.startsWith('62')) return '62' + p;
     return p;
@@ -147,7 +147,7 @@ export default function ForgotPasswordPage() {
                             </div>
                             <div>
                                 <p className="text-slate-200 italic mb-2 text-sm leading-relaxed">
-                                    "Sejak pakai sistem ini, kas RT jauh lebih tertib dan warga jadi lebih percaya karena laporan keuangan selalu transparan."
+                                    &quot;Sejak pakai sistem ini, kas RT jauh lebih tertib dan warga jadi lebih percaya karena laporan keuangan selalu transparan.&quot;
                                 </p>
                                 <div className="flex items-center gap-2">
                                     <span className="font-bold text-white text-sm">Bendahara RT 05</span>

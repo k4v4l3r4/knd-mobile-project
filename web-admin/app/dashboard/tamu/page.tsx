@@ -350,7 +350,7 @@ export default function GuestBookPage() {
               </div>
               <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">Verifikasi Data Tamu?</h3>
               <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
-                Pastikan data tamu sudah sesuai. Status akan diubah menjadi <span className="font-bold text-emerald-600 dark:text-emerald-400">"Sudah Dicek"</span>.
+                Pastikan data tamu sudah sesuai. Status akan diubah menjadi <span className="font-bold text-emerald-600 dark:text-emerald-400">&quot;Sudah Dicek&quot;</span>.
               </p>
             </div>
             <div className="flex gap-4">

@@ -34,6 +34,7 @@ class ProductController extends Controller
                 'store.rt:id,city',
             ])
             ->where('is_available', true)
+            ->whereHas('user')
             ->whereHas('store', function($q) {
                 $q->where('status', 'verified');
             });

@@ -17,19 +17,20 @@ class ProductResource extends JsonResource
         $labels = is_array($this->labels) ? $this->labels : [];
         $isHalal = in_array('HALAL', $labels, true);
         $isBpom = in_array('BPOM', $labels, true);
+        $user = $this->user;
 
         return [
             'id' => $this->id,
             'user_id' => $this->user_id,
-            'user' => [
-                'id' => $this->user->id,
-                'name' => $this->user->name,
-                'phone' => $this->user->phone,
-                'photo_url' => $this->user->photo_url,
-                'role' => $this->user->role,
-                'rt_id' => $this->user->rt_id,
+            'user' => $user ? [
+                'id' => $user->id,
+                'name' => $user->name,
+                'phone' => $user->phone,
+                'photo_url' => $user->photo_url,
+                'role' => $user->role,
+                'rt_id' => $user->rt_id,
                 'is_verified' => $this->store && $this->store->status === 'verified',
-            ],
+            ] : null,
             'store' => $this->store ? [
                 'id' => $this->store->id,
                 'rt_id' => $this->store->rt_id,
@@ -58,7 +59,7 @@ class ProductResource extends JsonResource
             'image_url' => $this->image_url,
             'images' => $this->images,
             'created_at' => $this->created_at,
-            'whatsapp' => $this->whatsapp ?? $this->user->phone,
+            'whatsapp' => $this->whatsapp ?? ($user ? $user->phone : null),
             'shopee_url' => $this->shopee_url,
             'tokopedia_url' => $this->tokopedia_url,
             'facebook_url' => $this->facebook_url,

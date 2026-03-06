@@ -634,7 +634,7 @@ export default function VotingPage() {
             </div>
             <h3 className="text-xl font-bold text-center text-slate-800 dark:text-white mb-2">Hapus Voting?</h3>
             <p className="text-center text-slate-500 dark:text-slate-400 mb-8 leading-relaxed text-sm">
-              Apakah Anda yakin ingin menghapus <span className="font-bold text-slate-800 dark:text-white">"{pollToDelete.title}"</span>? 
+              Apakah Anda yakin ingin menghapus <span className="font-bold text-slate-800 dark:text-white">&quot;{pollToDelete.title}&quot;</span>? 
               <br/>Semua data suara akan hilang permanen.
             </p>
             <div className="flex gap-3">
