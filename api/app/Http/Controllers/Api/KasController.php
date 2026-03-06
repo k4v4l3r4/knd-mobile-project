@@ -174,10 +174,7 @@ class KasController extends Controller
                 DB::raw("'KAS' as origin")
             )
             ->selectSub($defaultWalletIdSub, 'account_id')
-            ->addSelect(DB::raw("NULL as payment_method"))
-            ->addSelect(DB::raw("NULL as user_id"))
-            ->addSelect(DB::raw("NULL as user_name"))
-            ->addSelect(DB::raw("NULL as user_block"));
+            ->addSelect(DB::raw("NULL as payment_method"));
 
         // Fetch from Transactions
         $transQuery = Transaction::where('transactions.rt_id', $rtId)
@@ -205,10 +202,28 @@ class KasController extends Controller
             $transQuery->whereIn('transactions.type', $dir);
         }
 
+        // Add dummy columns to KasQuery to match TransQuery columns
+        $kasQuery->addSelect(DB::raw("NULL as user_id"))
+                 ->addSelect(DB::raw("NULL as user_name"))
+                 ->addSelect(DB::raw("NULL as user_block"));
+
         // Combine using Union
         $combined = $kasQuery->unionAll($transQuery)
             ->orderBy('created_at', 'desc')
             ->paginate(20);
+            
+        // Transform the collection to match frontend expectation: tx.user.name
+        $combined->getCollection()->transform(function ($item) {
+            if ($item->origin === 'TRANS' && $item->user_id) {
+                $item->user = [
+                    'name' => $item->user_name,
+                    'block' => $item->user_block
+                ];
+            } else {
+                $item->user = null;
+            }
+            return $item;
+        });
 
         return response()->json([
             'success' => true,
