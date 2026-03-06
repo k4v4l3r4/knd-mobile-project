@@ -171,7 +171,8 @@ class KasController extends Controller
                 END as source_type"),
                 'description',
                 'created_at',
-                DB::raw("'KAS' as origin")
+                DB::raw("'KAS' as origin"),
+                DB::raw("NULL as payment_method")
             )
             ->selectSub($defaultWalletIdSub, 'account_id');
 
@@ -186,7 +187,8 @@ class KasController extends Controller
                 'description',
                 'date as created_at',
                 DB::raw("'TRANS' as origin"),
-                'account_id'
+                'account_id',
+                'payment_method'
             );
 
         // Apply filters
