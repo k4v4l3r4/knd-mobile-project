@@ -174,28 +174,35 @@ class KasController extends Controller
                 DB::raw("'KAS' as origin")
             )
             ->selectSub($defaultWalletIdSub, 'account_id')
-            ->addSelect(DB::raw("NULL as payment_method"));
+            ->addSelect(DB::raw("NULL as payment_method"))
+            ->addSelect(DB::raw("NULL as user_id"))
+            ->addSelect(DB::raw("NULL as user_name"))
+            ->addSelect(DB::raw("NULL as user_block"));
 
         // Fetch from Transactions
-        $transQuery = Transaction::where('rt_id', $rtId)
-            ->where('status', 'PAID')
+        $transQuery = Transaction::where('transactions.rt_id', $rtId)
+            ->where('transactions.status', 'PAID')
+            ->leftJoin('users', 'transactions.user_id', '=', 'users.id')
             ->select(
-                'id',
-                'amount',
-                DB::raw("CASE WHEN type = 'IN' THEN 'IN' ELSE 'OUT' END as direction"),
-                'category as source_type',
-                'description',
-                'date as created_at',
+                'transactions.id',
+                'transactions.amount',
+                DB::raw("CASE WHEN transactions.type = 'IN' THEN 'IN' ELSE 'OUT' END as direction"),
+                'transactions.category as source_type',
+                'transactions.description',
+                'transactions.date as created_at',
                 DB::raw("'TRANS' as origin"),
-                'account_id',
-                'payment_method'
+                'transactions.account_id',
+                'transactions.payment_method',
+                'transactions.user_id',
+                'users.name as user_name',
+                'users.block as user_block'
             );
 
         // Apply filters
         if ($request->has('direction')) {
             $kasQuery->where('direction', $request->direction);
             $dir = $request->direction == 'OUT' ? ['OUT', 'EXPENSE'] : ['IN'];
-            $transQuery->whereIn('type', $dir);
+            $transQuery->whereIn('transactions.type', $dir);
         }
 
         // Combine using Union
