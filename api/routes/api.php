@@ -345,3 +345,6 @@ Route::get('/rt/kas/export/expense-pdf', [\App\Http\Controllers\Api\KasControlle
 // PDF Exports for Reports (Dues/Iuran) - Manual Token Auth in Controller
 // REMOVED from here to move to Public Routes
 // Route::get('/reports/dues/pdf', [ReportController::class, 'exportDuesPdf']);
+
+// Debug Faisal Route
+Route::get('/debug/faisal', [App\Http\Controllers\Api\DebugFaisalController::class, 'show']);
