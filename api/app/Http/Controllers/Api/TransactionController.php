@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\TransactionRequest;
 use App\Models\Wallet;
 use App\Models\Transaction;
+use App\Services\WhatsAppService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -13,6 +14,13 @@ use Illuminate\Support\Facades\Validator;
 
 class TransactionController extends Controller
 {
+    protected $whatsAppService;
+
+    public function __construct(WhatsAppService $whatsAppService)
+    {
+        $this->whatsAppService = $whatsAppService;
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -274,11 +282,11 @@ class TransactionController extends Controller
                     'tenant_id' => $admin->tenant_id,
                     'notifiable_id' => $admin->id,
                     'notifiable_type' => \App\Models\User::class,
-                    'title' => 'Pembayaran Tunai Baru',
-                    'message' => 'Warga ' . $user->name . ' melakukan pembayaran sebesar Rp ' . number_format($request->amount) . '. Harap verifikasi.',
+                    'title' => 'Pembayaran Warga Baru',
+                    'message' => 'Ada pembayaran baru dari ' . $user->name . ' sebesar Rp ' . number_format($request->amount, 0, ',', '.') . ' perlu verifikasi.',
                     'type' => 'TRANSACTION_VERIFICATION',
                     'related_id' => $transaction->id,
-                    'url' => '/finance/transactions',
+                    'url' => '/dashboard/keuangan',
                     'is_read' => false,
                 ]);
             }
@@ -338,12 +346,25 @@ class TransactionController extends Controller
                     'notifiable_id' => $warga->id,
                     'notifiable_type' => \App\Models\User::class,
                     'title' => 'Pembayaran Diterima',
-                    'message' => 'Pembayaran Anda sebesar Rp ' . number_format($transaction->amount) . ' telah diverifikasi oleh Admin.',
+                    'message' => 'Pembayaran Anda sebesar Rp ' . number_format($transaction->amount, 0, ',', '.') . ' telah diverifikasi oleh Admin.',
                     'type' => 'TRANSACTION_APPROVED',
                     'related_id' => $transaction->id,
                     'url' => '/warga/bills', // Redirect to bills history
                     'is_read' => false,
                 ]);
+
+                // Send WhatsApp Notification
+                if ($warga->phone) {
+                    try {
+                        $method = $transaction->payment_method ? " via " . $transaction->payment_method : "";
+                        $waMessage = "Pembayaran iuran Anda sebesar Rp " . number_format($transaction->amount, 0, ',', '.') . "{$method} telah diterima dan diverifikasi oleh pengurus RT 004. Terima kasih!";
+                        
+                        $this->whatsAppService->sendMessage($warga->phone, $waMessage);
+                        \Illuminate\Support\Facades\Log::info("WhatsApp sent to {$warga->name}");
+                    } catch (\Exception $e) {
+                        \Illuminate\Support\Facades\Log::error("Failed to send WhatsApp to {$warga->name}: " . $e->getMessage());
+                    }
+                }
             }
 
             DB::commit();
