@@ -199,7 +199,7 @@ class KasController extends Controller
         }
 
         // Combine using Union
-        $combined = $kasQuery->union($transQuery)
+        $combined = $kasQuery->unionAll($transQuery)
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
