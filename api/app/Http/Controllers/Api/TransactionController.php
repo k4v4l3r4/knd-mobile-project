@@ -300,7 +300,7 @@ class TransactionController extends Controller
     /**
      * Verify a transaction (Admin approves payment).
      */
-    public function verify($id)
+    public function verify(Request $request, $id)
     {
         DB::beginTransaction();
         try {
@@ -308,6 +308,13 @@ class TransactionController extends Controller
 
             if ($transaction->status === 'PAID' || $transaction->status === 'VERIFIED') {
                 return response()->json(['message' => 'Transaksi sudah diverifikasi sebelumnya.'], 400);
+            }
+
+            if ($request->has('payment_method') && $request->payment_method !== null) {
+                $method = strtoupper($request->payment_method);
+                if (in_array($method, ['CASH', 'TRANSFER', 'QRIS', 'OTHER'])) {
+                    $transaction->payment_method = $method;
+                }
             }
 
             // Update Status

@@ -423,10 +423,12 @@ const FinanceReportScreen = ({ onNavigate }: { onNavigate: (screen: string) => v
     }
   };
 
-  const handleApprove = async (id: number) => {
+  const handleApprove = async (trx: any) => {
     try {
       setLoading(true);
-      const response = await api.post(`/transactions/${id}/verify`);
+      const response = await api.post(`/transactions/${trx.id}/verify`, {
+        payment_method: trx.payment_method || undefined
+      });
       if (response.data.success) {
         Alert.alert('Sukses', 'Transaksi berhasil disetujui');
         onRefresh();
@@ -833,7 +835,7 @@ const FinanceReportScreen = ({ onNavigate }: { onNavigate: (screen: string) => v
                         </TouchableOpacity>
                         <TouchableOpacity 
                             style={[styles.pendingButton, styles.approveButton]} 
-                            onPress={() => handleApprove(t.id)}
+                            onPress={() => handleApprove(t)}
                         >
                             <Text style={styles.approveText}>Terima</Text>
                         </TouchableOpacity>

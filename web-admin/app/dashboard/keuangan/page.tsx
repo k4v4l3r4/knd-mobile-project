@@ -302,13 +302,15 @@ export default function KeuanganPage() {
     }
   };
 
-  const handleApprove = async (id: number) => {
+  const handleApprove = async (trx: any) => {
     if (isDemo || isExpired) return;
     
     if (!confirm("Apakah Anda yakin ingin memverifikasi transaksi ini? Saldo akan bertambah.")) return;
 
     try {
-      await api.post(`/transactions/${id}/verify`);
+      await api.post(`/transactions/${trx.id}/verify`, {
+        payment_method: trx.payment_method || undefined
+      });
       toast.success("Transaksi berhasil diverifikasi");
       fetchData(); // Reload data
     } catch (error) {
@@ -622,7 +624,7 @@ export default function KeuanganPage() {
                         <Button 
                           size="sm" 
                           className="bg-orange-600 hover:bg-orange-700 text-white"
-                          onClick={() => handleApprove(trx.id)}
+                          onClick={() => handleApprove(trx)}
                         >
                           Approve / Terima
                         </Button>

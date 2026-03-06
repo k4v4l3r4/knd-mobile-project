@@ -187,6 +187,13 @@ class BillController extends Controller
             $description = "Pembayaran " . implode(', ', $feeNames) . " " . Carbon::now()->locale('id')->isoFormat('MMMM Y');
         }
 
+        // Normalize payment method
+        $method = strtoupper($request->payment_method);
+        $allowed = ['CASH', 'TRANSFER', 'QRIS', 'OTHER'];
+        if (!in_array($method, $allowed)) {
+            $method = 'OTHER';
+        }
+
         $transaction = Transaction::create([
             'rt_id' => $user->rt_id,
             'account_id' => $wallet->id,
@@ -199,6 +206,7 @@ class BillController extends Controller
             'status' => 'PENDING', // Waiting for admin verification
             'items' => $items,
             'proof_url' => $proofPath, // Save proof URL
+            'payment_method' => $method,
         ]);
 
         $settings = PaymentSettings::all();
