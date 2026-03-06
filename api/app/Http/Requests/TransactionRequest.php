@@ -6,6 +6,15 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class TransactionRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('payment_method') && $this->input('payment_method') !== null) {
+            $this->merge([
+                'payment_method' => strtoupper($this->input('payment_method')),
+            ]);
+        }
+    }
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -31,7 +40,7 @@ class TransactionRequest extends FormRequest
             'items.*.name' => ['required_with:items', 'string'],
             'items.*.amount' => ['required_with:items', 'numeric'],
             'date' => ['required', 'date'],
-            'payment_method' => ['nullable', 'string', 'max:50'],
+            'payment_method' => ['nullable', 'string', 'in:CASH,TRANSFER,QRIS,OTHER'],
             'proof_url' => ['nullable', 'string'], // or url rule if strict
         ];
     }

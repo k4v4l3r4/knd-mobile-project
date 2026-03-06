@@ -453,6 +453,16 @@ export default function KeuanganPage() {
     }).format(amount);
   };
 
+  const formatPaymentMethod = (method?: string) => {
+    if (!method) return 'Tidak Diketahui';
+    const m = method.toUpperCase();
+    if (m === 'CASH') return 'Tunai';
+    if (m === 'TRANSFER') return 'Transfer';
+    if (m === 'QRIS') return 'QRIS';
+    if (m === 'OTHER') return 'Lainnya';
+    return method;
+  };
+
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -684,7 +694,7 @@ export default function KeuanganPage() {
                            )}
                         </td>
                         <td className="px-4 py-3 text-slate-600 dark:text-slate-300 align-top">
-                            {tx.payment_method || '-'}
+                            {formatPaymentMethod(tx.payment_method)}
                         </td>
                         <td className="px-4 py-3 text-center align-top">
                             <span className={`px-2 py-1 rounded-full text-xs font-bold whitespace-nowrap
