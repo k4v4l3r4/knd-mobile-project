@@ -33,6 +33,7 @@ import { useTenant } from '@/context/TenantContext';
 import { DemoLabel } from '@/components/TenantStatusComponents';
 import Cookies from 'js-cookie';
 import { formatPhoneNumber } from '@/lib/phoneUtils';
+import { formatCurrency } from '@/lib/utils';
 
 // --- Types ---
 interface LetterTypeData {
@@ -1578,7 +1579,7 @@ export default function SettingsPage() {
                                 )}
                               </td>
                               <td className="px-8 py-5 font-mono font-bold text-slate-800 dark:text-slate-200 text-base">
-                                Rp {wallet.balance.toLocaleString('id-ID')}
+                                {formatCurrency(wallet.balance)}
                               </td>
                               <td className="px-8 py-5 text-right">
                                 <div className="flex items-center justify-end gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
