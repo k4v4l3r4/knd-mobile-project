@@ -56,12 +56,13 @@ interface IuranResponse {
 
 // --- Helper Functions ---
 const formatCurrency = (amount: number) => {
+  const safe = Number.isFinite(amount) ? amount : 0;
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',
     currency: 'IDR',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(amount);
+  }).format(safe);
 };
 
 const getMonthName = (monthKey: string) => {
@@ -470,7 +471,7 @@ const IuranScreen = ({ onNavigate }: { onNavigate: (screen: string) => void }) =
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={[]}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
         <BackButton onPress={() => onNavigate('HOME')} />
@@ -483,6 +484,21 @@ const IuranScreen = ({ onNavigate }: { onNavigate: (screen: string) => void }) =
            <TouchableOpacity onPress={() => setYear(year + 1)}>
              <Ionicons name="chevron-forward" size={20} color={colors.text} />
            </TouchableOpacity>
+           {!isRestrictedRole && (
+             <TouchableOpacity
+               onPress={async () => {
+                 try {
+                   await api.post('/reports/dues/remind-bulk', { year });
+                   Alert.alert('Sukses', 'Blast pengingat iuran telah dikirim.');
+                 } catch (error: any) {
+                   Alert.alert('Gagal', error?.response?.data?.message || 'Gagal melakukan blast pengingat');
+                 }
+               }}
+               style={{ marginLeft: 8, padding: 6, borderRadius: 8, backgroundColor: '#10b981' }}
+             >
+               <Ionicons name="megaphone-outline" size={18} color="#fff" />
+             </TouchableOpacity>
+           )}
         </View>
       </View>
 
@@ -495,7 +511,7 @@ const IuranScreen = ({ onNavigate }: { onNavigate: (screen: string) => void }) =
           {isRestrictedRole ? (
             <ScrollView 
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-              contentContainerStyle={{ paddingBottom: 100 }}
+              contentContainerStyle={{ paddingBottom: 120 }}
             >
               {renderWargaView()}
             </ScrollView>
@@ -505,7 +521,7 @@ const IuranScreen = ({ onNavigate }: { onNavigate: (screen: string) => void }) =
               keyExtractor={(item) => item.id.toString()}
               renderItem={renderRTListItem}
               ListHeaderComponent={renderDashboard()}
-              contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+              contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
               ListEmptyComponent={
                 <View style={styles.emptyState}>

@@ -1399,7 +1399,7 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 10,
+    paddingTop: 0,
   },
   headerTitle: {
     fontSize: 18,
@@ -1408,7 +1408,7 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
   },
   listContent: {
     padding: 16,
-    paddingBottom: 40,
+    paddingBottom: 120,
   },
   summaryContainer: {
     marginBottom: 8,

@@ -148,6 +148,7 @@ export const id = {
     },
     message: {
       reminder: 'Halo {{name}}, saya pengurus RT. Mengingatkan tagihan iuran {{month}} sebesar {{amount}} belum terbayar. Mohon segera diselesaikan. Terima kasih.',
+      reminderSent: 'Berhasil mengirim pengingat ke warga.',
       emptyData: 'Belum ada data iuran tahun ini.',
       paymentProofTitle: 'Upload Bukti Pembayaran',
       paymentProofDesc: 'Fitur upload bukti pembayaran akan segera tersedia.',

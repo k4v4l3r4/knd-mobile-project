@@ -45,6 +45,7 @@ return [
         'url' => env('WA_URL'),
         'api_key' => env('WA_API_KEY'),
         'sender' => env('WA_SENDER'),
+        'auth' => env('WA_AUTH'),
         'delay_seconds' => env('WA_DELAY_SECONDS', 2),
     ],
 

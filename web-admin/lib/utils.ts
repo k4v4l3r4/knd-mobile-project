@@ -24,12 +24,13 @@ export function formatRole(role?: string) {
 
 export function formatCurrency(amount: number | string) {
   const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+  const safeAmount = Number.isFinite(numericAmount as number) ? (numericAmount as number) : 0;
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',
     currency: 'IDR',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(numericAmount);
+  }).format(safeAmount);
 }
 
 export function getImageUrl(path: string | null | undefined) {

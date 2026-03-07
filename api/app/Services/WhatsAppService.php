@@ -10,6 +10,7 @@ class WhatsAppService
     protected $url;
     protected $apiKey;
     protected $sender;
+    protected $authToken;
     
     // Throttling mechanism
     protected static $lastSentAt = 0;
@@ -20,6 +21,7 @@ class WhatsAppService
         $this->url = config('services.whatsapp.url');
         $this->apiKey = config('services.whatsapp.api_key');
         $this->sender = config('services.whatsapp.sender');
+        $this->authToken = config('services.whatsapp.auth');
         $this->delaySeconds = config('services.whatsapp.delay_seconds', 2);
     }
 
@@ -59,11 +61,10 @@ class WhatsAppService
 
         Log::info("WhatsAppService: Preparing to send message to $phone");
 
-        if (!$this->url || !$this->apiKey || !$this->sender) {
+        if (!$this->url) {
             Log::warning('WhatsApp configuration is incomplete.', [
                 'url' => $this->url,
                 'sender' => $this->sender,
-                // 'apiKey' => 'HIDDEN'
             ]);
             return false;
         }
@@ -86,17 +87,29 @@ class WhatsAppService
         Log::info("WhatsAppService: Formatted phone number: $phone");
 
         try {
+            // Default payload structure compatible with MPWA server
             $payload = [
-                'api_key' => $this->apiKey,
-                'sender' => $this->sender,
                 'number' => $phone,
                 'message' => $message,
             ];
+            // Include sender if configured
+            if (!empty($this->sender)) {
+                $payload['sender'] = $this->sender;
+            }
             
             Log::info("WhatsAppService: Sending request to {$this->url}");
 
             /** @var \Illuminate\Http\Client\Response $response */
-            $response = Http::withoutVerifying()->timeout(30)->post($this->url, $payload);
+            $client = Http::withoutVerifying()->timeout(30);
+            // Use AUTH header if configured (MPWA server expects AUTH token)
+            if (!empty($this->authToken)) {
+                $client = $client->withHeaders(['AUTH' => $this->authToken]);
+            } elseif (!empty($this->apiKey)) {
+                // Fallback to legacy api_key if provided
+                $payload['api_key'] = $this->apiKey;
+            }
+
+            $response = $client->post($this->url, $payload);
 
             Log::info("WhatsAppService: Response status: " . $response->status());
             Log::info("WhatsAppService: Response body: " . $response->body());
