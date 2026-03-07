@@ -53,9 +53,9 @@ class WhatsAppService
      *
      * @param string $phone
      * @param string $message
-     * @return bool
+     * @return object|bool|null
      */
-    public function sendMessage(string $phone, string $message): bool
+    public function sendMessage(string $phone, string $message): object|bool|null
     {
         $this->throttle(); // Enforce rate limit
 
@@ -109,12 +109,16 @@ class WhatsAppService
                 $payload['api_key'] = $this->apiKey;
             }
 
-            $client->post($this->url, $payload);
+            $response = $client->post($this->url, $payload);
             Log::info('WhatsApp message sent to ' . $phone);
-            return true;
+            
+            // Return response object if possible, or boolean for backward compatibility if needed
+            // But user asked to return object|bool|null.
+            return $response;
         } catch (\Exception $e) {
             Log::error('WhatsApp Service Exception: ' . $e->getMessage());
-            throw $e;
+            // Return null on failure instead of throwing
+            return null;
         }
     }
 
@@ -123,9 +127,9 @@ class WhatsAppService
      *
      * @param string $phone
      * @param string $message
-     * @return bool
+     * @return object|bool|null
      */
-    public function sendText(string $phone, string $message): bool
+    public function sendText(string $phone, string $message): object|bool|null
     {
         return $this->sendMessage($phone, $message);
     }
@@ -135,10 +139,9 @@ class WhatsAppService
      *
      * @param string $phone
      * @param string $otp
-     * @return bool
-     * @throws \Exception
+     * @return object|bool|null
      */
-    public function sendOtp(string $phone, string $otp): bool
+    public function sendOtp(string $phone, string $otp): object|bool|null
     {
         $message = "Yth. Pengguna RT Online,\n\n" .
                    "Berikut adalah kode verifikasi (OTP) Anda: *{$otp}*\n\n" .
