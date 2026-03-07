@@ -144,6 +144,7 @@ export const DemoLabel = () => {
 const styles = StyleSheet.create({
   banner: {
     padding: 12,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 24) + 12 : 48, // Add padding for status bar
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

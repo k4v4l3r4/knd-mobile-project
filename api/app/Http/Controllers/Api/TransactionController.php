@@ -265,14 +265,23 @@ class TransactionController extends Controller
                 $proofPath = $request->file('proof')->store('payments', 'public');
             }
 
-            // Get default RT Finance Account (Prioritize BANK, then CASH)
+            // Get default RT Finance Account (Prioritize CASH, specifically 'KAS RT')
             $user = Auth::user();
-            $account = Wallet::where('rt_id', $user->rt_id)
-                             ->where('type', 'BANK')
-                             ->first();
             
+            // Priority 1: 'KAS RT' (CASH)
+            $account = Wallet::where('rt_id', $user->rt_id)
+                             ->where('name', 'KAS RT')
+                             ->first();
+
+            // Priority 2: Any CASH account
             if (!$account) {
-                // Fallback to any wallet
+                $account = Wallet::where('rt_id', $user->rt_id)
+                             ->where('type', 'CASH')
+                             ->first();
+            }
+            
+            // Priority 3: Fallback to any wallet
+            if (!$account) {
                 $account = Wallet::where('rt_id', $user->rt_id)->first();
             }
 

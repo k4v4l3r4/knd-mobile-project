@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -470,61 +470,73 @@ const FinanceReportScreen = ({ onNavigate }: { onNavigate: (screen: string) => v
     );
   };
 
-  const filteredTransactions = transactions.filter(t => {
-    // Type Filter
-    if (filterType !== 'ALL' && t.direction !== filterType) return false;
+  const filteredTransactions = useMemo(() => {
+    // Clean Description Text (Remove {n}) and apply filters
+    return transactions
+      .map(t => ({
+        ...t,
+        description: t.description ? t.description.replace(/\{(\d+)\}/g, '$1') : t.description
+      }))
+      .filter(t => {
+        // Type Filter
+        if (filterType !== 'ALL' && t.direction !== filterType) return false;
 
-    // Source (Wallet) Filter
-    if (selectedSourceAccountId !== 'ALL') {
-      const tAccountId = t.wallet?.id ?? t.account_id ?? null;
-      if (!tAccountId) return false;
-      if (String(tAccountId) !== selectedSourceAccountId) return false;
-    }
+        // Source (Wallet) Filter
+        if (selectedSourceAccountId !== 'ALL') {
+          const tAccountId = t.wallet?.id ?? t.account_id ?? null;
+          // If no account info, we might skip filtering or assume match? 
+          // Let's be strict if selectedSourceAccountId is set.
+          if (tAccountId && String(tAccountId) !== selectedSourceAccountId) return false;
+        }
 
-    // Category Filter
-    if (selectedCategory !== 'ALL' && t.source_type !== selectedCategory) return false;
+        // Category Filter
+        if (selectedCategory !== 'ALL' && t.source_type !== selectedCategory) return false;
 
-    // Date Range Filter
-    const tDate = new Date(t.created_at || new Date());
-    if (startDate) {
-        const start = new Date(startDate);
-        start.setHours(0, 0, 0, 0);
-        if (tDate < start) return false;
-    }
-    if (endDate) {
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
-        if (tDate > end) return false;
-    }
+        // Date Range Filter
+        if (startDate || endDate) {
+            const tDate = new Date(t.created_at || new Date());
+            if (startDate) {
+                const start = new Date(startDate);
+                start.setHours(0, 0, 0, 0);
+                if (tDate < start) return false;
+            }
+            if (endDate) {
+                const end = new Date(endDate);
+                end.setHours(23, 59, 59, 999);
+                if (tDate > end) return false;
+            }
+        }
 
-    return true;
-  });
+        return true;
+      });
+  }, [transactions, filterType, selectedSourceAccountId, selectedCategory, startDate, endDate]);
 
   // Group transactions by Date
-  const groupedTransactions = filteredTransactions.reduce((groups, transaction) => {
-    const dateObj = new Date(transaction.created_at || new Date());
-    const year = dateObj.getFullYear();
-    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-    const day = String(dateObj.getDate()).padStart(2, '0');
-    const date = `${year}-${month}-${day}`;
-    
-    if (!groups[date]) {
-      groups[date] = [];
-    }
-    groups[date].push(transaction);
-    return groups;
-  }, {} as Record<string, Transaction[]>);
+  const groupedTransactions = useMemo(() => {
+    return filteredTransactions.reduce((groups: any, transaction: any) => {
+        // ... grouping logic ...
+        const dateObj = new Date(transaction.created_at || new Date());
+        const dateStr = dateObj.toISOString().split('T')[0]; // simple YYYY-MM-DD
+        
+        if (!groups[dateStr]) {
+            groups[dateStr] = [];
+        }
+        groups[dateStr].push(transaction);
+        return groups;
+    }, {});
+  }, [filteredTransactions]);
 
   const sortedDates = Object.keys(groupedTransactions).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
 
   const renderGroup = ({ item: date }: { item: string }) => {
     const dayTransactions = groupedTransactions[date];
+    // ... rendering ...
     const dateLabel = new Date(date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
     return (
       <View style={styles.groupContainer}>
         <Text style={styles.groupTitle}>{dateLabel}</Text>
-        {dayTransactions.map(transaction => {
+        {dayTransactions.map((transaction: any) => {
             const isIncome = transaction.direction === 'IN';
             return (
               <View key={transaction.id} style={styles.transactionCard}>
