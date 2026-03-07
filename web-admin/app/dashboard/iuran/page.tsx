@@ -40,6 +40,7 @@ interface UserIuran {
   block: string;
   photo_url: string | null;
   role: string;
+  phone?: string;
   months: Record<string, MonthData>; // "01", "02", etc.
   total_year: number;
 }
@@ -319,6 +320,36 @@ export default function LaporanIuranPage() {
     }
   };
 
+  const sendSingleReminder = async (userId: number) => {
+    try {
+      if (isDemo || isExpired) {
+        toast.error('Mode Demo/Akses terbatas');
+        return;
+      }
+      await api.post('/reports/dues/remind', { user_id: userId });
+      toast.success('Pengingat WA terkirim');
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || 'Gagal mengirim pengingat');
+    }
+  };
+
+  const sendBulkReminders = async () => {
+    try {
+      if (isDemo || isExpired) {
+        toast.error('Mode Demo/Akses terbatas');
+        return;
+      }
+      const confirm = window.confirm('Kirim pengingat massal ke semua warga yang belum bayar bulan ini?');
+      if (!confirm) return;
+      const res = await api.post('/reports/dues/remind-bulk', { year });
+      const sent = res?.data?.data?.sent ?? 0;
+      const skipped = res?.data?.data?.skipped ?? 0;
+      toast.success(`Blast selesai. Terkirim: ${sent}, Terlewat: ${skipped}`);
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || 'Gagal melakukan blast pengingat');
+    }
+  };
+
   return (
     <div className="p-6 min-h-screen bg-slate-50 dark:bg-slate-950 font-sans transition-colors duration-300">
       {/* Header */}
@@ -363,7 +394,8 @@ export default function LaporanIuranPage() {
           </div>
         </div>
 
-        <button 
+        <div className="flex items-center gap-2">
+          <button 
           onClick={() => {
             if (isDemo) {
               toast.error('Mode Demo: Export laporan tidak diizinkan');
@@ -394,7 +426,14 @@ export default function LaporanIuranPage() {
         >
           <Download size={18} />
           Download PDF
-        </button>
+          </button>
+          <button
+            onClick={sendBulkReminders}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors duration-300"
+          >
+            Kirim Pengingat Masal
+          </button>
+        </div>
       </div>
 
       {/* Main Content */}
@@ -444,6 +483,13 @@ export default function LaporanIuranPage() {
                           <p className="font-medium text-slate-800 dark:text-slate-200 truncate">{user.name}</p>
                           <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user.block !== 'Unassigned' ? `Blok ${user.block}` : 'No Block'}</p>
                         </div>
+                        <button
+                          onClick={() => sendSingleReminder(user.id)}
+                          className="ml-auto px-3 py-1.5 text-xs rounded-md bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                          title="Kirim pengingat ke warga ini"
+                        >
+                          Ingatkan
+                        </button>
                       </div>
                     </td>
 

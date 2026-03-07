@@ -671,7 +671,8 @@ const FinanceReportScreen = ({ onNavigate }: { onNavigate: (screen: string) => v
                   <TouchableOpacity 
                     onPress={() => {
                       const phone = formatPhoneNumber(user.phone);
-                      Linking.openURL(`whatsapp://send?phone=${phone}&text=Halo Bapak/Ibu ${user.name}, mohon maaf mengganggu. Mengingatkan untuk pembayaran iuran bulan ini. Terima kasih.`);
+                      const url = `https://wa.me/${phone}?text=${encodeURIComponent(`Halo Bapak/Ibu ${user.name}, mohon maaf mengganggu. Mengingatkan untuk pembayaran iuran bulan ini. Terima kasih.`)}`;
+                      Linking.openURL(url);
                     }}
                     style={{
                       width: 36, height: 36, borderRadius: 18, backgroundColor: '#25D366',

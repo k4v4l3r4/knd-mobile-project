@@ -152,6 +152,8 @@ Route::middleware(['auth:sanctum', 'tenant.status', 'tenant.feature'])->group(fu
     Route::get('/reports/summary', [ReportController::class, 'summary']);
     Route::get('/reports/dues', [ReportController::class, 'duesRecap']); // Fix: Add explicit route matching frontend
     Route::get('/reports/dues-recap', [ReportController::class, 'duesRecap']);
+    Route::post('/reports/dues/remind', [ReportController::class, 'sendDuesReminder'])->middleware('permission:laporan.view');
+    Route::post('/reports/dues/remind-bulk', [ReportController::class, 'sendDuesBulkReminders'])->middleware('permission:laporan.view');
     Route::apiResource('reports', ReportController::class);
     Route::patch('/reports/{id}/status', [ReportController::class, 'updateStatus']);
 

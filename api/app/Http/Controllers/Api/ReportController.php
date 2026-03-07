@@ -7,9 +7,12 @@ use App\Models\Report;
 use App\Models\Transaction;
 use App\Models\Fee;
 use App\Models\ActivityCategory;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Services\WhatsAppService;
+use Carbon\Carbon;
 
 class ReportController extends Controller
 {
@@ -279,6 +282,127 @@ class ReportController extends Controller
             ->setPaper('a4', 'landscape');
 
         return $pdf->stream('laporan-iuran-' . $year . '.pdf');
+    }
+
+    /**
+     * Send single WhatsApp reminder to a specific resident.
+     */
+    public function sendDuesReminder(Request $request, WhatsAppService $whatsAppService)
+    {
+        $user = $request->user('sanctum');
+        if (!$user) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+        if (!$user->can('laporan.view')) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        $request->validate([
+            'user_id' => 'required|integer|exists:users,id'
+        ]);
+
+        $target = User::where('id', $request->input('user_id'))
+            ->where('rt_id', $user->rt_id)
+            ->first();
+
+        if (!$target) {
+            return response()->json(['message' => 'Target user not found in your RT'], 404);
+        }
+        if (!$target->phone) {
+            return response()->json(['message' => 'Target user has no phone number'], 422);
+        }
+
+        $now = Carbon::now();
+        $monthName = $now->translatedFormat('F');
+        $year = $now->year;
+
+        $mandatoryFees = Fee::where('rt_id', $user->rt_id)
+            ->where('is_mandatory', true)
+            ->sum('amount');
+        if ($mandatoryFees <= 0) {
+            $mandatoryFees = 25000;
+        }
+        $formattedAmount = 'Rp ' . number_format($mandatoryFees, 0, ',', '.');
+
+        $rtNumber = $user->rt && $user->rt->rt_number ? str_pad($user->rt->rt_number, 3, '0', STR_PAD_LEFT) : '???';
+
+        $message = "Halo {$target->name}, iuran RT {$rtNumber} bulan ini sebesar {$formattedAmount} belum tercatat. Mohon segera melakukan pembayaran. Terima kasih.";
+
+        try {
+            $whatsAppService->sendMessage($target->phone, $message);
+            return response()->json([
+                'success' => true,
+                'message' => 'Pengingat berhasil dikirim'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengirim pengingat: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Send bulk WhatsApp reminders to all residents with UNPAID status for current month.
+     */
+    public function sendDuesBulkReminders(Request $request, WhatsAppService $whatsAppService)
+    {
+        $user = $request->user('sanctum');
+        if (!$user) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+        if (!$user->can('laporan.view')) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+        if (!$user->rt_id) {
+            return response()->json(['message' => 'User not assigned to RT'], 400);
+        }
+
+        $year = $request->input('year', date('Y'));
+
+        $matrix = $this->getDuesMatrix($user->rt_id, $year);
+        $currentMonthKey = Carbon::now()->format('m');
+        $mandatoryFees = $matrix['standard_fee'] ?? 0;
+        if ($mandatoryFees <= 0) {
+            $mandatoryFees = 25000;
+        }
+        $formattedAmount = 'Rp ' . number_format($mandatoryFees, 0, ',', '.');
+        $rtNumber = $user->rt && $user->rt->rt_number ? str_pad($user->rt->rt_number, 3, '0', STR_PAD_LEFT) : '???';
+
+        $sent = 0;
+        $skipped = 0;
+
+        foreach ($matrix['users'] as $u) {
+            $monthData = $u['months'][$currentMonthKey] ?? null;
+            $status = $monthData['status'] ?? 'UNPAID';
+
+            if ($status === 'PAID') {
+                $skipped++;
+                continue;
+            }
+            if (empty($u['phone'])) {
+                $skipped++;
+                continue;
+            }
+
+            $message = "Halo {$u['name']}, iuran RT {$rtNumber} bulan ini sebesar {$formattedAmount} belum tercatat. Mohon segera melakukan pembayaran. Terima kasih.";
+
+            try {
+                $whatsAppService->sendMessage($u['phone'], $message);
+                $sent++;
+            } catch (\Exception $e) {
+                $skipped++;
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Blast pengingat selesai',
+            'data' => [
+                'sent' => $sent,
+                'skipped' => $skipped
+            ]
+        ]);
     }
 
     /**

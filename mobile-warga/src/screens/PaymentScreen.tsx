@@ -173,7 +173,8 @@ export default function PaymentScreen({ initialData, onSuccess, onBack }: { init
     const formattedPhone = formatPhoneNumber(phoneNumber);
     const contactName = paymentConfig?.cash_contact_name || 'Bendahara';
     const message = `Halo ${contactName}, saya ingin menyerahkan uang tunai untuk iuran warga.`;
-    Linking.openURL(`whatsapp://send?phone=${formattedPhone}&text=${encodeURIComponent(message)}`)
+    const url = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
+    Linking.openURL(url)
       .catch(() => Alert.alert('Error', 'Tidak dapat membuka WhatsApp'));
   };
 

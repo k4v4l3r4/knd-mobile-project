@@ -2098,14 +2098,9 @@ export default function BoardingScreen() {
                                 ? parseInt(selectedTenantDetail.room_price).toLocaleString('id-ID') 
                                 : '0';
                                 const message = t('boarding.whatsappReminderMessage', { name: selectedTenantDetail.user.name, amount: amount });
-                                const url = `whatsapp://send?phone=${phone}&text=${encodeURIComponent(message)}`;
-                                
-                                Linking.canOpenURL(url).then(supported => {
-                                if (supported) {
-                                    Linking.openURL(url);
-                                } else {
+                                const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+                                Linking.openURL(url).catch(() => {
                                     Alert.alert(t('common.error'), t('boarding.alert.whatsappNotInstalled'));
-                                }
                                 });
                             }}
                             >

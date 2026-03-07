@@ -276,37 +276,16 @@ const IuranScreen = ({ onNavigate }: { onNavigate: (screen: string) => void }) =
     return { summary, list: users };
   }, [data, isRestrictedRole, currentUser]);
 
-  const sendWhatsAppReminder = (user: UserIuran) => {
-    const currentMonthIndex = new Date().getMonth(); 
-    const monthKeys = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
-    const currentMonthKey = monthKeys[currentMonthIndex];
-    const monthName = getMonthName(currentMonthKey);
-    const fee = data?.standard_fee || 0;
-    
-    if (!user.phone) {
-      Alert.alert('Error', 'Nomor telepon warga tidak tersedia.');
-      return;
+  const sendWhatsAppReminder = async (user: UserIuran) => {
+    try {
+      await api.post('/reports/dues/remind', { user_id: user.id });
+      Alert.alert('Berhasil', t('iuran.message.reminderSent'));
+    } catch (error: any) {
+      const msg =
+        error?.response?.data?.message ||
+        t('common.error');
+      Alert.alert('Gagal', msg);
     }
-
-    let phone = user.phone.replace(/^0/, '62');
-    if (!phone.startsWith('62')) phone = '62' + phone;
-
-    // Template: "Halo [Nama], saya pengurus RT. Mengingatkan tagihan iuran [Bulan] sebesar Rp [Nominal] belum terbayar. Mohon segera diselesaikan. Terima kasih."
-    const message = t('iuran.message.reminder', {
-      name: user.name,
-      month: monthName,
-      amount: formatCurrency(fee)
-    });
-    
-    const url = `whatsapp://send?phone=${phone}&text=${encodeURIComponent(message)}`;
-    
-    Linking.canOpenURL(url).then(supported => {
-      if (supported) {
-        Linking.openURL(url);
-      } else {
-        Alert.alert('Error', 'WhatsApp tidak terinstall.');
-      }
-    });
   };
 
   const handleUploadPayment = async () => {
@@ -516,6 +495,7 @@ const IuranScreen = ({ onNavigate }: { onNavigate: (screen: string) => void }) =
           {isRestrictedRole ? (
             <ScrollView 
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+              contentContainerStyle={{ paddingBottom: 100 }}
             >
               {renderWargaView()}
             </ScrollView>
@@ -525,7 +505,7 @@ const IuranScreen = ({ onNavigate }: { onNavigate: (screen: string) => void }) =
               keyExtractor={(item) => item.id.toString()}
               renderItem={renderRTListItem}
               ListHeaderComponent={renderDashboard()}
-              contentContainerStyle={{ padding: 16 }}
+              contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
               ListEmptyComponent={
                 <View style={styles.emptyState}>

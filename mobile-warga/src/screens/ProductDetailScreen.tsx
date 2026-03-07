@@ -269,7 +269,7 @@ const ProductDetailScreen = ({ product, onNavigate }: ProductDetailScreenProps) 
     const phone = formatPhoneNumber(sellerWhatsapp);
 
     const message = `Halo, saya tertarik dengan produk ini: *${product.name}*`;
-    const url = `whatsapp://send?phone=${phone}&text=${encodeURIComponent(message)}`;
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 
     Linking.openURL(url).catch(() => {
       Alert.alert(t('common.error'), t('market.detail.whatsappError'));
