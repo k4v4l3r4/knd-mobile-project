@@ -75,8 +75,8 @@ export const TrialBanner = () => {
     <View style={[styles.banner, { backgroundColor }]}>
       <Text style={styles.bannerText}>
         {isCritical 
-          ? t('tenant.trialCritical', { time: countdown || '' })
-          : t('tenant.trialBanner', { time: countdown || '' })}
+          ? `Trial hampir berakhir: ${countdown || ''}`
+          : `Masa trial tersisa: ${countdown || ''}`}
       </Text>
       <TouchableOpacity style={styles.upgradeButton} onPress={handleUpgrade}>
         <Text style={[styles.upgradeText, { color: backgroundColor }]}>{t('tenant.upgrade')}</Text>

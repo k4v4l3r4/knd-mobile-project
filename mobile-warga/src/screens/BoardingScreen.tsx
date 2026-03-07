@@ -1222,7 +1222,7 @@ export default function BoardingScreen() {
               <Text style={{ 
                 fontWeight: 'bold', 
                 color: activeTab === 'MY_KOST' ? colors.primary : colors.textSecondary 
-              }}>{t('boarding.tabs.myKost') || 'Kost Saya'}</Text>
+              }}>{'Kost Saya'}</Text>
           </TouchableOpacity>
           <TouchableOpacity 
               style={{ 
@@ -1237,7 +1237,7 @@ export default function BoardingScreen() {
               <Text style={{ 
                 fontWeight: 'bold', 
                 color: activeTab === 'COMMUNITY_KOST' ? colors.primary : colors.textSecondary 
-              }}>{t('boarding.tabs.communityKost') || 'Kost Warga'}</Text>
+              }}>{'Kost Komunitas'}</Text>
           </TouchableOpacity>
         </View>
 

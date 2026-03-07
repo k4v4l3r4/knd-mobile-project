@@ -283,6 +283,7 @@ const IuranScreen = ({ onNavigate }: { onNavigate: (screen: string) => void }) =
 
   const sendWhatsAppReminder = async (user: UserIuran) => {
     try {
+      // Use remind endpoint which integrates with WhatsAppService (AUTH token)
       await api.post('/reports/dues/remind', { user_id: user.id });
       Alert.alert('Berhasil', t('iuran.message.reminderSent'));
     } catch (error: any) {
