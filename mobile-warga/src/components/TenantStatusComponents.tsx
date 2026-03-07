@@ -72,18 +72,16 @@ export const TrialBanner = () => {
   };
 
   return (
-    <SafeAreaView edges={['top']} style={{ backgroundColor, paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 24) + 10 : 0 }}>
-      <View style={[styles.banner, { backgroundColor }]}>
-        <Text style={styles.bannerText}>
-          {isCritical 
-            ? t('tenant.trialCritical', { days: Math.ceil(daysRemaining), time: countdown ? ` - ${countdown}` : '' })
-            : t('tenant.trialBanner', { days: Math.ceil(daysRemaining), time: countdown ? ` (${countdown})` : '' })}
-        </Text>
-        <TouchableOpacity style={styles.upgradeButton} onPress={handleUpgrade}>
-          <Text style={[styles.upgradeText, { color: backgroundColor }]}>{t('tenant.upgrade')}</Text>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+    <View style={[styles.banner, { backgroundColor }]}>
+      <Text style={styles.bannerText}>
+        {isCritical 
+          ? t('tenant.trialCritical', { time: countdown || '' })
+          : t('tenant.trialBanner', { time: countdown || '' })}
+      </Text>
+      <TouchableOpacity style={styles.upgradeButton} onPress={handleUpgrade}>
+        <Text style={[styles.upgradeText, { color: backgroundColor }]}>{t('tenant.upgrade')}</Text>
+      </TouchableOpacity>
+    </View>
   );
 };
 
@@ -149,7 +147,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 4,
   },
   bannerText: {
     color: 'white',

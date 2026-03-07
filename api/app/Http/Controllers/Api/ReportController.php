@@ -359,6 +359,7 @@ class ReportController extends Controller
         }
 
         $year = $request->input('year', date('Y'));
+        $userIds = $request->input('user_ids'); // Optional list of specific users to remind
 
         $matrix = $this->getDuesMatrix($user->rt_id, $year);
         $currentMonthKey = Carbon::now()->format('m');
@@ -373,6 +374,11 @@ class ReportController extends Controller
         $skipped = 0;
 
         foreach ($matrix['users'] as $u) {
+            // If specific user_ids provided, skip users not in the list
+            if (is_array($userIds) && !empty($userIds) && !in_array($u['id'], $userIds)) {
+                continue;
+            }
+
             $monthData = $u['months'][$currentMonthKey] ?? null;
             $status = $monthData['status'] ?? 'UNPAID';
 

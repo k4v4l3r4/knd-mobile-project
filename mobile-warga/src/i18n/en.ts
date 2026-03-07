@@ -37,8 +37,8 @@ export const en = {
     cameraPermission: 'Please allow camera access to take photos.',
   },
   tenant: {
-    trialBanner: 'Trial period remaining {{days}} days{{time}}',
-    trialCritical: 'Trial ending soon ({{days}} days{{time}}). Please make payment immediately.',
+    trialBanner: 'Trial period remaining: {{time}}',
+    trialCritical: 'Trial ending soon: {{time}}',
     upgrade: 'Pay Subscription',
     expiredTitle: 'Subscription Expired',
     expiredMessageAdmin: 'System access is locked until payment is made.',

@@ -36,8 +36,8 @@ export const id = {
     cameraPermission: 'Mohon izinkan akses kamera untuk mengambil foto.',
   },
   tenant: {
-    trialBanner: 'Masa trial tersisa {{days}} hari{{time}}',
-    trialCritical: 'Trial hampir berakhir ({{days}} hari{{time}}). Segera lakukan pembayaran.',
+    trialBanner: 'Masa trial tersisa: {{time}}',
+    trialCritical: 'Trial hampir berakhir: {{time}}',
     upgrade: 'Bayar Langganan',
     expiredTitle: 'Langganan Berakhir',
     expiredMessageAdmin: 'Akses sistem dikunci hingga pembayaran dilakukan.',

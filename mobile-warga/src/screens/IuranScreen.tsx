@@ -181,6 +181,7 @@ const IuranScreen = ({ onNavigate }: { onNavigate: (screen: string) => void }) =
   const [data, setData] = useState<IuranResponse | null>(null);
   const [year, setYear] = useState(new Date().getFullYear());
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [filterStatus, setFilterStatus] = useState<'ALL' | 'PAID' | 'UNPAID'>('ALL');
   
   // Modal State
   const [modalVisible, setModalVisible] = useState(false);
@@ -241,7 +242,7 @@ const IuranScreen = ({ onNavigate }: { onNavigate: (screen: string) => void }) =
   }, [currentUser]);
 
   const processedData = useMemo(() => {
-    if (!data?.users) return { summary: { balance: 0, paid: 0, arrears: 0 }, list: [] };
+    if (!data?.users) return { summary: { balance: 0, paid: 0, unpaid: 0 }, list: [] };
 
     let users = data.users;
     
@@ -254,15 +255,11 @@ const IuranScreen = ({ onNavigate }: { onNavigate: (screen: string) => void }) =
     const summary = {
       balance: 0, 
       paid: 0,    
-      arrears: 0, 
+      unpaid: 0, 
     };
 
     const currentMonthKey = (new Date().getMonth() + 1).toString().padStart(2, '0');
 
-    // Only calculate summary from ALL users if we are RT/Admin (or if logic requires global stats)
-    // But typically Dashboard is global. However, if I'm Warga, I don't see dashboard.
-    // So we can calculate global summary from `data.users` (unfiltered) for RT usage.
-    
     data.users.forEach(user => {
       summary.balance += user.total_year || 0;
       
@@ -270,12 +267,19 @@ const IuranScreen = ({ onNavigate }: { onNavigate: (screen: string) => void }) =
       if (monthData?.status === 'PAID') {
         summary.paid += 1;
       } else {
-        summary.arrears += (data.standard_fee || 0);
+        summary.unpaid += 1;
       }
     });
 
+    // Apply Filter
+    if (filterStatus === 'PAID') {
+      users = users.filter(u => u.months?.[currentMonthKey]?.status === 'PAID');
+    } else if (filterStatus === 'UNPAID') {
+      users = users.filter(u => u.months?.[currentMonthKey]?.status !== 'PAID');
+    }
+
     return { summary, list: users };
-  }, [data, isRestrictedRole, currentUser]);
+  }, [data, isRestrictedRole, currentUser, filterStatus]);
 
   const sendWhatsAppReminder = async (user: UserIuran) => {
     try {
@@ -318,21 +322,39 @@ const IuranScreen = ({ onNavigate }: { onNavigate: (screen: string) => void }) =
 
   const renderDashboard = () => (
     <View style={styles.dashboardContainer}>
-      <View style={[styles.statCard, { backgroundColor: colors.primary }]}>
-        <Text style={styles.statLabel}>{t('iuran.dashboard.totalBalance')}</Text>
-        <Text style={styles.statValue}>{formatCurrency(processedData.summary.balance)}</Text>
-      </View>
       <View style={styles.statRow}>
-        <View style={[styles.statCardSmall, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.statLabelSmall, { color: colors.textSecondary }]}>{t('iuran.dashboard.paidCitizens')}</Text>
-          <Text style={[styles.statValueSmall, { color: '#166534' }]}>{processedData.summary.paid}</Text>
+        <TouchableOpacity 
+          onPress={() => setFilterStatus(filterStatus === 'PAID' ? 'ALL' : 'PAID')}
+          style={[
+            styles.statCardSmall, 
+            { 
+              backgroundColor: colors.card, 
+              borderColor: filterStatus === 'PAID' ? colors.primary : colors.border,
+              borderWidth: filterStatus === 'PAID' ? 2 : 1,
+              opacity: filterStatus === 'UNPAID' ? 0.6 : 1
+            }
+          ]}
+        >
+          <Text style={[styles.statLabelSmall, { color: colors.textSecondary }]}>{t('iuran.status.paid')}</Text>
+          <Text style={[styles.statValueSmall, { color: '#166534' }]}>{processedData.summary.paid} Warga</Text>
           <Text style={[styles.statSub, { color: colors.textSecondary }]}>{t('iuran.dashboard.thisMonth')}</Text>
-        </View>
-        <View style={[styles.statCardSmall, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.statLabelSmall, { color: colors.textSecondary }]}>{t('iuran.dashboard.totalArrears')}</Text>
-          <Text style={[styles.statValueSmall, { color: '#be123c' }]}>{formatCurrency(processedData.summary.arrears)}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          onPress={() => setFilterStatus(filterStatus === 'UNPAID' ? 'ALL' : 'UNPAID')}
+          style={[
+            styles.statCardSmall, 
+            { 
+              backgroundColor: colors.card, 
+              borderColor: filterStatus === 'UNPAID' ? '#be123c' : colors.border,
+              borderWidth: filterStatus === 'UNPAID' ? 2 : 1,
+              opacity: filterStatus === 'PAID' ? 0.6 : 1
+            }
+          ]}
+        >
+          <Text style={[styles.statLabelSmall, { color: colors.textSecondary }]}>{t('iuran.status.unpaid')}</Text>
+          <Text style={[styles.statValueSmall, { color: '#be123c' }]}>{processedData.summary.unpaid} Warga</Text>
           <Text style={[styles.statSub, { color: colors.textSecondary }]}>{t('iuran.dashboard.estimate')}</Text>
-        </View>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -471,7 +493,7 @@ const IuranScreen = ({ onNavigate }: { onNavigate: (screen: string) => void }) =
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={[]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
         <BackButton onPress={() => onNavigate('HOME')} />
@@ -488,8 +510,17 @@ const IuranScreen = ({ onNavigate }: { onNavigate: (screen: string) => void }) =
              <TouchableOpacity
                onPress={async () => {
                  try {
-                   await api.post('/reports/dues/remind-bulk', { year });
-                   Alert.alert('Sukses', 'Blast pengingat iuran telah dikirim.');
+                   const filteredIds = processedData.list.map(u => u.id);
+                   if (filteredIds.length === 0) {
+                     Alert.alert('Info', 'Tidak ada warga dalam daftar filter.');
+                     return;
+                   }
+                   
+                   await api.post('/reports/dues/remind-bulk', { 
+                     year,
+                     user_ids: filteredIds 
+                   });
+                   Alert.alert('Sukses', 'Blast pengingat iuran telah dikirim sesuai filter.');
                  } catch (error: any) {
                    Alert.alert('Gagal', error?.response?.data?.message || 'Gagal melakukan blast pengingat');
                  }
@@ -542,7 +573,7 @@ const IuranScreen = ({ onNavigate }: { onNavigate: (screen: string) => void }) =
         year={year}
         standardFee={data?.standard_fee || 0}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 
