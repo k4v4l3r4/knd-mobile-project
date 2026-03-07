@@ -109,19 +109,9 @@ class WhatsAppService
                 $payload['api_key'] = $this->apiKey;
             }
 
-            $response = $client->post($this->url, $payload);
-
-            Log::info("WhatsAppService: Response status: " . $response->status());
-            Log::info("WhatsAppService: Response body: " . $response->body());
-
-            if ($response->successful()) {
-                Log::info('WhatsApp message sent to ' . $phone);
-                return true;
-            } else {
-                $errorMsg = 'WhatsApp API Error: ' . $response->body();
-                Log::error($errorMsg);
-                throw new \Exception($errorMsg);
-            }
+            $client->post($this->url, $payload);
+            Log::info('WhatsApp message sent to ' . $phone);
+            return true;
         } catch (\Exception $e) {
             Log::error('WhatsApp Service Exception: ' . $e->getMessage());
             throw $e;
