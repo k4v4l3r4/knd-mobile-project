@@ -298,6 +298,7 @@ export default function ReportScreen() {
       }
 
       const response = await api.post('/reports', formData, {
+        timeout: 30000, // Increase timeout for slow uploads
         transformRequest: (data, headers) => {
             // Fix for Network Error on Android/Axios
             if (headers && typeof headers.delete === 'function') {
@@ -366,8 +367,8 @@ export default function ReportScreen() {
         try {
             const manipResult = await ImageManipulator.manipulateAsync(
                 originalUri,
-                [{ resize: { width: 1024 } }],
-                { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+                [{ resize: { width: 800 } }], // Reduced to 800px
+                { compress: 0.5, format: ImageManipulator.SaveFormat.JPEG } // Reduced quality to 0.5
             );
             setPhoto(manipResult.uri);
         } catch (manipError) {
