@@ -46,6 +46,7 @@ import BansosScreen from './src/screens/BansosScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
 import IuranScreen from './src/screens/IuranScreen';
 import BillingScreen from './src/screens/BillingScreen';
+import TenantListScreen from './src/screens/TenantListScreen';
 
 import { registerForPushNotificationsAsync } from './src/services/notification';
 import * as Notifications from 'expo-notifications';
@@ -66,7 +67,7 @@ const ThemedContainer = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-type ScreenState = 'LOGIN' | 'HOME' | 'REPORT' | 'MARKET' | 'CART' | 'CHECKOUT' | 'PAYMENT' | 'PATROL' | 'LETTER' | 'INFORMATION' | 'INVENTORY' | 'GUEST' | 'POLLING' | 'EMERGENCY' | 'BOARDING' | 'ANNOUNCEMENT_DETAIL' | 'PRODUCT_DETAIL' | 'ADD_PRODUCT' | 'CCTV' | 'SETTINGS' | 'BILLS' | 'FINANCE_REPORT' | 'WARGA_LIST' | 'TERMS' | 'CHANGE_PASSWORD' | 'PROFILE' | 'REGISTER_RT' | 'REGISTER_WARGA' | 'HELP_SUPPORT' | 'RONDA_FINE_SETTINGS' | 'RONDA_FINE_REPORT' | 'RONDA_LOCATION' | 'BANSOS' | 'SYSTEM_SETTINGS' | 'RT_PROFILE' | 'WALLET_SETTINGS' | 'ACTIVITY_SETTINGS' | 'ROLE_SETTINGS' | 'ADMIN_SETTINGS' | 'FEE_SETTINGS' | 'LETTER_TYPE_SETTINGS' | 'NOTIFICATIONS' | 'CONTRIBUTION_REPORT' | 'BILLING';
+type ScreenState = 'LOGIN' | 'HOME' | 'REPORT' | 'MARKET' | 'CART' | 'CHECKOUT' | 'PAYMENT' | 'PATROL' | 'LETTER' | 'INFORMATION' | 'INVENTORY' | 'GUEST' | 'POLLING' | 'EMERGENCY' | 'BOARDING' | 'ANNOUNCEMENT_DETAIL' | 'PRODUCT_DETAIL' | 'ADD_PRODUCT' | 'CCTV' | 'SETTINGS' | 'BILLS' | 'FINANCE_REPORT' | 'WARGA_LIST' | 'TERMS' | 'CHANGE_PASSWORD' | 'PROFILE' | 'REGISTER_RT' | 'REGISTER_WARGA' | 'HELP_SUPPORT' | 'RONDA_FINE_SETTINGS' | 'RONDA_FINE_REPORT' | 'RONDA_LOCATION' | 'BANSOS' | 'SYSTEM_SETTINGS' | 'RT_PROFILE' | 'WALLET_SETTINGS' | 'ACTIVITY_SETTINGS' | 'ROLE_SETTINGS' | 'ADMIN_SETTINGS' | 'FEE_SETTINGS' | 'LETTER_TYPE_SETTINGS' | 'NOTIFICATIONS' | 'CONTRIBUTION_REPORT' | 'BILLING' | 'TENANT_LIST';
 
 const AppContent = () => {
   const [fontsLoaded] = useFonts({
@@ -84,6 +85,7 @@ const AppContent = () => {
   const [selectedProductToEdit, setSelectedProductToEdit] = useState<Product | null>(null);
   const [billsInitialTab, setBillsInitialTab] = useState<'bills' | 'history'>('bills');
   const [paymentData, setPaymentData] = useState<any>(null);
+  const [tenantListParams, setTenantListParams] = useState<{ id: number, name: string } | null>(null);
 
   const shouldShowNav = useMemo(() => {
     const hiddenScreens = ['LOGIN', 'REGISTER_RT', 'REGISTER_WARGA', 'PRODUCT_DETAIL', 'ADD_PRODUCT', 'CART', 'CHECKOUT'];
@@ -220,6 +222,9 @@ const AppContent = () => {
     } else if (screen === 'PAYMENT' && !data) {
       setPaymentData(null);
     }
+    if (screen === 'TENANT_LIST' && data) {
+      setTenantListParams(data);
+    }
     setCurrentScreen(screen as ScreenState);
   };
 
@@ -276,7 +281,7 @@ const AppContent = () => {
       {currentScreen === 'GUEST' && <GuestReportScreen />}
       {currentScreen === 'POLLING' && <VotingScreen />}
       {currentScreen === 'EMERGENCY' && <EmergencyScreen />}
-      {currentScreen === 'BOARDING' && <BoardingScreen />}
+      {currentScreen === 'BOARDING' && <BoardingScreen onNavigate={handleNavigate} />}
       {currentScreen === 'BILLS' && <BillsScreen initialTab={billsInitialTab} onNavigate={handleNavigate} />}
       {currentScreen === 'FINANCE_REPORT' && <FinanceReportScreen onNavigate={handleNavigate} />}
       {currentScreen === 'ANNOUNCEMENT_DETAIL' && selectedAnnouncement && (
@@ -315,6 +320,14 @@ const AppContent = () => {
          {currentScreen === 'FEE_SETTINGS' && <GenericListSettingsScreen onNavigate={handleNavigate} type="FEES" />}
          {currentScreen === 'LETTER_TYPE_SETTINGS' && <GenericListSettingsScreen onNavigate={handleNavigate} type="LETTER_TYPES" />}
          {currentScreen === 'BILLING' && <BillingScreen onBack={() => setCurrentScreen('HOME')} />}
+         {currentScreen === 'TENANT_LIST' && tenantListParams && (
+            <TenantListScreen 
+              onNavigate={handleNavigate} 
+              onBack={() => setCurrentScreen('BOARDING')}
+              boardingHouseId={tenantListParams.id}
+              boardingHouseName={tenantListParams.name}
+            />
+         )}
 
          {shouldShowNav && (
         <BottomNav 

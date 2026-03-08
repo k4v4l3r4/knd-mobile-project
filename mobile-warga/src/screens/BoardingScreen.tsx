@@ -16,7 +16,8 @@ import {
   Animated,
   PanResponder,
   Linking,
-  Switch
+  Switch,
+  RefreshControl
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons, Feather, MaterialIcons } from '@expo/vector-icons';
@@ -35,13 +36,18 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { formatPhoneNumber } from '../utils/phoneUtils';
 
-export default function BoardingScreen() {
+interface BoardingScreenProps {
+  onNavigate?: (screen: string, params?: any) => void;
+}
+
+export default function BoardingScreen({ onNavigate }: BoardingScreenProps) {
   const { t, language } = useLanguage();
   const { colors, isDarkMode } = useTheme();
   const { isExpired } = useTenant();
   const insets = useSafeAreaInsets();
   const styles = React.useMemo(() => getStyles(colors, isDarkMode), [colors, isDarkMode]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [userRole, setUserRole] = useState('');
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [boardingHouses, setBoardingHouses] = useState<any[]>([]);
@@ -304,7 +310,13 @@ export default function BoardingScreen() {
       Alert.alert(t('common.error'), t('boarding.alert.loadFailed'));
     } finally {
       if (!background) setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchData(true);
   };
 
   const handleAddKost = async () => {
@@ -1158,14 +1170,87 @@ export default function BoardingScreen() {
     );
   }, [communityBoardingHouses, searchQuery]);
 
+  const renderCommunityKostItem = (item: any) => {
+    // Calculate Active Tenants (Not NONAKTIF/BELUM_AKTIF)
+    const activeTenantsCount = item.tenants?.filter((t: any) => {
+        const s = calculateRoomStatus(t);
+        return s !== 'NONAKTIF' && s !== 'BELUM_AKTIF';
+    }).length || 0;
+
+    return (
+      <View style={[styles.card, { padding: 16 }]}>
+        {/* Header: Name & Address */}
+        <View style={{ marginBottom: 12 }}>
+          <Text style={{ fontSize: 18, fontWeight: 'bold', color: colors.text }}>{item.name}</Text>
+          <Text style={{ fontSize: 14, color: colors.textSecondary, marginTop: 4 }}>
+             <Ionicons name="location-outline" size={14} color={colors.textSecondary} /> {item.address}
+          </Text>
+        </View>
+
+        <View style={{ height: 1, backgroundColor: colors.border, marginBottom: 12 }} />
+
+        {/* Info Rows */}
+        <View style={{ gap: 8 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <Text style={{ color: colors.textSecondary }}>Pemilik</Text>
+            <Text style={{ fontWeight: '600', color: colors.text }}>{item.user?.name || '-'}</Text>
+          </View>
+          <View style={{ height: 1, backgroundColor: colors.border, opacity: 0.5 }} />
+          
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <Text style={{ color: colors.textSecondary }}>Jumlah Kamar</Text>
+            <Text style={{ fontWeight: '600', color: colors.text }}>{item.total_rooms} Unit</Text>
+          </View>
+          <View style={{ height: 1, backgroundColor: colors.border, opacity: 0.5 }} />
+
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <Text style={{ color: colors.textSecondary }}>Penghuni Aktif</Text>
+            <Text style={{ fontWeight: '600', color: colors.text }}>{activeTenantsCount} Orang</Text>
+          </View>
+        </View>
+
+        {/* Action Button */}
+        <TouchableOpacity 
+          style={{ 
+            marginTop: 16, 
+            backgroundColor: colors.primary,
+            paddingVertical: 10,
+            borderRadius: 8,
+            alignItems: 'center',
+            flexDirection: 'row',
+            justifyContent: 'center',
+            gap: 8
+          }}
+          onPress={() => {
+             if (onNavigate) {
+                onNavigate('TENANT_LIST', { id: item.id, name: item.name });
+             } else {
+                Alert.alert('Info', 'Navigasi tidak tersedia.');
+             }
+          }}
+        >
+          <Ionicons name="people-outline" size={18} color="#fff" />
+          <Text style={{ color: '#fff', fontWeight: 'bold' }}>Lihat Penghuni</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
   const renderKostList = (data: any[]) => {
-    const canEdit = activeTab === 'MY_KOST';
+    const isCommunityTab = activeTab === 'COMMUNITY_KOST';
     
     return (
     <FlatList
       data={data}
       keyExtractor={(item) => item.id.toString()}
-      renderItem={({ item }) => (
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      renderItem={({ item }) => {
+        if (isCommunityTab) {
+            return renderCommunityKostItem(item);
+        }
+
+        // Default View (My Kost)
+        return (
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <View style={{ flex: 1 }}>
@@ -1177,25 +1262,24 @@ export default function BoardingScreen() {
             </View>
           </View>
 
-          {canEdit && (
-            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12 }}>
               <TouchableOpacity 
                 style={[styles.iconAction, { backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9' }]}
                 onPress={() => handleOpenActionMenu('KOST', item)}
               >
                 <Ionicons name="ellipsis-vertical" size={20} color={colors.textSecondary} />
               </TouchableOpacity>
-            </View>
-          )}
+          </View>
           
           <View style={styles.divider} />
           
           {renderRoomGrid(item)}
 
-            </View>
-          )}
-          contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
-          ListFooterComponent={
+        </View>
+        );
+      }}
+      contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
+      ListFooterComponent={
             <View style={{ height: 80 }} /> 
           }
         />
@@ -1299,7 +1383,7 @@ export default function BoardingScreen() {
         </View>
       </View>
 
-      {loading ? (
+      {loading && !refreshing ? (
         <View style={styles.centerContent}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
