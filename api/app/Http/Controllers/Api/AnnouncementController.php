@@ -62,6 +62,16 @@ class AnnouncementController extends Controller
      */
     public function store(Request $request)
     {
+        // Map frontend fields to backend fields
+        if ($request->has('end_date') && !$request->has('expires_at')) {
+            $request->merge(['expires_at' => $request->end_date]);
+        }
+
+        if ($request->has('is_active') && !$request->has('status')) {
+            $status = filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN) ? 'PUBLISHED' : 'DRAFT';
+            $request->merge(['status' => $status]);
+        }
+
         $request->validate([
             'title' => 'required|string|max:255',
             'content' => 'required|string',
@@ -145,6 +155,16 @@ class AnnouncementController extends Controller
                 'success' => false,
                 'message' => 'Pengumuman tidak ditemukan',
             ], 404);
+        }
+
+        // Map frontend fields to backend fields
+        if ($request->has('end_date') && !$request->has('expires_at')) {
+            $request->merge(['expires_at' => $request->end_date]);
+        }
+
+        if ($request->has('is_active') && !$request->has('status')) {
+            $status = filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN) ? 'PUBLISHED' : 'DRAFT';
+            $request->merge(['status' => $status]);
         }
 
         $request->validate([
