@@ -8,7 +8,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { Ionicons, MaterialIcons, Feather } from '@expo/vector-icons';
 import LoginScreen from './src/screens/LoginScreen';
-import HomeScreen from './src/screens/HomeScreen';
+import { HomeScreen } from './src/screens/HomeScreen';
 import ReportScreen from './src/screens/ReportScreen';
 import MarketScreen from './src/screens/MarketScreen';
 import PaymentScreen from './src/screens/PaymentScreen';

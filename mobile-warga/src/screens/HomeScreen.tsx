@@ -399,7 +399,7 @@ const DashboardSummary = React.memo(({ data, onNavigate, menuItems, styles, colo
              <Ionicons name="settings-outline" size={24} color={isDarkMode ? "#fff" : "#1e293b"} />
           </TouchableOpacity>
         </View>
-      </View>
+        </View>
 
       {/* Hero Status Card - Focus Point */}
       <View style={styles.statusCardWrapper}>
@@ -583,6 +583,7 @@ const DashboardSummary = React.memo(({ data, onNavigate, menuItems, styles, colo
             </TouchableOpacity>
         ))}
       </ScrollView>
+      </ScrollView>
     </View>
   );
 }, (prev, next) => prev.data === next.data && prev.colors === next.colors && prev.styles === next.styles && prev.inviteCode === next.inviteCode && prev.isDarkMode === next.isDarkMode && prev.greeting === next.greeting && prev.activeTab === next.activeTab);
@@ -592,7 +593,7 @@ const DashboardSummary = React.memo(({ data, onNavigate, menuItems, styles, colo
 import CommentModal from '../components/CommentModal';
 import { FloatingAssistant } from '../components/FloatingAssistant';
 
-export default function HomeScreen({ onLogout, onNavigate }: HomeScreenProps) {
+function HomeScreen({ onLogout, onNavigate }: HomeScreenProps) {
   const { colors, isDarkMode } = useTheme();
   const { t, language } = useLanguage();
 
@@ -1193,6 +1194,9 @@ export default function HomeScreen({ onLogout, onNavigate }: HomeScreenProps) {
     </View>
   );
 }
+
+export default HomeScreen;
+export { HomeScreen };
 
 const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.create({
   container: {
