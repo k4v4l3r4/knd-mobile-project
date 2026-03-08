@@ -234,7 +234,14 @@ const FinanceReportScreen = ({ onNavigate }: { onNavigate: (screen: string) => v
     try {
       const res = await api.get('/rt/finance-accounts');
       if (res.data.success) {
-        setAccounts(res.data.data);
+        const accs = res.data.data;
+        setAccounts(accs);
+        
+        // Default filter to 'KAS RT' if available
+        const kasRT = accs.find((a: Account) => a.name === 'KAS RT');
+        if (kasRT) {
+           setSelectedSourceAccountId(String(kasRT.id));
+        }
       }
     } catch (error) {
       console.error('Error fetching accounts:', error);
@@ -269,7 +276,12 @@ const FinanceReportScreen = ({ onNavigate }: { onNavigate: (screen: string) => v
   }, [filterType]);
 
   useEffect(() => {
-    setSelectedSourceAccountId('ALL');
+    if (accounts.length > 0) {
+       const kasRT = accounts.find(a => a.name === 'KAS RT');
+       setSelectedSourceAccountId(kasRT ? String(kasRT.id) : 'ALL');
+    } else {
+       setSelectedSourceAccountId('ALL');
+    }
   }, [filterType]);
 
   const onRefresh = () => {

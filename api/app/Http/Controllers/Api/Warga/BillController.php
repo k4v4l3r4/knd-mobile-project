@@ -124,7 +124,17 @@ class BillController extends Controller
         }
 
         // Find default wallet for RT (Kas RT) to receive money
-        $wallet = Wallet::where('rt_id', $user->rt_id)->first();
+        $wallet = Wallet::where('rt_id', $user->rt_id)->where('name', 'KAS RT')->first();
+        
+        if (!$wallet) {
+            // Fallback: Try to find any CASH wallet
+            $wallet = Wallet::where('rt_id', $user->rt_id)->where('type', 'CASH')->first();
+        }
+
+        if (!$wallet) {
+            // Final fallback: Any wallet
+            $wallet = Wallet::where('rt_id', $user->rt_id)->first();
+        }
         
         if (!$wallet) {
             return response()->json([

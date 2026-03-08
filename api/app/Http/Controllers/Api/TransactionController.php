@@ -286,7 +286,7 @@ class TransactionController extends Controller
             }
 
             if (!$account) {
-                 return response()->json(['message' => 'Harap buat Akun Kas terlebih dahulu di menu Pengaturan'], 400);
+                return response()->json(['message' => 'Harap buat Akun Kas terlebih dahulu di menu Pengaturan'], 400);
             }
 
             // Get Tenant ID from Admin of this RT
