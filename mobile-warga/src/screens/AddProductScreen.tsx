@@ -283,6 +283,7 @@ export default function AddProductScreen({ onSuccess, editingProduct }: AddProdu
       if (editingProduct) {
         formData.append('_method', 'PUT');
         const response = await api.post(`/products/${editingProduct.id}`, formData, {
+          timeout: 30000,
           transformRequest: (data, headers) => {
             // Remove Content-Type header to let browser set it with boundary
             if (headers && typeof headers.delete === 'function') {
@@ -300,6 +301,7 @@ export default function AddProductScreen({ onSuccess, editingProduct }: AddProdu
         }
       } else {
         const response = await api.post('/products', formData, {
+          timeout: 30000,
           transformRequest: (data, headers) => {
             if (headers && typeof headers.delete === 'function') {
               headers.delete('Content-Type');

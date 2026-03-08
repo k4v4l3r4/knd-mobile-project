@@ -563,35 +563,62 @@ class ReportController extends Controller
      */
     public function store(Request $request)
     {
+        // Normalize category sent from mobile (Indonesian labels) to backend enum
+        if ($request->has('category')) {
+            $rawCat = trim((string)$request->input('category'));
+            $catUpper = strtoupper($rawCat);
+            $map = [
+                'KEAMANAN' => 'SECURITY',
+                'KEBERSIHAN' => 'CLEANLINESS',
+                'INFRASTRUKTUR' => 'INFRASTRUCTURE',
+            ];
+            $normalized = $map[$catUpper] ?? (in_array($catUpper, ['SECURITY','CLEANLINESS','INFRASTRUCTURE','OTHER']) ? $catUpper : 'OTHER');
+            $request->merge(['category' => $normalized]);
+        }
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'category' => 'required|in:SECURITY,CLEANLINESS,INFRASTRUCTURE,OTHER',
             'location' => 'nullable|string',
-            'images' => 'nullable|array',
+            'images' => 'nullable|array', // Frontend may send 'images' array
             'images.*' => 'image|max:2048', // Max 2MB per image
             'is_anonymous' => 'boolean',
+            'photo' => 'nullable|image|max:2048', // Mobile may send single 'photo' field
         ]);
 
-        $report = new Report($validated);
-        $report->reporter_id = $request->user()->id;
+        $report = new Report();
+        $report->title = $validated['title'];
+        $report->description = $validated['description'];
+        $report->category = $validated['category'];
+        
+        // Use correct column name: user_id
+        $report->user_id = $request->user()->id;
         $report->rt_id = $request->user()->rt_id;
+        
+        // Default status
         $report->status = 'PENDING';
-        $report->ticket_number = 'RPT-' . date('Ymd') . '-' . rand(1000, 9999);
-        $report->save();
-
-        // Handle image uploads
+        
+        // Handle single image upload (mapping to photo_url)
+        // Since DB schema only has photo_url string, we take the first image
         if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $image) {
-                $path = $image->store('reports', 'public');
-                $report->images()->create(['image_path' => $path]);
+            $images = $request->file('images');
+            if (is_array($images) && count($images) > 0) {
+                // Take the first image
+                $path = $images[0]->store('reports', 'public');
+                $report->photo_url = $path;
             }
+        } elseif ($request->hasFile('photo')) {
+            $path = $request->file('photo')->store('reports', 'public');
+            $report->photo_url = $path;
         }
+
+        $report->save();
 
         return response()->json([
             'success' => true,
             'message' => 'Laporan berhasil dibuat',
-            'data' => $report->load('images'),
+            'data' => $report,
         ], 201);
     }
 
@@ -601,7 +628,7 @@ class ReportController extends Controller
     public function updateStatus(Request $request, string $id)
     {
         $validated = $request->validate([
-            'status' => 'required|in:PENDING,PROCESSED,DONE,REJECTED',
+            'status' => 'required|in:PENDING,PROCESS,RESOLVED,REJECTED',
             'admin_note' => 'nullable|string'
         ]);
 
