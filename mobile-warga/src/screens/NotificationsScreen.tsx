@@ -162,10 +162,22 @@ const NotificationsScreen: React.FC<Props> = ({ onNavigate }) => {
     } else {
       switch (item.type?.toUpperCase()) {
         case 'BILL':
-          iconName = 'receipt-outline';
+        case 'TAGIHAN':
+          iconName = 'receipt'; // Tagihan
+          break;
+        case 'PAYMENT':
+        case 'PEMBAYARAN':
+          iconName = 'wallet-outline'; // Pembayaran
+          break;
+        case 'SHOP':
+        case 'TOKO':
+        case 'STORE':
+        case 'UMKM':
+        case 'MARKET':
+          iconName = 'storefront-outline'; // Toko/UMKM
           break;
         case 'INFO':
-          iconName = 'information-circle-outline';
+          iconName = 'information-outline';
           break;
         case 'LETTER':
         case 'SURAT':
@@ -184,7 +196,7 @@ const NotificationsScreen: React.FC<Props> = ({ onNavigate }) => {
           iconName = 'bullhorn-outline'; // Pengumuman
           break;
         default:
-          iconName = 'notifications-outline';
+          iconName = 'bell-outline'; // Default Notification
           break;
       }
       
