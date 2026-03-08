@@ -18,6 +18,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import api, { getStorageUrl } from '../services/api';
 import { useTheme, ThemeColors } from '../context/ThemeContext';
 import { useTenant } from '../context/TenantContext';
@@ -360,7 +361,19 @@ export default function ReportScreen() {
       }
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        setPhoto(result.assets[0].uri);
+        // Compress Image to avoid Network Error
+        const originalUri = result.assets[0].uri;
+        try {
+            const manipResult = await ImageManipulator.manipulateAsync(
+                originalUri,
+                [{ resize: { width: 1024 } }],
+                { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+            );
+            setPhoto(manipResult.uri);
+        } catch (manipError) {
+            console.log('Compression error:', manipError);
+            setPhoto(originalUri); // Fallback
+        }
       }
     } catch (error) {
       console.log('Error picking image:', error);
