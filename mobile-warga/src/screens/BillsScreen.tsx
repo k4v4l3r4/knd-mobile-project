@@ -20,6 +20,7 @@ import { useTheme, ThemeColors } from '../context/ThemeContext';
 import { useTenant } from '../context/TenantContext';
 import { useLanguage } from '../context/LanguageContext';
 import { DemoLabel } from '../components/TenantStatusComponents';
+import { formatRTLabel } from '../utils/rtUtils';
 
 const { width } = Dimensions.get('window');
 
@@ -140,10 +141,14 @@ export default function BillsScreen({ initialTab = 'bills', onNavigate }: { init
     }
     
     if (onNavigate) {
+      const rtLabelRaw = (await authService.getUser())?.address_rt || '';
+      const rtLabel = formatRTLabel(rtLabelRaw);
+      const periodLabel = currentPeriod;
+      const description = `Iuran Terpadu ${rtLabel} (${periodLabel})`;
       onNavigate('PAYMENT', {
         amount: selectedTotal,
         feeIds: selectedFees,
-        description: t('bills.paymentDescription', { count: selectedFees.length })
+        description
       });
     }
   };
@@ -417,6 +422,9 @@ export default function BillsScreen({ initialTab = 'bills', onNavigate }: { init
               <View>
                   <Text style={{ color: colors.textSecondary, fontSize: 12, marginBottom: 4 }}>{t('bills.totalPayment')}</Text>
                   <Text style={{ color: colors.text, fontSize: 18, fontWeight: 'bold' }}>{formatRupiah(selectedTotal)}</Text>
+                  <Text style={{ color: colors.textSecondary, fontSize: 11, marginTop: 2 }}>
+                    Periode: {currentPeriod}
+                  </Text>
               </View>
               <TouchableOpacity
                   style={{ 
