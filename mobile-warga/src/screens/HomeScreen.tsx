@@ -321,84 +321,74 @@ const DashboardSummary = React.memo(({ data, onNavigate, menuItems, styles, colo
   const dueDate = useMemo(() => getDueDate(), [language]);
 
   return (
-    <View style={{ flex: 1 }}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} translucent backgroundColor="transparent" />
-      
-      {/* Banner placed absolutely at top */}
-      {/* TrialBanner removed from here to prevent duplication */}
-
-      
-      <ScrollView 
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        contentContainerStyle={{ paddingTop: 0, paddingBottom: 120 }} // Add bottom padding for scroll
-      >
-        {/* Clean Digital Bank Header */}
-        <View style={styles.header}>
-          <View style={styles.headerTextContainer}>
-            <DemoLabel />
-            <Text style={styles.greeting}>{greeting}</Text>
-            <View>
-              <Text style={styles.userName} numberOfLines={1}>{data?.user?.name || t('home.roles.warga')}</Text>
-              <View style={{ 
-                backgroundColor: colors.primaryLight, 
-                alignSelf: 'flex-start', 
-                paddingHorizontal: 8,
-                paddingVertical: 2,
-                borderRadius: 6,
-                marginTop: 4,
-                flexDirection: 'row',
-                alignItems: 'center',
-              }}>
+    <View style={{ width: '100%' }}>
+      {/* Clean Digital Bank Header */}
+      <View style={styles.header}>
+        <View style={styles.headerTextContainer}>
+          <DemoLabel />
+          <Text style={styles.greeting}>{greeting}</Text>
+          <View>
+            <Text style={styles.userName} numberOfLines={1}>{data?.user?.name || t('home.roles.warga')}</Text>
+            <View style={{ 
+              backgroundColor: colors.primaryLight, 
+              alignSelf: 'flex-start', 
+              paddingHorizontal: 8,
+              paddingVertical: 2,
+              borderRadius: 6,
+              marginTop: 4,
+              flexDirection: 'row',
+              alignItems: 'center',
+            }}>
+            <Text style={{ 
+              fontSize: 10, 
+              color: colors.primary, 
+              fontWeight: '700' 
+            }}>
+              {getRoleLabel(data?.user?.role, t)}
+            </Text>
+            {(data?.user?.rt_number || data?.user?.rw_name) && (
               <Text style={{ 
                 fontSize: 10, 
                 color: colors.primary, 
-                fontWeight: '700' 
+                fontWeight: '700',
+                marginLeft: 4
               }}>
-                {getRoleLabel(data?.user?.role, t)}
+                {(() => {
+                  const rtNumber = Number(data?.user?.rt_number || 0);
+                  const rtLabel = rtNumber > 0 ? String(rtNumber).padStart(3, '0') : '-';
+                  return `• RT ${rtLabel} / ${data?.user?.rw_name || '-'}`;
+                })()}
               </Text>
-              {(data?.user?.rt_number || data?.user?.rw_name) && (
-                <Text style={{ 
-                  fontSize: 10, 
-                  color: colors.primary, 
-                  fontWeight: '700',
-                  marginLeft: 4
-                }}>
-                  {(() => {
-                    const rtNumber = Number(data?.user?.rt_number || 0);
-                    const rtLabel = rtNumber > 0 ? String(rtNumber).padStart(3, '0') : '-';
-                    return `• RT ${rtLabel} / ${data?.user?.rw_name || '-'}`;
-                  })()}
-                </Text>
-              )}
-            </View>
+            )}
           </View>
         </View>
-        <View style={styles.headerIcons}>
-          <TouchableOpacity 
-            style={styles.iconButton} 
-            onPress={() => onNavigate('NOTIFICATIONS')}
-            activeOpacity={0.7}
-          >
-             <Animated.View style={{ transform: [{ scale: emergencyPulseAnim }] }}>
-               <Ionicons name="notifications-outline" size={24} color={isDarkMode ? "#fff" : "#1e293b"} />
-               {data && data.unread_notifications_count && data.unread_notifications_count > 0 ? (
-                 <View style={[styles.badgeContainer, data?.has_emergency && { backgroundColor: '#ef4444' }]}>
-                   <Text style={styles.badgeText}>
-                     {data.unread_notifications_count > 99 ? '99+' : data.unread_notifications_count}
-                   </Text>
-                 </View>
-               ) : null}
-             </Animated.View>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.iconButton} 
-            onPress={() => onNavigate('SETTINGS')}
-            activeOpacity={0.7}
-          >
-             <Ionicons name="settings-outline" size={24} color={isDarkMode ? "#fff" : "#1e293b"} />
-          </TouchableOpacity>
-        </View>
-        </View>
+      </View>
+      <View style={styles.headerIcons}>
+        <TouchableOpacity 
+          style={styles.iconButton} 
+          onPress={() => onNavigate('NOTIFICATIONS')}
+          activeOpacity={0.7}
+        >
+           <Animated.View style={{ transform: [{ scale: emergencyPulseAnim }] }}>
+             <Ionicons name="notifications-outline" size={24} color={isDarkMode ? "#fff" : "#1e293b"} />
+             {data && data.unread_notifications_count && data.unread_notifications_count > 0 ? (
+               <View style={[styles.badgeContainer, data?.has_emergency && { backgroundColor: '#ef4444' }]}>
+                 <Text style={styles.badgeText}>
+                   {data.unread_notifications_count > 99 ? '99+' : data.unread_notifications_count}
+                 </Text>
+               </View>
+             ) : null}
+           </Animated.View>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.iconButton} 
+          onPress={() => onNavigate('SETTINGS')}
+          activeOpacity={0.7}
+        >
+           <Ionicons name="settings-outline" size={24} color={isDarkMode ? "#fff" : "#1e293b"} />
+        </TouchableOpacity>
+      </View>
+      </View>
 
       {/* Hero Status Card - Focus Point */}
       <View style={styles.statusCardWrapper}>
@@ -553,7 +543,7 @@ const DashboardSummary = React.memo(({ data, onNavigate, menuItems, styles, colo
       <ScrollView 
         horizontal 
         showsHorizontalScrollIndicator={false} 
-        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 16, gap: 8 }}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 8, gap: 8 }}
       >
         {[
           { id: 'all', label: t('home.tabs.all') },
@@ -581,8 +571,6 @@ const DashboardSummary = React.memo(({ data, onNavigate, menuItems, styles, colo
                 }}>{tab.label}</Text>
             </TouchableOpacity>
         ))}
-      </ScrollView>
-      {/* End Main ScrollView */}
       </ScrollView>
     </View>
   );
@@ -1417,7 +1405,7 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 24,
-    marginBottom: 16,
+    marginBottom: 8, // Reduced from 16
   },
   sectionHeader: {
     fontSize: 18,
