@@ -583,6 +583,7 @@ const DashboardSummary = React.memo(({ data, onNavigate, menuItems, styles, colo
             </TouchableOpacity>
         ))}
       </ScrollView>
+      {/* End Main ScrollView */}
       </ScrollView>
     </View>
   );
