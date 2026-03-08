@@ -199,13 +199,14 @@ class PatrolController extends Controller
         Carbon::setLocale('id');
         $todayDayName = strtoupper(Carbon::now()->isoFormat('dddd'));
         
-        // Find active schedules covering today from RondaSchedule
-        $schedules = RondaSchedule::with(['participants.user'])
-            ->where('rt_id', $user->rt_id)
-            ->where('status', 'ACTIVE')
-            ->where('start_date', '<=', $todayDate)
-            ->where('end_date', '>=', $todayDate)
-            ->get();
+            // Find active schedules for today based on time window
+            $currentTime = Carbon::now()->format('H:i:s');
+            $schedules = RondaSchedule::with(['participants.user'])
+                ->where('rt_id', $user->rt_id)
+                ->where('status', 'ACTIVE')
+                ->where('start_time', '<=', $currentTime)
+                ->where('end_time', '>=', $currentTime)
+                ->get();
 
         if ($schedules->isEmpty()) {
              return response()->json([
@@ -255,20 +256,17 @@ class PatrolController extends Controller
         })
         ->where('rt_id', $user->rt_id)
         ->where('status', 'ACTIVE')
-        ->where('end_date', '>=', $todayDate)
-        ->orderBy('start_date')
+        ->where('end_time', '>=', Carbon::now()->format('H:i:s'))
+        ->orderBy('start_time')
         ->get();
 
         Carbon::setLocale('id');
 
         $data = $schedules->map(function($s) {
-            $start = Carbon::parse($s->start_date);
-            $end = Carbon::parse($s->end_date);
-            
+            // Build label using time window when date fields are unavailable
+            $dayLabel = strtoupper(Carbon::now()->isoFormat('dddd')) . " (" . Carbon::now()->format('d M') . ")";
             if ($s->schedule_type === 'WEEKLY') {
-                 $dayLabel = "MINGGUAN (" . $start->format('d M') . " - " . $end->format('d M') . ")";
-            } else {
-                 $dayLabel = strtoupper($start->isoFormat('dddd')) . " (" . $start->format('d M') . ")";
+                $dayLabel = "MINGGUAN (" . substr((string)$s->start_time, 0, 5) . " - " . substr((string)$s->end_time, 0, 5) . ")";
             }
 
             return [
