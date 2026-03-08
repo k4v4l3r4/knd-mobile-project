@@ -12,6 +12,16 @@ export const id = {
     ok: 'OK',
     yes: 'YA',
     no: 'TIDAK',
+    imagePicker: {
+      title: 'Unggah Foto',
+      subtitle: 'Pilih sumber gambar',
+      camera: 'Kamera',
+      cameraDesc: 'Ambil foto baru',
+      gallery: 'Galeri',
+      galleryDesc: 'Pilih dari Galeri',
+      cancel: 'Batal',
+      error: 'Gagal mengambil gambar',
+    },
   },
   tenant: {
     trialBanner: 'Masa trial tersisa: {{time}}',

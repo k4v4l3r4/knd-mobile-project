@@ -256,7 +256,7 @@ class PatrolController extends Controller
         })
         ->where('rt_id', $user->rt_id)
         ->where('status', 'ACTIVE')
-        ->where('end_time', '>=', Carbon::now()->format('H:i:s'))
+        ->where('end_time', '>=', Carbon::now()->format('H:i:s')) // FIXED: Use end_time, not end_date
         ->orderBy('start_time')
         ->get();
 
