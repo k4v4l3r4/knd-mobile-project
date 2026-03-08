@@ -325,9 +325,9 @@ const DashboardSummary = React.memo(({ data, onNavigate, menuItems, styles, colo
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} translucent backgroundColor="transparent" />
       
       {/* Banner placed absolutely at top */}
-      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 999 }}>
+      {/* <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 999 }}>
          <TrialBanner />
-      </View>
+      </View> */}
       
       <ScrollView 
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
