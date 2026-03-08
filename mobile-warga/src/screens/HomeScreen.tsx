@@ -265,7 +265,7 @@ const getRoleLabel = (role: string, t: any) => {
   }
 };
 
-const DashboardSummary = React.memo(({ data, onNavigate, menuItems, styles, colors, inviteCode, onShareInvite, isDarkMode, greeting, activeTab, setActiveTab, t, language, onOpenFeatureSettings }: any) => {
+const DashboardSummary = React.memo(({ data, onNavigate, menuItems, styles, colors, inviteCode, onShareInvite, isDarkMode, greeting, activeTab, setActiveTab, t, language, onOpenFeatureSettings, refreshing, onRefresh }: any) => {
   const [currentPage, setCurrentPage] = useState(0);
   
   // Animation for Unpaid Status
@@ -321,24 +321,35 @@ const DashboardSummary = React.memo(({ data, onNavigate, menuItems, styles, colo
   const dueDate = useMemo(() => getDueDate(), [language]);
 
   return (
-    <View>
-      {/* Clean Digital Bank Header */}
-      <View style={styles.header}>
-        <View style={styles.headerTextContainer}>
-          <DemoLabel />
-          <Text style={styles.greeting}>{greeting}</Text>
-          <View>
-            <Text style={styles.userName} numberOfLines={1}>{data?.user?.name || t('home.roles.warga')}</Text>
-            <View style={{ 
-              backgroundColor: colors.primaryLight, 
-              alignSelf: 'flex-start',
-              paddingHorizontal: 8,
-              paddingVertical: 2,
-              borderRadius: 6,
-              marginTop: 4,
-              flexDirection: 'row',
-              alignItems: 'center',
-            }}>
+    <View style={{ flex: 1 }}>
+      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} translucent backgroundColor="transparent" />
+      
+      {/* Banner placed absolutely at top */}
+      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 999 }}>
+         <TrialBanner />
+      </View>
+      
+      <ScrollView 
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        contentContainerStyle={{ paddingTop: 0, paddingBottom: 120 }} // Add bottom padding for scroll
+      >
+        {/* Clean Digital Bank Header */}
+        <View style={styles.header}>
+          <View style={styles.headerTextContainer}>
+            <DemoLabel />
+            <Text style={styles.greeting}>{greeting}</Text>
+            <View>
+              <Text style={styles.userName} numberOfLines={1}>{data?.user?.name || t('home.roles.warga')}</Text>
+              <View style={{ 
+                backgroundColor: colors.primaryLight, 
+                alignSelf: 'flex-start', 
+                paddingHorizontal: 8,
+                paddingVertical: 2,
+                borderRadius: 6,
+                marginTop: 4,
+                flexDirection: 'row',
+                alignItems: 'center',
+              }}>
               <Text style={{ 
                 fontSize: 10, 
                 color: colors.primary, 
@@ -1022,30 +1033,18 @@ export default function HomeScreen({ onLogout, onNavigate }: HomeScreenProps) {
     );
   }
 
-  if (!data) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <Text style={{ color: colors.text, marginBottom: 12 }}>{t('home.loadingFailed')}</Text>
-          <TouchableOpacity 
-            style={{ padding: 12, borderRadius: 12, minWidth: 120, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }}
-            onPress={fetchDashboard}
-            activeOpacity={0.8}
-          >
-            <Text style={{ color: '#fff', fontWeight: 'bold' }}>{t('home.retry')}</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <View style={styles.container}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} backgroundColor={isDarkMode ? '#0f172a' : '#f8f9fa'} />
+      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} translucent backgroundColor="transparent" />
       
-      <SafeAreaView style={{ flex: 1 }}>
+      {/* Banner placed absolutely at top */}
+      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 999 }}>
+         <TrialBanner />
+      </View>
+
+      <View style={{ flex: 1 }}>
         <FlatList
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={{ paddingBottom: 100, paddingTop: 0 }} // Header handles top padding
           data={filteredAnnouncements}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
@@ -1078,6 +1077,7 @@ export default function HomeScreen({ onLogout, onNavigate }: HomeScreenProps) {
               onRefresh={onRefresh} 
               tintColor="#fff"
               progressBackgroundColor={colors.card}
+              progressViewOffset={50} // Offset for refresh spinner
             />
           }
           showsVerticalScrollIndicator={false}
@@ -1086,7 +1086,7 @@ export default function HomeScreen({ onLogout, onNavigate }: HomeScreenProps) {
           windowSize={5}
           removeClippedSubviews={Platform.OS === 'android'}
         />
-      </SafeAreaView>
+      </View>
 
       {featureConfigVisible && (
         <View style={styles.featureConfigOverlay}>
@@ -1215,8 +1215,10 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingVertical: 20,
+    paddingTop: 50, // Added padding top to prevent overlap with status bar/banner
+    paddingBottom: 20,
     backgroundColor: isDarkMode ? '#0f172a' : '#f8f9fa',
+    zIndex: 1, // Ensure header stays below floating elements if any
   },
   headerTextContainer: {
     flex: 1,

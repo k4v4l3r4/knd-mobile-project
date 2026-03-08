@@ -17,10 +17,12 @@ import {
   Alert,
   Animated,
   Easing,
-  TouchableOpacity
+  TouchableOpacity,
+  Switch
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import api, { BASE_URL, getStorageUrl } from '../services/api';
 import { useTheme, ThemeColors } from '../context/ThemeContext';
 import { useTenant } from '../context/TenantContext';
@@ -55,6 +57,8 @@ interface Announcement {
   likes_count: number;
   comments_count: number;
   is_liked: boolean;
+  is_active?: boolean;
+  end_date?: string;
 }
 
 // Helper functions moved outside component
@@ -103,11 +107,38 @@ const AnnouncementItem = React.memo(({ item, onPress, onLike, onComment, onShare
           />
         )}
         <View style={styles.cardContent}>
-          <Text style={styles.cardTitle}>{item.title}</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+            <Text style={[styles.cardTitle, { flex: 1 }]}>{item.title}</Text>
+            {isAdminRT && (
+                <View style={{ 
+                    backgroundColor: item.is_active ? '#dcfce7' : '#fee2e2',
+                    paddingHorizontal: 8,
+                    paddingVertical: 2,
+                    borderRadius: 6,
+                    marginLeft: 8
+                }}>
+                    <Text style={{ 
+                        fontSize: 10, 
+                        fontWeight: 'bold', 
+                        color: item.is_active ? '#166534' : '#991b1b'
+                    }}>
+                        {item.is_active ? 'Aktif' : 'Nonaktif'}
+                    </Text>
+                </View>
+            )}
+          </View>
+          
           <Text style={styles.cardDate}>{formatDate(item.created_at)}</Text>
           <Text style={styles.cardPreview} numberOfLines={3}>
             {item.content}
           </Text>
+          
+          {item.end_date && (
+            <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 8, fontStyle: 'italic' }}>
+                Berakhir pada: {formatDate(item.end_date)}
+            </Text>
+          )}
+
           <Text style={styles.readMore}>{t('information.readMore')}</Text>
         </View>
       </TouchableOpacity>
@@ -187,10 +218,13 @@ export default function InformationScreen() {
   const [imagePickerVisible, setImagePickerVisible] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     content: '',
-    image: null as any
+    image: null as any,
+    is_active: true,
+    end_date: new Date()
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -226,7 +260,11 @@ export default function InformationScreen() {
       const form = new FormData();
       form.append('title', formData.title);
       form.append('content', formData.content);
-      form.append('status', 'PUBLISHED');
+      form.append('is_active', formData.is_active ? '1' : '0');
+      
+      const endDateStr = formData.end_date.toISOString().split('T')[0];
+      form.append('end_date', endDateStr);
+
       if (formData.image && formData.image.uri && !formData.image.uri.startsWith('http')) {
         // @ts-ignore
         form.append('image', {
@@ -268,7 +306,11 @@ export default function InformationScreen() {
       form.append('_method', 'PUT');
       form.append('title', formData.title);
       form.append('content', formData.content);
-      form.append('status', 'PUBLISHED');
+      form.append('is_active', formData.is_active ? '1' : '0');
+      
+      const endDateStr = formData.end_date.toISOString().split('T')[0];
+      form.append('end_date', endDateStr);
+
       if (formData.image && formData.image.uri && !formData.image.uri.startsWith('http')) {
         // @ts-ignore
         form.append('image', {
@@ -322,7 +364,7 @@ export default function InformationScreen() {
   };
 
   const resetForm = () => {
-    setFormData({ title: '', content: '', image: null });
+    setFormData({ title: '', content: '', image: null, is_active: true, end_date: new Date() });
     setIsEditing(false);
     setEditId(null);
   };
@@ -341,10 +383,16 @@ export default function InformationScreen() {
       Alert.alert(t('report.accessLimited'), t('report.trialExpiredAdmin'));
       return;
     }
+    
+    // Parse end_date if exists, otherwise default to current date
+    const endDate = item.end_date ? new Date(item.end_date) : new Date();
+
     setFormData({
       title: item.title,
       content: item.content,
-      image: item.image_url ? { uri: getStorageUrl(item.image_url) } : null
+      image: item.image_url ? { uri: getStorageUrl(item.image_url) } : null,
+      is_active: item.is_active !== undefined ? item.is_active : true,
+      end_date: endDate
     });
     setEditId(item.id);
     setIsEditing(true);
@@ -927,6 +975,49 @@ export default function InformationScreen() {
                   </View>
                 )}
               </TouchableOpacity>
+
+              {/* Status Switch */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
+                <Text style={styles.label}>Status Publikasi</Text>
+                <Switch
+                  value={formData.is_active}
+                  onValueChange={(val) => setFormData({ ...formData, is_active: val })}
+                  trackColor={{ false: '#767577', true: '#10b981' }}
+                  thumbColor={formData.is_active ? '#fff' : '#f4f3f4'}
+                />
+              </View>
+
+              {/* End Date Picker */}
+              <View style={{ marginTop: 16 }}>
+                <Text style={styles.label}>Tanggal Berakhir</Text>
+                <TouchableOpacity
+                    style={[styles.input, { borderColor: colors.border, justifyContent: 'center' }]}
+                    onPress={() => setShowDatePicker(true)}
+                >
+                    <Text style={{ color: colors.text }}>
+                        {formData.end_date.toLocaleDateString('id-ID', {
+                            weekday: 'long',
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric'
+                        })}
+                    </Text>
+                </TouchableOpacity>
+                {showDatePicker && (
+                    <DateTimePicker
+                        value={formData.end_date}
+                        mode="date"
+                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                        onChange={(event, selectedDate) => {
+                            setShowDatePicker(false);
+                            if (selectedDate) {
+                                setFormData({ ...formData, end_date: selectedDate });
+                            }
+                        }}
+                        minimumDate={new Date()}
+                    />
+                )}
+              </View>
             </ScrollView>
 
             <View style={{ padding: 20, borderTopWidth: 1, borderTopColor: colors.border }}>
