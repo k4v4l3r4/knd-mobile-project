@@ -85,7 +85,10 @@ const NotificationsScreen: React.FC<Props> = ({ onNavigate }) => {
   };
 
   const handleMarkAllRead = async () => {
-    if (isExpired) return;
+    if (isExpired) {
+      Alert.alert(t('report.accessLimited'), t('notifications.accessLimit'));
+      return;
+    }
     
     Alert.alert(
       t('notifications.markAllRead'),
@@ -378,7 +381,7 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) =>
       paddingTop: 16,
     },
     listContent: {
-      paddingBottom: 24,
+      paddingBottom: 100,
     },
     card: {
       flexDirection: 'row',

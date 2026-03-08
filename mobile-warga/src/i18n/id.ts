@@ -34,6 +34,8 @@ export const id = {
     contactAdmin: 'Hubungi Admin RT',
     permissionDenied: 'Izin Ditolak',
     cameraPermission: 'Mohon izinkan akses kamera untuk mengambil foto.',
+    yes: 'YA',
+    no: 'TIDAK',
   },
   tenant: {
     trialBanner: 'Masa trial tersisa: {{time}}',
@@ -597,6 +599,8 @@ export const id = {
     emptyTitle: 'Belum ada notifikasi',
     emptyMsg: 'Anda belum memiliki notifikasi.',
     markRead: 'Tandai sudah dibaca',
+    markAllRead: 'Tandai Semua Dibaca',
+    confirmMarkAllRead: 'Apakah Anda yakin ingin menandai semua notifikasi sebagai sudah dibaca?',
     accessLimit: 'Silakan perpanjang langganan untuk melihat detail notifikasi',
   },
   bills: {

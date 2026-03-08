@@ -35,6 +35,8 @@ export const en = {
     contactAdmin: 'Contact RT Admin',
     permissionDenied: 'Permission Denied',
     cameraPermission: 'Please allow camera access to take photos.',
+    yes: 'YES',
+    no: 'NO',
   },
   tenant: {
     trialBanner: 'Trial period remaining: {{time}}',
@@ -495,7 +497,9 @@ export const en = {
     emptyTitle: 'No notifications',
     emptyMsg: 'You do not have any notifications yet.',
     markRead: 'Mark as read',
-    accessLimit: 'Please renew subscription to view notification details',
+    markAllRead: 'Mark All as Read',
+    confirmMarkAllRead: 'Are you sure you want to mark all notifications as read?',
+    accessLimit: 'Please renew your subscription to view notification details',
   },
   bills: {
     title: 'Resident Finance',
