@@ -40,6 +40,10 @@ use App\Http\Controllers\SuperAdmin\SuperAdminRevenueController;
 use App\Http\Controllers\SuperAdmin\SuperAdminTenantController;
 use Illuminate\Support\Facades\Route;
 
+Route::get('/health', function () {
+    return response()->json(['status' => 'ok', 'timestamp' => now()]);
+});
+
 // PDF Exports for Reports (Dues/Iuran) - Manual Token Auth in Controller
 // MOVED HERE TO BE PUBLIC (No auth:sanctum middleware) so window.open works
 // Route MUST be at the top to avoid interference
