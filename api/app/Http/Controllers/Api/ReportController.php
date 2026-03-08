@@ -563,6 +563,13 @@ class ReportController extends Controller
      */
     public function store(Request $request)
     {
+        \Illuminate\Support\Facades\Log::info('ReportController@store called', [
+            'user_id' => $request->user()->id,
+            'all_data' => $request->all(),
+            'has_file_images' => $request->hasFile('images'),
+            'has_file_photo' => $request->hasFile('photo')
+        ]);
+
         // Normalize category sent from mobile (Indonesian labels) to backend enum
         if ($request->has('category')) {
             $rawCat = trim((string)$request->input('category'));
