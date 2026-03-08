@@ -627,15 +627,10 @@ function HomeScreen({ onLogout, onNavigate }: HomeScreenProps) {
   useEffect(() => {
     loadHiddenAnnouncements();
     updateGreeting();
-    // fetchDashboard(); // Moved to useFocusEffect
+    fetchDashboard();
   }, [language]);
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchDashboard();
-      // Optional: refreshStatus() if needed from context
-    }, [])
-  );
+  // Removed useFocusEffect to prevent runtime errors without Navigation context
 
   useEffect(() => {
     const loadMenuSelection = async () => {
