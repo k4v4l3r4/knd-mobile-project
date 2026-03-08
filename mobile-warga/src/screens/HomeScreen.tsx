@@ -627,8 +627,15 @@ function HomeScreen({ onLogout, onNavigate }: HomeScreenProps) {
   useEffect(() => {
     loadHiddenAnnouncements();
     updateGreeting();
-    fetchDashboard();
+    // fetchDashboard(); // Moved to useFocusEffect
   }, [language]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchDashboard();
+      // Optional: refreshStatus() if needed from context
+    }, [])
+  );
 
   useEffect(() => {
     const loadMenuSelection = async () => {
@@ -1038,10 +1045,7 @@ function HomeScreen({ onLogout, onNavigate }: HomeScreenProps) {
     <View style={styles.container}>
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} translucent backgroundColor="transparent" />
       
-      {/* Banner placed absolutely at top */}
-      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 999 }}>
-         <TrialBanner />
-      </View>
+      {/* TrialBanner removed from here. Handled globally in App.tsx */}
 
       <View style={{ flex: 1 }}>
         <FlatList

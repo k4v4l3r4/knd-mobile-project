@@ -79,7 +79,12 @@ class DashboardController extends Controller
                 $query->where('rt_id', $user->rt_id)
                       ->orWhereNull('rt_id');
             })
-            ->where('status', 'PUBLISHED')
+            ->whereIn('status', ['publish', 'published', 'PUBLISH', 'PUBLISHED']) // Toleransi variasi status
+            ->where(function($q) {
+                // Tampilkan jika tidak ada expired date ATAU expired date belum lewat (toleransi sampai akhir hari)
+                $q->whereNull('expires_at')
+                  ->orWhere('expires_at', '>=', Carbon::now()->startOfDay());
+            })
             ->withCount(['likes', 'comments'])
             ->with(['likes' => function($query) use ($user) {
                 $query->where('user_id', $user->id);

@@ -237,11 +237,7 @@ const FinanceReportScreen = ({ onNavigate }: { onNavigate: (screen: string) => v
         const accs = res.data.data;
         setAccounts(accs);
         
-        // Default filter to 'KAS RT' if available
-        const kasRT = accs.find((a: Account) => a.name === 'KAS RT');
-        if (kasRT) {
-           setSelectedSourceAccountId(String(kasRT.id));
-        }
+        // Default to ALL (no selection forced)
       }
     } catch (error) {
       console.error('Error fetching accounts:', error);
@@ -275,14 +271,12 @@ const FinanceReportScreen = ({ onNavigate }: { onNavigate: (screen: string) => v
     setSelectedCategory('ALL');
   }, [filterType]);
 
+  // Force default to ALL when accounts are loaded (implicit by initial state)
+  /* 
   useEffect(() => {
-    if (accounts.length > 0) {
-       const kasRT = accounts.find(a => a.name === 'KAS RT');
-       setSelectedSourceAccountId(kasRT ? String(kasRT.id) : 'ALL');
-    } else {
-       setSelectedSourceAccountId('ALL');
-    }
-  }, [filterType]);
+    // Logic removed to default to 'ALL'
+  }, [accounts]); 
+  */ 
 
   const onRefresh = () => {
     setRefreshing(true);
