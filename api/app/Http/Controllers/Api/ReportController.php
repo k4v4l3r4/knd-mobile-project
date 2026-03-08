@@ -579,7 +579,8 @@ class ReportController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'required|string',
-            'category' => 'required|in:SECURITY,CLEANLINESS,INFRASTRUCTURE,OTHER',
+            // Allow Indonesian category names for Warga App
+            'category' => 'required|string', 
             'location' => 'nullable|string',
             'images' => 'nullable|array', // Frontend may send 'images' array
             'images.*' => 'image|max:2048', // Max 2MB per image
@@ -590,7 +591,16 @@ class ReportController extends Controller
         $report = new Report();
         $report->title = $validated['title'];
         $report->description = $validated['description'];
-        $report->category = $validated['category'];
+        
+        // Auto-map Indonesian categories to Enum (Fix for Warga App)
+        $categoryMap = [
+            'KEAMANAN' => 'SECURITY',
+            'KEBERSIHAN' => 'CLEANLINESS',
+            'INFRASTRUKTUR' => 'INFRASTRUCTURE',
+            'LAINNYA' => 'OTHER'
+        ];
+        $inputCategory = strtoupper($validated['category']);
+        $report->category = $categoryMap[$inputCategory] ?? $validated['category'];
         
         // Use correct column name: user_id
         $report->user_id = $request->user()->id;

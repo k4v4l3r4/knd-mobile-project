@@ -76,11 +76,11 @@ export default function AddProductScreen({ onSuccess, editingProduct }: AddProdu
 
   const compressImage = async (uri: string): Promise<string> => {
     try {
-      // Resize to max width 1024px to reduce payload size
+      // Extreme Compression for Warga
       const manipResult = await ImageManipulator.manipulateAsync(
         uri,
-        [{ resize: { width: 1024 } }],
-        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+        [{ resize: { width: 640 } }],
+        { compress: 0.3, format: ImageManipulator.SaveFormat.JPEG }
       );
       return manipResult.uri;
     } catch (error) {
@@ -301,7 +301,7 @@ export default function AddProductScreen({ onSuccess, editingProduct }: AddProdu
         }
       } else {
         const response = await api.post('/products', formData, {
-          timeout: 30000,
+          timeout: 60000, // Timeout 60s
           transformRequest: (data, headers) => {
             if (headers && typeof headers.delete === 'function') {
               headers.delete('Content-Type');

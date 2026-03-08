@@ -298,9 +298,8 @@ export default function ReportScreen() {
       }
 
       const response = await api.post('/reports', formData, {
-        timeout: 30000, // Increase timeout for slow uploads
+        timeout: 60000, // Timeout 60s for slow connection
         transformRequest: (data, headers) => {
-            // Fix for Network Error on Android/Axios
             if (headers && typeof headers.delete === 'function') {
                 headers.delete('Content-Type');
             }
@@ -367,8 +366,8 @@ export default function ReportScreen() {
         try {
             const manipResult = await ImageManipulator.manipulateAsync(
                 originalUri,
-                [{ resize: { width: 800 } }], // Reduced to 800px
-                { compress: 0.5, format: ImageManipulator.SaveFormat.JPEG } // Reduced quality to 0.5
+                [{ resize: { width: 640 } }], // Extreme Compression for Warga
+                { compress: 0.3, format: ImageManipulator.SaveFormat.JPEG }
             );
             setPhoto(manipResult.uri);
         } catch (manipError) {
