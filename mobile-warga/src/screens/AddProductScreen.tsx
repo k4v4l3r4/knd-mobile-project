@@ -92,7 +92,7 @@ export default function AddProductScreen({ onSuccess, editingProduct }: AddProdu
   React.useEffect(() => {
     if (editingProduct) {
       setName(String(editingProduct.name || ''));
-      const priceValue = editingProduct.price ? String(editingProduct.price) : '';
+      const priceValue = editingProduct.price ? String(Math.floor(Number(editingProduct.price))) : '';
       setPrice(priceValue);
       setDescription(String(editingProduct.description || ''));
       setCategory(String(editingProduct.category || STORE_CATEGORIES[0].id));
@@ -110,7 +110,7 @@ export default function AddProductScreen({ onSuccess, editingProduct }: AddProdu
       } else {
         setShippingType('LOCAL');
       }
-      const shipFee = editingProduct.shipping_fee_flat != null ? String(editingProduct.shipping_fee_flat) : '';
+      const shipFee = editingProduct.shipping_fee_flat != null ? String(Math.floor(Number(editingProduct.shipping_fee_flat))) : '';
       setShippingFee(shipFee);
       setShopeeUrl(String(editingProduct.shopee_url || ''));
       setTokopediaUrl(String(editingProduct.tokopedia_url || ''));
@@ -532,7 +532,7 @@ export default function AddProductScreen({ onSuccess, editingProduct }: AddProdu
                 <Text style={styles.label}>Varian Produk (Opsional)</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
-                  placeholder="Contoh:\nUkuran S/M/L\nRasa Original/Pedas\nWarna Merah/Biru"
+                  placeholder={`Contoh:\nUkuran S/M/L\nRasa Original/Pedas\nWarna Merah/Biru`}
                   placeholderTextColor={colors.textSecondary}
                   multiline
                   numberOfLines={3}
@@ -547,7 +547,7 @@ export default function AddProductScreen({ onSuccess, editingProduct }: AddProdu
                 <Text style={styles.label}>Spesifikasi Teknis (Opsional)</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
-                  placeholder="Contoh:\nBerat 1 kg\nUkuran 30x20 cm\nBahan katun"
+                  placeholder={`Contoh:\nBerat 1 kg\nUkuran 30x20 cm\nBahan katun`}
                   placeholderTextColor={colors.textSecondary}
                   multiline
                   numberOfLines={3}

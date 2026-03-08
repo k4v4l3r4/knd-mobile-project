@@ -395,7 +395,7 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
           <Text style={styles.date}>{item.date_received}</Text>
         </View>
         <Text style={styles.amount}>
-           {item.amount ? `Rp ${item.amount.toLocaleString()}` : 'Barang'}
+           {item.amount ? `Rp ${item.amount.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : 'Barang'}
         </Text>
       </View>
       <Text style={styles.recipientName}>Penerima: {item.recipient?.user?.name}</Text>

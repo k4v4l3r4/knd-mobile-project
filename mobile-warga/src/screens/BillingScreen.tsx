@@ -276,7 +276,7 @@ export default function BillingScreen({ onBack }: BillingScreenProps) {
             <Text style={styles.value}>{summary.pending_invoice.invoice_number}</Text>
             
             <Text style={styles.invoiceAmount}>
-              Rp {summary.pending_invoice.amount.toLocaleString('id-ID')}
+              Rp {Math.floor(Number(summary.pending_invoice.amount)).toLocaleString('id-ID')}
             </Text>
             
             <View style={styles.row}>
