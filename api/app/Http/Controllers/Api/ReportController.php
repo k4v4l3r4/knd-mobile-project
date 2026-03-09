@@ -558,10 +558,28 @@ class ReportController extends Controller
 
         $reports = $query->paginate(10);
 
+        // --- DEBUG INFO (TEMPORARY) ---
+        // Force inject debug metadata into pagination response
+        $reports->getCollection()->transform(function ($item) {
+            return $item;
+        });
+        
+        $debug = [
+            'user_id' => $user->id,
+            'user_role' => $user->role,
+            'user_rt_id' => $user->rt_id,
+            'user_tenant_id' => $user->tenant_id,
+            'query_sql' => $query->toSql(),
+            'query_bindings' => $query->getBindings(),
+            'count' => $reports->count(),
+            'total' => $reports->total(),
+        ];
+        
         return response()->json([
             'success' => true,
             'message' => 'Daftar laporan berhasil diambil',
-            'data' => $reports
+            'data' => $reports,
+            'debug' => $debug
         ]);
     }
 
@@ -622,6 +640,9 @@ class ReportController extends Controller
         
         // Default status
         $report->status = 'PENDING';
+        
+        // Force Tenant ID from User (Critical for Multi-tenant visibility)
+        $report->tenant_id = $request->user()->tenant_id;
         
         // Handle single image upload (mapping to photo_url)
         // Since DB schema only has photo_url string, we take the first image
