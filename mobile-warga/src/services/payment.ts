@@ -126,11 +126,8 @@ export const paymentService = {
       : '/transactions/confirm';
 
     try {
-      const response = await api.post(endpoint, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      // Let api.ts handle Content-Type removal
+      const response = await api.post(endpoint, formData);
       return response.data;
     } catch (error: any) {
       throw error.response?.data || { success: false, message: 'Terjadi kesalahan koneksi' };

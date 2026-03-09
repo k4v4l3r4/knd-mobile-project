@@ -272,50 +272,32 @@ export default function AddProductScreen({ onSuccess, editingProduct }: AddProdu
           const filename = photoUri.split('/').pop() || `photo_${index}.jpg`;
           const match = /\.(\w+)$/.exec(filename);
           const type = match ? `image/${match[1]}` : `image/jpeg`;
-          formData.append('images[]', {
+          
+          // Ensure proper object structure for React Native FormData
+          const photoData = {
             uri: photoUri,
             name: filename,
-            type: type,
-          } as any);
+            type: type
+          };
+          
+          // @ts-ignore
+          formData.append('images[]', photoData);
         });
       }
 
       if (editingProduct) {
         formData.append('_method', 'PUT');
-        const response = await api.post(`/products/${editingProduct.id}`, formData, {
-          timeout: 30000,
-          transformRequest: (data, headers) => {
-            // Remove Content-Type header to let browser set it with boundary
-            if (headers && typeof headers.delete === 'function') {
-              headers.delete('Content-Type');
-            }
-            return data;
-          },
-        });
-        if (response.status === 200) {
-          Alert.alert('Sukses', 'Produk berhasil diperbarui', [
-            { text: t('common.ok'), onPress: onSuccess }
-          ]);
-        } else {
-          throw new Error('Gagal memperbarui produk');
-        }
+        // Let api.ts handle Content-Type removal
+        await api.post(`/products/${editingProduct.id}`, formData);
+        Alert.alert('Sukses', 'Produk berhasil diperbarui', [
+           { text: t('common.ok'), onPress: onSuccess }
+        ]);
       } else {
-        const response = await api.post('/products', formData, {
-          timeout: 60000, // Timeout 60s
-          transformRequest: (data, headers) => {
-            if (headers && typeof headers.delete === 'function') {
-              headers.delete('Content-Type');
-            }
-            return data;
-          },
-        });
-        if (response.status === 201) {
-          Alert.alert(t('market.addProduct.successTitle'), t('market.addProduct.successMsg'), [
-            { text: t('common.ok'), onPress: onSuccess }
-          ]);
-        } else {
-          throw new Error('Gagal menambahkan produk');
-        }
+        // Let api.ts handle Content-Type removal
+        await api.post('/products', formData);
+        Alert.alert(t('market.addProduct.successTitle'), t('market.addProduct.successMsg'), [
+           { text: t('common.ok'), onPress: onSuccess }
+        ]);
       }
     } catch (error: any) {
       console.log('Error adding product:', error);

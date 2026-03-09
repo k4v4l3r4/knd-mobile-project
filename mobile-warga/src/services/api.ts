@@ -4,12 +4,7 @@ import Constants from 'expo-constants';
 import { authEvents } from './authEvent';
 
 // Function to dynamically determine the API URL
-const getBaseUrl = () => {
-  // STRICTLY use production URL as requested to avoid Network Error
-  return 'https://api.afnet.my.id/api';
-};
-
-export const BASE_URL = getBaseUrl();
+export const BASE_URL = 'https://api.afnet.my.id/api';
 console.log('API Configuration:', BASE_URL);
 
 export const getStorageUrl = (path: string | null) => {
