@@ -3,25 +3,16 @@ import api from './api';
 export const settingService = {
   // Profil RT
   getProfile: () => api.get('/settings/profile'),
-  updateProfile: (data: any) => api.post('/settings/profile', data, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  }),
+  updateProfile: (data: any) => api.post('/settings/profile', data),
 
   // Kas & Bank
   getWallets: () => api.get('/settings/wallets'),
-  storeWallet: (data: any) => {
-    const isFormData = data instanceof FormData;
-    return api.post('/settings/wallets', data, {
-      headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : undefined
-    });
-  },
+  storeWallet: (data: any) => api.post('/settings/wallets', data),
   updateWallet: (id: number, data: any) => {
     const isFormData = data instanceof FormData;
     if (isFormData) {
       data.append('_method', 'PUT');
-      return api.post(`/settings/wallets/${id}`, data, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      return api.post(`/settings/wallets/${id}`, data);
     }
     return api.put(`/settings/wallets/${id}`, data);
   },

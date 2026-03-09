@@ -170,9 +170,7 @@ export default function GuestScreen() {
         type
       } as any);
 
-      await api.post('/guest-books', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      await api.post('/guest-books', formData);
 
       Alert.alert(t('common.success'), t('guest.alert.success'), [
         { text: t('common.ok'), onPress: () => {

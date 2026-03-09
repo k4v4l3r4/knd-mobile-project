@@ -454,11 +454,7 @@ export default function WargaListScreen({ }: WargaListScreenProps) {
       // Method spoofing for Laravel PUT with file
       formData.append('_method', 'PUT');
 
-      await api.post(`/warga/${editingWarga.id}`, formData, {
-          headers: {
-              'Content-Type': 'multipart/form-data',
-          }
-      });
+      await api.post(`/warga/${editingWarga.id}`, formData);
       
       Alert.alert('Sukses', 'Data warga berhasil diperbarui');
       setEditModalVisible(false);

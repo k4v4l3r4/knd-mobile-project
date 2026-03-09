@@ -337,9 +337,7 @@ export default function ReportScreen() {
         formData.append('photo', photoData);
       }
 
-      const response = await api.post('/reports', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const response = await api.post('/reports', formData);
 
       if (response.data?.success || response.status === 201 || response.status === 200) {
         setTitle('');

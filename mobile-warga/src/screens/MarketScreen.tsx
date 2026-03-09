@@ -290,9 +290,7 @@ export default function MarketScreen({ onNavigate }: MarketScreenProps) {
         } as any);
       }
 
-      const response = await api.post('/stores', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const response = await api.post('/stores', formData);
 
       Alert.alert(
         t('market.createStore.successTitle'), 

@@ -31,9 +31,9 @@ export const getStorageUrl = (path: string | null) => {
 
 const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 120000, // Increased to 120s for slow uploads
+  timeout: 120000, // 120s global timeout for slow uploads
   headers: {
-    'Accept': 'application/json',
+    Accept: 'application/json',
   },
 });
 
@@ -42,40 +42,11 @@ api.interceptors.request.use(
   async (config) => {
     try {
       const token = await AsyncStorage.getItem('user_token');
-      const isFormData =
-        typeof FormData !== 'undefined' &&
-        typeof config.data !== 'undefined' &&
-        config.data instanceof FormData;
-
-      if (isFormData) {
-        if (!config.headers) {
-          (config as any).headers = {};
-        }
-
-        const headers: any = (config as any).headers;
-        if (typeof headers.set === 'function') {
-          headers.set('Accept', 'application/json');
-          if (typeof headers.delete === 'function') {
-            headers.delete('Content-Type');
-          }
-        } else {
-          delete headers['Content-Type'];
-          delete headers['content-type'];
-          headers.Accept = 'application/json';
-        }
-      }
 
       if (token) {
-        if (!config.headers) {
-          (config as any).headers = {};
-        }
-
-        const headers: any = (config as any).headers;
-        if (typeof headers.set === 'function') {
-          headers.set('Authorization', `Bearer ${token}`);
-        } else {
-          headers.Authorization = `Bearer ${token}`;
-        }
+        const headers: any = config.headers || {};
+        headers.Authorization = `Bearer ${token}`;
+        config.headers = headers;
       }
     } catch (error) {
       // console.log('Error getting token:', error);

@@ -274,12 +274,7 @@ export default function InformationScreen() {
         });
       }
 
-      await api.post('/announcements', form, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        transformRequest: (data, headers) => {
-            return data;
-        }
-      });
+      await api.post('/announcements', form);
 
       Alert.alert(t('common.success'), t('information.success.create'));
       setCreateModalVisible(false);
@@ -320,12 +315,7 @@ export default function InformationScreen() {
         });
       }
 
-      await api.post(`/announcements/${editId}`, form, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        transformRequest: (data, headers) => {
-            return data;
-        }
-      });
+      await api.post(`/announcements/${editId}`, form);
 
       Alert.alert(t('common.success'), t('information.success.update'));
       setCreateModalVisible(false);

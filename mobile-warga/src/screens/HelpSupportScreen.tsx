@@ -162,11 +162,7 @@ const HelpSupportScreen = ({ onNavigate }: { onNavigate: (screen: string) => voi
         });
       }
 
-      await api.post('/support/tickets', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      await api.post('/support/tickets', formData);
 
       Alert.alert('Sukses', 'Laporan masalah berhasil dikirim. Kami akan segera meninjaunya.');
       setTicketForm({ category: 'Lainnya', description: '', screenshot: null });

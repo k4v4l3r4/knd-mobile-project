@@ -641,11 +641,7 @@ export default function BoardingScreen({ onNavigate }: BoardingScreenProps) {
         : `/boarding-houses/${selectedHouseId}/tenants`;
       const method = isEditMode && editingTenantId ? 'patch' : 'post';
       // @ts-ignore
-      const response = await api[method](url, data, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      const response = await api[method](url, data);
       
       if (response.data.success) {
         Alert.alert(t('common.success'), isEditMode ? t('boarding.alert.updateSuccess') : t('boarding.alert.addSuccess'));

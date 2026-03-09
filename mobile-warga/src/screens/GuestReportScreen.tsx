@@ -158,11 +158,7 @@ export default function GuestReportScreen() {
         data.append('id_card_photo', { uri: photo, name: filename, type });
       }
 
-      await api.post('/guest-books', data, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      await api.post('/guest-books', data);
 
       Alert.alert(t('common.success'), t('guest.alert.success'), [
         { text: 'OK', onPress: () => {
