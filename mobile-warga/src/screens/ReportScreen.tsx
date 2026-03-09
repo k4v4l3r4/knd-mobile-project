@@ -133,6 +133,38 @@ export default function ReportScreen() {
   const [userId, setUserId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('create');
 
+  const runDiagnostics = async () => {
+    const logs: string[] = [];
+    try {
+      const r1 = await api.get('/health');
+      logs.push(`GET /health: ${r1.status}`);
+    } catch (e: any) {
+      if (e?.response) {
+        logs.push(`GET /health: ${e.response.status}`);
+      } else {
+        logs.push(`GET /health: ${e?.message || 'Network Error'}`);
+      }
+    }
+    try {
+      await api.post('/health', {});
+    } catch (e: any) {
+      if (e?.response) {
+        logs.push(`POST /health: ${e.response.status}`);
+      } else {
+        logs.push(`POST /health: ${e?.message || 'Network Error'}`);
+      }
+    }
+    try {
+      await api.post('/reports', { title: 'DIAG', description: '', category: 'OTHER' });
+    } catch (e: any) {
+      if (e?.response) {
+        logs.push(`POST /reports: ${e.response.status}`);
+      } else {
+        logs.push(`POST /reports: ${e?.message || 'Network Error'}`);
+      }
+    }
+    Alert.alert('Diagnostic', logs.join('\n'));
+  };
   // --- Effects ---
 
   // Fetch profile on mount
@@ -595,6 +627,13 @@ export default function ReportScreen() {
             ) : (
               <Text style={styles.submitButtonText}>{t('report.submit')}</Text>
             )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={runDiagnostics}
+            style={{ marginTop: 12, alignItems: 'center' }}
+            activeOpacity={0.8}
+          >
+            <Text style={{ color: colors.primary, fontWeight: '600' }}>Diagnose Koneksi</Text>
           </TouchableOpacity>
         </View>
         <View style={{ height: 100 }} />
