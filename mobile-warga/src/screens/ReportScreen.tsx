@@ -326,11 +326,15 @@ export default function ReportScreen() {
         const match = /\.(\w+)$/.exec(filename);
         const type = match ? `image/${match[1]}` : `image/jpeg`;
         
-        formData.append('photo', {
+        // Ensure proper object structure for React Native FormData
+        const photoData = {
           uri: photo,
           name: filename,
-          type
-        } as any);
+          type: type
+        };
+        
+        // @ts-ignore
+        formData.append('photo', photoData);
       }
 
       const response = await api.post('/reports', formData, {
