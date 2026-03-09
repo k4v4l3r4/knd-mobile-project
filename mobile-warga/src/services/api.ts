@@ -36,8 +36,8 @@ export const getStorageUrl = (path: string | null) => {
 
 const api = axios.create({
   baseURL: BASE_URL,
+  timeout: 60000,
   headers: {
-    'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
 });
@@ -60,12 +60,13 @@ api.interceptors.request.use(
         const headers: any = (config as any).headers;
         if (typeof headers.set === 'function') {
           headers.set('Accept', 'application/json');
-          headers.set('Content-Type', 'multipart/form-data');
+          if (typeof headers.delete === 'function') {
+            headers.delete('Content-Type');
+          }
         } else {
           delete headers['Content-Type'];
           delete headers['content-type'];
           headers.Accept = 'application/json';
-          headers['Content-Type'] = 'multipart/form-data';
         }
       }
 

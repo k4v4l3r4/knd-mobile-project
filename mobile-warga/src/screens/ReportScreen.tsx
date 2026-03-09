@@ -297,15 +297,7 @@ export default function ReportScreen() {
         formData.append('photo', { uri: photo, name: filename, type });
       }
 
-      const response = await api.post('/reports', formData, {
-        timeout: 60000, // Timeout 60s for slow connection
-        transformRequest: (data, headers) => {
-            if (headers && typeof headers.delete === 'function') {
-                headers.delete('Content-Type');
-            }
-            return data;
-        },
-      });
+      const response = await api.post('/reports', formData);
 
       if (response.data?.success || response.status === 201 || response.status === 200) {
         setTitle('');
