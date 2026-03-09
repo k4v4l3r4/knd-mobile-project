@@ -541,12 +541,25 @@ class ReportController extends Controller
         $query = Report::with('user')->orderBy('created_at', 'desc');
 
         if ($request->has('status')) {
-            $query->where('status', $request->status);
+            $status = strtoupper($request->input('status'));
+            $map = ['PROCESSED' => 'PROCESS', 'DONE' => 'RESOLVED'];
+            $normalized = $map[$status] ?? $status;
+            $query->whereIn('status', ['PENDING','PROCESS','RESOLVED','REJECTED'])
+                  ->where('status', $normalized);
         }
 
-        // Optional: Filter by RT ID of the logged in user
-        if ($user->rt_id) {
-            $query->where('rt_id', $user->rt_id);
+        // Visibility rules:
+        // - ADMIN_RT or RT: see all reports in their RT
+        // - WARGA: see only own reports (within their RT)
+        if (in_array(strtoupper($user->role), ['ADMIN_RT','RT'])) {
+            if ($user->rt_id) {
+                $query->where('rt_id', $user->rt_id);
+            }
+        } else {
+            $query->where('user_id', $user->id);
+            if ($user->rt_id) {
+                $query->where('rt_id', $user->rt_id);
+            }
         }
 
         $reports = $query->paginate(10);

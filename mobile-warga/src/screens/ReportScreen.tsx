@@ -43,7 +43,7 @@ interface Report {
   title: string;
   description: string;
   category: string;
-  status: 'PENDING' | 'PROCESSED' | 'DONE' | 'REJECTED';
+  status: 'PENDING' | 'PROCESS' | 'RESOLVED' | 'REJECTED' | 'PROCESSED' | 'DONE';
   photo_url?: string;
   created_at: string;
   updated_at: string;
@@ -51,7 +51,7 @@ interface Report {
 }
 
 type TabType = 'create' | 'list';
-type FilterStatus = 'ALL' | 'PENDING' | 'PROCESSED' | 'DONE' | 'REJECTED';
+type FilterStatus = 'ALL' | 'PENDING' | 'PROCESS' | 'RESOLVED' | 'REJECTED';
 
 const CATEGORY_OPTIONS = [
   { value: 'Keamanan', labelKey: 'report.categories.security' },
@@ -420,8 +420,10 @@ export default function ReportScreen() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'PENDING': return '#f59e0b'; // Amber
-      case 'PROCESSED': return '#3b82f6'; // Blue
-      case 'DONE': return '#10b981'; // Emerald
+      case 'PROCESS': return '#3b82f6'; // Blue
+      case 'PROCESSED': return '#3b82f6'; // Blue (legacy)
+      case 'RESOLVED': return '#10b981'; // Emerald
+      case 'DONE': return '#10b981'; // Emerald (legacy)
       case 'REJECTED': return '#ef4444'; // Red
       default: return '#64748b'; // Slate
     }
@@ -430,7 +432,9 @@ export default function ReportScreen() {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'PENDING': return t('report.status.pending') || 'Menunggu';
+      case 'PROCESS': return t('report.status.processed') || 'Diproses';
       case 'PROCESSED': return t('report.status.processed') || 'Diproses';
+      case 'RESOLVED': return t('report.status.done') || 'Selesai';
       case 'DONE': return t('report.status.done') || 'Selesai';
       case 'REJECTED': return t('report.status.rejected') || 'Ditolak';
       default: return status;
@@ -496,7 +500,7 @@ export default function ReportScreen() {
               <>
                 <TouchableOpacity 
                   style={[styles.actionButton, { backgroundColor: '#3b82f6' }]}
-                  onPress={() => handleUpdateStatus(item.id, 'PROCESSED')}
+                  onPress={() => handleUpdateStatus(item.id, 'PROCESS')}
                 >
                   <Ionicons name="checkmark-circle-outline" size={16} color="#fff" style={{ marginRight: 4 }} />
                   <Text style={styles.actionButtonText}>Setujui</Text>
@@ -510,10 +514,10 @@ export default function ReportScreen() {
                 </TouchableOpacity>
               </>
             )}
-            {(item.status === 'PROCESSED') && (
+            {(item.status === 'PROCESS' || item.status === 'PROCESSED') && (
               <TouchableOpacity 
                 style={[styles.actionButton, { backgroundColor: '#10b981' }]}
-                onPress={() => handleUpdateStatus(item.id, 'DONE')}
+                onPress={() => handleUpdateStatus(item.id, 'RESOLVED')}
               >
                 <Ionicons name="checkmark-circle-outline" size={16} color="#fff" style={{ marginRight: 4 }} />
                 <Text style={styles.actionButtonText}>Selesai</Text>
@@ -650,7 +654,7 @@ export default function ReportScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
         >
-          {(['ALL', 'PENDING', 'PROCESSED', 'DONE', 'REJECTED'] as FilterStatus[]).map((status) => (
+          {(['ALL', 'PENDING', 'PROCESS', 'RESOLVED', 'REJECTED'] as FilterStatus[]).map((status) => (
             <TouchableOpacity
               key={status}
               style={[
