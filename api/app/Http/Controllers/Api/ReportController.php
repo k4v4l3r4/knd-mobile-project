@@ -549,12 +549,15 @@ class ReportController extends Controller
         }
 
         // Visibility rules:
-        // - All users see reports in their RT
-        if ($user->rt_id) {
-            $query->where('rt_id', $user->rt_id);
-        } else {
-            $query->where('user_id', $user->id);
-        }
+        // - TenantScope already handles tenant isolation.
+        // - We rely on TenantScope to filter data by tenant_id.
+        // - Removing manual rt_id filter to avoid conflict with TenantScope logic if rt_id is null/different context.
+        
+        // if ($user->rt_id) {
+        //    $query->where('rt_id', $user->rt_id);
+        // } else {
+        //    $query->where('user_id', $user->id);
+        // }
 
         $reports = $query->paginate(10);
 
@@ -635,7 +638,8 @@ class ReportController extends Controller
         $report->category = $categoryMap[$inputCategory] ?? $validated['category'];
         
         // Use correct column name: user_id
-        $report->user_id = $request->user()->id;
+        // Ensure we use the authenticated user's ID
+        $report->user_id = Auth::id(); // Use Auth facade directly for reliability
         $report->rt_id = $request->user()->rt_id;
         
         // Default status
@@ -656,6 +660,10 @@ class ReportController extends Controller
         } elseif ($request->hasFile('photo')) {
             $path = $request->file('photo')->store('reports', 'public');
             $report->photo_url = $path;
+        } elseif ($request->input('photo') instanceof \Illuminate\Http\UploadedFile) {
+             // Fallback for direct object injection if FormData sends it oddly
+             $path = $request->input('photo')->store('reports', 'public');
+             $report->photo_url = $path;
         }
 
         $report->save();
