@@ -328,7 +328,7 @@ export default function ReportScreen() {
         
         // Ensure proper object structure for React Native FormData
         const photoData = {
-          uri: photo,
+          uri: Platform.OS === 'android' ? photo : photo.replace('file://', ''),
           name: filename,
           type: type
         };

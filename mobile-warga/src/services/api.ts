@@ -33,7 +33,8 @@ const api = axios.create({
   baseURL: BASE_URL,
   timeout: 120000, // 120s global timeout for slow uploads
   headers: {
-    Accept: 'application/json',
+    'Accept': 'application/json',
+    'User-Agent': 'KND-Mobile-Warga/1.0', // Bypass Cloudflare Bot Protection
   },
 });
 
@@ -62,6 +63,17 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
+    // --- DEBUG LOG FOR CLOUDFLARE/SERVER ERROR ---
+    if (error.response) {
+       console.log('DEBUG_ERROR Response:', {
+          status: error.response.status,
+          data: error.response.data,
+          headers: error.response.headers
+       });
+    } else {
+       console.log('DEBUG_ERROR Message:', error.message);
+    }
+
     if (error.response) {
       if (error.response.status === 401) {
         console.log('Global 401 detected, emitting UNAUTHORIZED event');
