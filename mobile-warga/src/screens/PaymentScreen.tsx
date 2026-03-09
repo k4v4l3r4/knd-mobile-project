@@ -181,21 +181,43 @@ export default function PaymentScreen({ initialData, onSuccess, onBack }: { init
   const pickImage = async (useCamera: boolean) => {
     try {
       let result;
+      const options: ImagePicker.ImagePickerOptions = {
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.3, // Aggressive compression
+        aspect: [4, 3],
+      };
+
       if (useCamera) {
         const permission = await ImagePicker.requestCameraPermissionsAsync();
         if (!permission.granted) {
           Alert.alert("Izin Ditolak", "Izin kamera diperlukan.");
           return;
         }
-        result = await ImagePicker.launchCameraAsync({
-          mediaTypes: 'images',
-          quality: 0.2,
-        });
+        result = await ImagePicker.launchCameraAsync(options);
       } else {
-        result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: 'images',
-          quality: 0.2,
-        });
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permission.granted) {
+          Alert.alert("Izin Ditolak", "Izin galeri diperlukan.");
+          return;
+        }
+        result = await ImagePicker.launchImageLibraryAsync(options);
+      }
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        // Compress Image to avoid Network Error
+        const originalUri = result.assets[0].uri;
+        try {
+            const manipResult = await ImageManipulator.manipulateAsync(
+                originalUri,
+                [{ resize: { width: 800 } }], // Resize to max 800px width
+                { compress: 0.3, format: ImageManipulator.SaveFormat.JPEG }
+            );
+            setPhoto(manipResult.uri);
+        } catch (manipError) {
+            console.log('Compression error:', manipError);
+            setPhoto(originalUri); // Fallback
+        }
       }
 
       if (!result.canceled) {

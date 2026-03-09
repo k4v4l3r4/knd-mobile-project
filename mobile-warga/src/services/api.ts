@@ -31,7 +31,7 @@ export const getStorageUrl = (path: string | null) => {
 
 const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 60000,
+  timeout: 120000, // Increased to 120s for slow uploads
   headers: {
     'Accept': 'application/json',
   },

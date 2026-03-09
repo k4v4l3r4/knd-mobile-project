@@ -368,39 +368,36 @@ export default function ReportScreen() {
   const pickImage = async (mode: 'camera' | 'gallery') => {
     try {
       let result;
+      const options: ImagePicker.ImagePickerOptions = {
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.3, // Aggressive compression
+        aspect: [4, 3],
+      };
+
       if (mode === 'camera') {
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
         if (status !== 'granted') {
           Alert.alert(t('common.imagePicker.permissionDenied'), t('common.imagePicker.cameraPermission'));
           return;
         }
-        result = await ImagePicker.launchCameraAsync({
-          mediaTypes: ImagePicker.MediaTypeOptions.Images,
-          allowsEditing: true,
-          quality: 0.5,
-          aspect: [4, 3],
-        });
+        result = await ImagePicker.launchCameraAsync(options);
       } else {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
           Alert.alert(t('common.imagePicker.permissionDenied'), t('common.imagePicker.galleryPermission'));
           return;
         }
-        result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ImagePicker.MediaTypeOptions.Images,
-          allowsEditing: true,
-          quality: 0.5,
-          aspect: [4, 3],
-        });
+        result = await ImagePicker.launchImageLibraryAsync(options);
       }
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        // Compress Image to avoid Network Error
+        // Double Compression to avoid Network Error
         const originalUri = result.assets[0].uri;
         try {
             const manipResult = await ImageManipulator.manipulateAsync(
                 originalUri,
-                [{ resize: { width: 640 } }], // Extreme Compression for Warga
+                [{ resize: { width: 800 } }], // Resize to max 800px width
                 { compress: 0.3, format: ImageManipulator.SaveFormat.JPEG }
             );
             setPhoto(manipResult.uri);

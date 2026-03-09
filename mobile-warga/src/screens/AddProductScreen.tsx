@@ -139,7 +139,7 @@ export default function AddProductScreen({ onSuccess, editingProduct }: AddProdu
         result = await ImagePicker.launchCameraAsync({
           mediaTypes: ImagePicker.MediaTypeOptions.Images,
           allowsEditing: true,
-          quality: 0.5,
+          quality: 0.3, // Aggressive compression
           aspect: [4, 3],
         });
       } else {
@@ -152,7 +152,7 @@ export default function AddProductScreen({ onSuccess, editingProduct }: AddProdu
         result = await ImagePicker.launchImageLibraryAsync({
           mediaTypes: ImagePicker.MediaTypeOptions.Images,
           allowsEditing: true,
-          quality: 0.5,
+          quality: 0.3, // Aggressive compression
           aspect: [4, 3],
         });
       }
