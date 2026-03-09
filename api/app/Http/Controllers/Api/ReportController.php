@@ -565,7 +565,6 @@ class ReportController extends Controller
     {
         \Illuminate\Support\Facades\Log::info('ReportController@store called', [
             'user_id' => $request->user()->id,
-            'all_data' => $request->all(),
             'has_file_images' => $request->hasFile('images'),
             'has_file_photo' => $request->hasFile('photo')
         ]);

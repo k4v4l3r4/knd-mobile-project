@@ -47,8 +47,39 @@ api.interceptors.request.use(
   async (config) => {
     try {
       const token = await AsyncStorage.getItem('user_token');
+      const isFormData =
+        typeof FormData !== 'undefined' &&
+        typeof config.data !== 'undefined' &&
+        config.data instanceof FormData;
+
+      if (isFormData) {
+        if (!config.headers) {
+          (config as any).headers = {};
+        }
+
+        const headers: any = (config as any).headers;
+        if (typeof headers.set === 'function') {
+          headers.set('Accept', 'application/json');
+          headers.set('Content-Type', 'multipart/form-data');
+        } else {
+          delete headers['Content-Type'];
+          delete headers['content-type'];
+          headers.Accept = 'application/json';
+          headers['Content-Type'] = 'multipart/form-data';
+        }
+      }
+
       if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+        if (!config.headers) {
+          (config as any).headers = {};
+        }
+
+        const headers: any = (config as any).headers;
+        if (typeof headers.set === 'function') {
+          headers.set('Authorization', `Bearer ${token}`);
+        } else {
+          headers.Authorization = `Bearer ${token}`;
+        }
       }
     } catch (error) {
       // console.log('Error getting token:', error);
