@@ -549,17 +549,11 @@ class ReportController extends Controller
         }
 
         // Visibility rules:
-        // - ADMIN_RT or RT: see all reports in their RT
-        // - WARGA: see only own reports (within their RT)
-        if (in_array(strtoupper($user->role), ['ADMIN_RT','RT'])) {
-            if ($user->rt_id) {
-                $query->where('rt_id', $user->rt_id);
-            }
+        // - All users see reports in their RT
+        if ($user->rt_id) {
+            $query->where('rt_id', $user->rt_id);
         } else {
             $query->where('user_id', $user->id);
-            if ($user->rt_id) {
-                $query->where('rt_id', $user->rt_id);
-            }
         }
 
         $reports = $query->paginate(10);
@@ -578,6 +572,7 @@ class ReportController extends Controller
     {
         \Illuminate\Support\Facades\Log::info('ReportController@store called', [
             'user_id' => $request->user()->id,
+            'all_data' => $request->all(),
             'has_file_images' => $request->hasFile('images'),
             'has_file_photo' => $request->hasFile('photo')
         ]);

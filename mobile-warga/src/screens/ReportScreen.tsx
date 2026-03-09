@@ -315,29 +315,27 @@ export default function ReportScreen() {
     setIsSubmitting(true);
 
     try {
-      let response;
-      if (!photo) {
-        response = await api.post('/reports', {
-          title: title.trim(),
-          description: description.trim(),
-          category,
-          rt_id: userRtId ? userRtId.toString() : undefined,
-        });
-      } else {
-        const formData = new FormData();
-        formData.append('title', title.trim());
-        formData.append('description', description.trim());
-        formData.append('category', category);
-        if (userRtId) formData.append('rt_id', userRtId.toString());
+      const formData = new FormData();
+      formData.append('title', title.trim());
+      formData.append('description', description.trim());
+      formData.append('category', category);
+      if (userRtId) formData.append('rt_id', userRtId.toString());
 
+      if (photo) {
         const filename = photo.split('/').pop() || 'photo.jpg';
         const match = /\.(\w+)$/.exec(filename);
         const type = match ? `image/${match[1]}` : `image/jpeg`;
-        // @ts-ignore
-        formData.append('photo', { uri: photo, name: filename, type });
-
-        response = await api.post('/reports', formData);
+        
+        formData.append('photo', {
+          uri: photo,
+          name: filename,
+          type
+        } as any);
       }
+
+      const response = await api.post('/reports', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
 
       if (response.data?.success || response.status === 201 || response.status === 200) {
         setTitle('');
