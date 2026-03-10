@@ -211,10 +211,12 @@ export default function ReportScreen() {
       
       console.log('Fetching reports:', url);
       const response = await api.get(url);
-      console.log('Reports data received:', response.data?.data?.length || 0);
+      const payload = response.data?.data;
+      const list = Array.isArray(payload) ? payload : payload?.data;
+      console.log('Reports data received:', Array.isArray(list) ? list.length : 0);
 
-      if (response.data && Array.isArray(response.data.data)) {
-        setReports(response.data.data);
+      if (Array.isArray(list)) {
+        setReports(list);
       } else {
         setReports([]);
       }
