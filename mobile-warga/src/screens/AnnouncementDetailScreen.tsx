@@ -14,7 +14,7 @@ import {
   Alert,
   ActivityIndicator
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialIcons, Feather } from '@expo/vector-icons';
 import api, { getStorageUrl } from '../services/api';
 import { useTheme, ThemeColors } from '../context/ThemeContext';
@@ -45,6 +45,7 @@ export default function AnnouncementDetailScreen({ announcement }: AnnouncementD
   const { colors, isDarkMode } = useTheme();
   const { t, language } = useLanguage();
   const { isExpired } = useTenant();
+  const insets = useSafeAreaInsets();
   const styles = React.useMemo(() => getStyles(colors, isDarkMode), [colors, isDarkMode]);
   
   const [comments, setComments] = useState<any[]>([]);
@@ -110,7 +111,7 @@ export default function AnnouncementDetailScreen({ announcement }: AnnouncementD
   return (
     <KeyboardAvoidingView 
       style={{ flex: 1 }} 
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.container}>
         <StatusBar barStyle="light-content" />
@@ -200,7 +201,7 @@ export default function AnnouncementDetailScreen({ announcement }: AnnouncementD
         </ScrollView>
 
         {/* Comment Input */}
-        <View style={styles.inputContainer}>
+        <View style={[styles.inputContainer, { paddingBottom: 16 + insets.bottom }]}>
           <TextInput
             ref={inputRef}
             style={styles.input}
@@ -262,7 +263,7 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     textShadowRadius: 4,
   },
   content: {
-    paddingBottom: 40,
+    paddingBottom: 140,
   },
   image: {
     width: width - 40,

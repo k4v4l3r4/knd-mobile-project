@@ -20,6 +20,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useTenant } from '../context/TenantContext';
 import api, { getStorageUrl } from '../services/api';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -33,6 +34,7 @@ export default function CommentModal({ visible, announcementId, onClose }: Comme
   const { colors, isDarkMode } = useTheme();
   const { t } = useLanguage();
   const { isExpired } = useTenant();
+  const insets = useSafeAreaInsets();
   const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(true);
@@ -169,10 +171,11 @@ export default function CommentModal({ visible, announcementId, onClose }: Comme
         <TouchableOpacity style={styles.backdrop} onPress={onClose} />
         
         <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-          style={[styles.modalContent, { backgroundColor: colors.card }]}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}
+          style={styles.keyboardAvoider}
         >
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
           {/* Header */}
           <View style={[styles.header, { borderBottomColor: colors.border }]}>
             <Text style={[styles.title, { color: colors.text }]}>Komentar</Text>
@@ -193,6 +196,8 @@ export default function CommentModal({ visible, announcementId, onClose }: Comme
               keyExtractor={(item, index) => item.id?.toString() || index.toString()}
               contentContainerStyle={styles.listContent}
               style={{ flex: 1 }}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
               ListEmptyComponent={
                 <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
                   Belum ada komentar. Tulis sesuatu!
@@ -202,7 +207,16 @@ export default function CommentModal({ visible, announcementId, onClose }: Comme
           )}
 
           {/* Input Area */}
-          <View style={[styles.inputContainer, { borderTopColor: colors.border, backgroundColor: colors.card }]}>
+          <View
+            style={[
+              styles.inputContainer,
+              {
+                borderTopColor: colors.border,
+                backgroundColor: colors.card,
+                paddingBottom: 16 + insets.bottom,
+              },
+            ]}
+          >
             <TouchableOpacity 
                 style={styles.iconButton}
                 onPress={toggleEmojiPicker}
@@ -255,10 +269,12 @@ export default function CommentModal({ visible, announcementId, onClose }: Comme
                             <Text style={styles.emojiText}>{item}</Text>
                         </TouchableOpacity>
                     )}
-                    contentContainerStyle={{ padding: 8 }}
+                    keyboardShouldPersistTaps="handled"
+                    contentContainerStyle={{ padding: 8, paddingBottom: 8 + insets.bottom }}
                 />
             </View>
           )}
+          </View>
         </KeyboardAvoidingView>
       </View>
     </Modal>
@@ -273,6 +289,9 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     flex: 1,
+  },
+  keyboardAvoider: {
+    width: '100%',
   },
   modalContent: {
     height: SCREEN_HEIGHT * 0.7, // Take up 70% of screen
