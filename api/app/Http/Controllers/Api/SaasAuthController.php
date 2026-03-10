@@ -508,6 +508,21 @@ class SaasAuthController extends Controller
     public function checkStatus(Request $request)
     {
         $user = $request->user();
+        
+        // SUPER ADMIN BYPASS
+        if ($user->role === 'SUPER_ADMIN' || ($user->userRole && $user->userRole->role_code === 'SUPER_ADMIN')) {
+             return response()->json([
+                'tenant_type' => 'LIVE',
+                'tenant_status' => 'ACTIVE',
+                'is_trial' => false,
+                'remaining_trial_days' => 999,
+                'action_required' => null,
+                'trial_end_at' => null,
+                'subscription_end_at' => null,
+                'message' => 'Super Admin Bypass Active'
+            ]);
+        }
+
         $tenant = $user->tenant;
 
         if (!$tenant) {

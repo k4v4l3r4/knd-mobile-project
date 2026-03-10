@@ -20,6 +20,12 @@ class CheckTenantStatus
     {
         $user = Auth::user();
         
+        // 0. SUPER ADMIN BYPASS
+        // Super Admins are immune to tenant status checks
+        if ($user->role === 'SUPER_ADMIN' || ($user->userRole && $user->userRole->role_code === 'SUPER_ADMIN')) {
+            return $next($request);
+        }
+        
         if (!$user || !$user->tenant) {
             // No tenant context
             return $next($request);

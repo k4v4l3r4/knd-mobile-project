@@ -17,6 +17,11 @@ class TenantFeatureGate
     {
         $user = $request->user();
 
+        // 0. SUPER ADMIN BYPASS
+        if ($user->role === 'SUPER_ADMIN' || ($user->userRole && $user->userRole->role_code === 'SUPER_ADMIN')) {
+            return $next($request);
+        }
+
         // 1. Basic Check: Must be authenticated and have tenant
         if (!$user || !$user->tenant) {
             // Proceed, maybe it's a system admin or public route (though this middleware should be after auth)

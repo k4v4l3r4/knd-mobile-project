@@ -19,6 +19,11 @@ class CheckSubscription
     {
         $user = Auth::user();
 
+        // SUPER ADMIN BYPASS
+        if ($user->role === 'SUPER_ADMIN' || ($user->userRole && $user->userRole->role_code === 'SUPER_ADMIN')) {
+            return $next($request);
+        }
+
         if ($user && $user->rw_id) {
             $rw = WilayahRw::find($user->rw_id);
 
