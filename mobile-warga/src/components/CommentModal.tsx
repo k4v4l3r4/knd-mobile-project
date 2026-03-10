@@ -166,16 +166,15 @@ export default function CommentModal({ visible, announcementId, onClose }: Comme
       transparent
       animationType="slide"
       onRequestClose={onClose}
+      statusBarTranslucent={true}
     >
-      <View style={styles.overlay}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 90}
+        style={styles.overlay}
+      >
         <TouchableOpacity style={styles.backdrop} onPress={onClose} />
-        
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={0}
-          style={styles.keyboardAvoider}
-        >
-          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+        <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
           {/* Header */}
           <View style={[styles.header, { borderBottomColor: colors.border }]}>
             <Text style={[styles.title, { color: colors.text }]}>Komentar</Text>
@@ -274,9 +273,8 @@ export default function CommentModal({ visible, announcementId, onClose }: Comme
                 />
             </View>
           )}
-          </View>
-        </KeyboardAvoidingView>
-      </View>
+        </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -289,9 +287,6 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     flex: 1,
-  },
-  keyboardAvoider: {
-    width: '100%',
   },
   modalContent: {
     height: SCREEN_HEIGHT * 0.7, // Take up 70% of screen

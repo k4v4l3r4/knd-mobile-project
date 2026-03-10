@@ -28,6 +28,7 @@
     },
     "android": {
       "package": "com.knd.mobile",
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-android.png",
         "backgroundColor": "#ffffff"
