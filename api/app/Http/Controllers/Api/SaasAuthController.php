@@ -383,24 +383,28 @@ class SaasAuthController extends Controller
             'otp' => 'sometimes|string',
         ]);
 
-        $user = User::where('phone', $request->phone)->first();
+        $inputPhone = (string) $request->phone;
+        $normalizedInputPhone = $whatsAppService->normalizePhoneNumber($inputPhone);
+        $user = User::where('phone', $normalizedInputPhone)->orWhere('phone', $inputPhone)->first();
         if (!$user) {
             return response()->json(['message' => 'User not found'], 404);
         }
+
+        $phone = $whatsAppService->normalizePhoneNumber($user->phone ?: $normalizedInputPhone);
 
         // STEP 1: If NO OTP provided, SEND OTP
         if (!$request->has('otp')) {
             $otp = (string) random_int(100000, 999999);
 
-            PasswordOtp::forPhone($request->phone)->delete();
+            PasswordOtp::forPhone($phone)->delete();
             PasswordOtp::create([
-                'phone' => $request->phone,
+                'phone' => $phone,
                 'code' => $otp,
                 'expires_at' => now()->addMinutes(10),
             ]);
 
             try {
-                $whatsAppService->sendOtp($request->phone, $otp);
+                $whatsAppService->sendOtp($phone, $otp);
                 
                 return response()->json([
                     'message' => 'OTP sent successfully',
@@ -416,7 +420,10 @@ class SaasAuthController extends Controller
         }
 
         // STEP 2: Verify OTP
-        $otpRecord = PasswordOtp::forPhone($request->phone)->latest()->first();
+        $otpRecord = PasswordOtp::forPhone($phone)->latest()->first();
+        if (!$otpRecord && $inputPhone !== $phone) {
+            $otpRecord = PasswordOtp::forPhone($inputPhone)->latest()->first();
+        }
 
         if (!$otpRecord || $otpRecord->expires_at->isPast()) {
             return response()->json(['message' => 'OTP expired or invalid'], 422);

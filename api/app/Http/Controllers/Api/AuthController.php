@@ -276,7 +276,9 @@ class AuthController extends Controller
             'phone' => 'required|string',
         ]);
 
-        $user = User::where('phone', $validated['phone'])->first();
+        $inputPhone = $validated['phone'];
+        $normalizedInputPhone = $whatsAppService->normalizePhoneNumber($inputPhone);
+        $user = User::where('phone', $normalizedInputPhone)->orWhere('phone', $inputPhone)->first();
 
         if (!$user) {
              return response()->json([
@@ -285,24 +287,26 @@ class AuthController extends Controller
             ], 404);
         }
 
+        $phone = $whatsAppService->normalizePhoneNumber($user->phone ?: $normalizedInputPhone);
+
         $plainCode = (string) random_int(100000, 999999);
 
-        PasswordOtp::forPhone($validated['phone'])->delete();
+        PasswordOtp::forPhone($phone)->delete();
 
         PasswordOtp::create([
-            'phone' => $validated['phone'],
+            'phone' => $phone,
             'code' => $plainCode,
             'expires_at' => now()->addMinutes(10),
         ]);
 
         // Send via WhatsApp
-          Log::info("Attempting to send OTP to: " . $validated['phone']);
+          Log::info("Attempting to send OTP to: " . $phone);
           
           try {
-              $whatsAppService->sendOtp($validated['phone'], $plainCode);
-              Log::info("OTP sent successfully to " . $validated['phone']);
+              $whatsAppService->sendOtp($phone, $plainCode);
+              Log::info("OTP sent successfully to " . $phone);
           } catch (\Exception $e) {
-              Log::error("Failed to send OTP to " . $validated['phone'] . ": " . $e->getMessage());
+              Log::error("Failed to send OTP to " . $phone . ": " . $e->getMessage());
               
               // Return 500 but include the OTP for debugging/fallback since the gateway is failing
               return response()->json([
@@ -320,14 +324,16 @@ class AuthController extends Controller
         ]);
     }
 
-    public function verifyOtp(Request $request)
+    public function verifyOtp(Request $request, WhatsAppService $whatsAppService)
     {
         $validated = $request->validate([
             'phone' => 'required|string',
             'otp' => 'required|string|size:6',
         ]);
 
-        $user = User::where('phone', $validated['phone'])->first();
+        $inputPhone = $validated['phone'];
+        $normalizedInputPhone = $whatsAppService->normalizePhoneNumber($inputPhone);
+        $user = User::where('phone', $normalizedInputPhone)->orWhere('phone', $inputPhone)->first();
 
         if (!$user) {
              return response()->json([
@@ -336,7 +342,12 @@ class AuthController extends Controller
             ], 404);
         }
 
-        $otp = PasswordOtp::forPhone($validated['phone'])->latest()->first();
+        $phone = $whatsAppService->normalizePhoneNumber($user->phone ?: $normalizedInputPhone);
+
+        $otp = PasswordOtp::forPhone($phone)->latest()->first();
+        if (!$otp && $inputPhone !== $phone) {
+            $otp = PasswordOtp::forPhone($inputPhone)->latest()->first();
+        }
 
         if (!$otp || $otp->expires_at->isPast()) {
             if ($otp) {
@@ -378,7 +389,7 @@ class AuthController extends Controller
         ]);
     }
 
-    public function resetPassword(Request $request)
+    public function resetPassword(Request $request, WhatsAppService $whatsAppService)
     {
         $validated = $request->validate([
             'phone' => 'required|string',
@@ -386,7 +397,9 @@ class AuthController extends Controller
             'token' => 'required|string',
         ]);
 
-        $user = User::where('phone', $validated['phone'])->first();
+        $inputPhone = $validated['phone'];
+        $normalizedInputPhone = $whatsAppService->normalizePhoneNumber($inputPhone);
+        $user = User::where('phone', $normalizedInputPhone)->orWhere('phone', $inputPhone)->first();
 
         if (!$user) {
              return response()->json([

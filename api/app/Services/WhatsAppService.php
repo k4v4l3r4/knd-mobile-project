@@ -25,6 +25,25 @@ class WhatsAppService
         $this->delaySeconds = config('services.whatsapp.delay_seconds', 2);
     }
 
+    public function normalizePhoneNumber(string $phone): string
+    {
+        $phone = preg_replace('/[^0-9]/', '', $phone);
+
+        if ($phone === '') {
+            return '';
+        }
+
+        if (str_starts_with($phone, '0')) {
+            return '62' . substr($phone, 1);
+        }
+
+        if (!str_starts_with($phone, '62')) {
+            return '62' . $phone;
+        }
+
+        return $phone;
+    }
+
     /**
      * Enforce rate limiting by sleeping if necessary.
      */
@@ -69,20 +88,11 @@ class WhatsAppService
             return false;
         }
 
-        // Format phone number
-        // 1. Remove any non-numeric characters
-        $phone = preg_replace('/[^0-9]/', '', $phone);
-
-        // 2. Normalize to 62 format
-        if (str_starts_with($phone, '0')) {
-            // Replace leading '0' with '62'
-            $phone = '62' . substr($phone, 1);
-        } elseif (!str_starts_with($phone, '62')) {
-            // If doesn't start with 62 (and didn't start with 0), prepend 62
-            // This covers cases like '812...' becoming '62812...'
-            $phone = '62' . $phone;
+        $phone = $this->normalizePhoneNumber($phone);
+        if ($phone === '') {
+            Log::warning('WhatsAppService: Phone number is empty after normalization.');
+            return false;
         }
-        // If already starts with '62', leave it as is.
 
         Log::info("WhatsAppService: Formatted phone number: $phone");
 
@@ -101,9 +111,8 @@ class WhatsAppService
 
             /** @var \Illuminate\Http\Client\Response $response */
             $client = Http::withoutVerifying()->timeout(30);
-            // Use AUTH header if configured (MPWA server expects AUTH token)
             if (!empty($this->authToken)) {
-                $client = $client->withHeaders(['AUTH' => $this->authToken]);
+                $client = $client->withHeaders(['Authorization' => 'Bearer ' . $this->authToken]);
             } elseif (!empty($this->apiKey)) {
                 // Fallback to legacy api_key if provided
                 $payload['api_key'] = $this->apiKey;
