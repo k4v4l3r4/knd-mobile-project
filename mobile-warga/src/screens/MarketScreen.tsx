@@ -31,6 +31,7 @@ import { useCart } from '../context/CartContext';
 import { DemoLabel } from '../components/TenantStatusComponents';
 import { ImagePickerModal } from '../components/ImagePickerModal';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { authService } from '../services/auth';
 import axios from 'axios';
 import { formatPhoneNumber } from '../utils/phoneUtils';
@@ -301,9 +302,9 @@ export default function MarketScreen({ onNavigate }: MarketScreenProps) {
         }}]
       );
     } catch (error: any) {
-      console.error('Create store error:', error);
-
-      const backendMessage = error.response?.data?.message || '';
+      console.error('Create store error:', error?.response?.data || error);
+      const backendMessage = error?.response?.data?.message || '';
+      const errors = error?.response?.data?.errors;
       const alreadyHasStore = typeof backendMessage === 'string' && backendMessage.includes('Anda sudah memiliki toko');
 
       if (alreadyHasStore) {
@@ -320,9 +321,18 @@ export default function MarketScreen({ onNavigate }: MarketScreenProps) {
             }
           ]
         );
-      } else {
-        Alert.alert(t('common.failed'), backendMessage || t('market.createStore.failed'));
+        return;
       }
+
+      if (errors && typeof errors === 'object') {
+        const firstKey = Object.keys(errors)[0];
+        const firstError = errors[firstKey];
+        const message = Array.isArray(firstError) ? firstError[0] : String(firstError);
+        Alert.alert(t('common.failed'), message || t('market.createStore.failed'));
+        return;
+      }
+
+      Alert.alert(t('common.failed'), backendMessage || t('market.createStore.failed'));
     } finally {
       setLoading(false);
     }
@@ -341,7 +351,7 @@ export default function MarketScreen({ onNavigate }: MarketScreenProps) {
           mediaTypes: ImagePicker.MediaTypeOptions.Images,
           allowsEditing: true,
           aspect: [16, 9],
-          quality: 0.8,
+          quality: 0.3,
         });
       } else {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -353,12 +363,21 @@ export default function MarketScreen({ onNavigate }: MarketScreenProps) {
           mediaTypes: ImagePicker.MediaTypeOptions.Images,
           allowsEditing: true,
           aspect: [16, 9],
-          quality: 0.8,
+          quality: 0.3,
         });
       }
 
       if (!result.canceled) {
-        setStoreImage(result.assets[0].uri);
+        try {
+          const manipResult = await ImageManipulator.manipulateAsync(
+            result.assets[0].uri,
+            [{ resize: { width: 800 } }],
+            { compress: 0.3, format: ImageManipulator.SaveFormat.JPEG }
+          );
+          setStoreImage(manipResult.uri);
+        } catch {
+          setStoreImage(result.assets[0].uri);
+        }
       }
     } catch (error) {
       console.log('Error picking image:', error);
