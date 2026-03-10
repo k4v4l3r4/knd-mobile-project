@@ -29,6 +29,7 @@ import { DemoLabel } from '@/components/TenantStatusComponents';
 import { format } from 'date-fns';
 import { formatPhoneNumber } from '@/lib/phoneUtils';
 import { getImageUrl } from '@/lib/utils';
+import api from '@/lib/axios';
 
 interface IssueReport {
   id: number;
@@ -38,7 +39,7 @@ interface IssueReport {
   description: string;
   category: 'KEBERSIHAN' | 'KEAMANAN' | 'INFRASTRUKTUR' | 'LAINNYA';
   photo_url: string | null;
-  status: 'PENDING' | 'PROCESSED' | 'DONE' | 'REJECTED';
+  status: 'PENDING' | 'PROCESS' | 'RESOLVED' | 'REJECTED' | 'PROCESSED' | 'DONE';
   created_at: string;
   user: {
     id: number;
@@ -51,8 +52,8 @@ interface IssueReport {
 const TABS = [
   { label: 'Semua', value: '' },
   { label: 'Menunggu', value: 'PENDING' },
-  { label: 'Diproses', value: 'PROCESSED' },
-  { label: 'Selesai', value: 'DONE' },
+  { label: 'Diproses', value: 'PROCESS' },
+  { label: 'Selesai', value: 'RESOLVED' },
   { label: 'Ditolak', value: 'REJECTED' },
 ];
 
@@ -145,25 +146,13 @@ export default function LaporanWargaPage() {
         setLoading(false);
         return;
       }
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '') || '';
-      let url = `${baseUrl}/api/reports`;
-      if (activeTab) {
-        url += `?status=${activeTab}`;
-      }
+      const params: any = {};
+      if (activeTab) params.status = activeTab;
 
-      const token = Cookies.get('token') || localStorage.getItem('token');
-
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
-        }
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        setReports(data.data);
-      }
+      const res = await api.get('/reports', { params });
+      const payload = res.data?.data;
+      const list = Array.isArray(payload) ? payload : payload?.data;
+      setReports(Array.isArray(list) ? list : []);
     } catch (error) {
       if (!isDemo) {
         console.error('Error fetching reports:', error);
@@ -188,26 +177,19 @@ export default function LaporanWargaPage() {
 
     setUpdating(true);
     try {
-      const token = Cookies.get('token') || localStorage.getItem('token');
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '') || '';
-      const response = await fetch(`${baseUrl}/api/reports/${selectedReport.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({ status })
-      });
+      const mapped =
+        status === 'PROCESSED' ? 'PROCESS' :
+        status === 'DONE' ? 'RESOLVED' :
+        status;
 
-      const data = await response.json();
-      if (data.success) {
+      const res = await api.patch(`/reports/${selectedReport.id}/status`, { status: mapped });
+      if (res.data?.success) {
         toast.success('Status laporan berhasil diperbarui');
-        setReports(reports.map(r => r.id === selectedReport.id ? { ...r, status: status as any } : r));
-        setSelectedReport({ ...selectedReport, status: status as any });
+        setReports(reports.map(r => r.id === selectedReport.id ? { ...r, status: mapped as any } : r));
+        setSelectedReport({ ...selectedReport, status: mapped as any });
         setIsModalOpen(false);
       } else {
-        toast.error(data.message || 'Gagal memperbarui status');
+        toast.error(res.data?.message || 'Gagal memperbarui status');
       }
     } catch (error) {
       console.error('Error updating status:', error);
@@ -237,24 +219,13 @@ export default function LaporanWargaPage() {
     
     setIsDeleting(true);
     try {
-      const token = Cookies.get('token') || localStorage.getItem('token');
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, '') || '';
-      const response = await fetch(`${baseUrl}/api/reports/${reportToDelete.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
-        }
-      });
-
-      const data = await response.json();
-
-      if (data.success || response.ok) {
-        toast.success('Laporan berhasil dihapus');
-        setReports(reports.filter(r => r.id !== reportToDelete.id));
-        setIsDeleteModalOpen(false);
+      const res = await api.delete(`/reports/${reportToDelete.id}`);
+      if (res.data?.success || res.status === 200 || res.status === 204) {
+          toast.success('Laporan berhasil dihapus');
+          setReports(reports.filter(r => r.id !== reportToDelete.id));
+          setIsDeleteModalOpen(false);
       } else {
-        toast.error(data.message || 'Gagal menghapus laporan');
+          toast.error(res.data?.message || 'Gagal menghapus laporan');
       }
     } catch (error) {
       console.error('Error deleting report:', error);
@@ -267,8 +238,10 @@ export default function LaporanWargaPage() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
+      case 'RESOLVED':
       case 'DONE':
         return <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm"><CheckCircle className="w-3.5 h-3.5" /> Selesai</span>;
+      case 'PROCESS':
       case 'PROCESSED':
         return <span className="px-3 py-1 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm"><Clock className="w-3.5 h-3.5" /> Diproses</span>;
       case 'REJECTED':
@@ -511,9 +484,9 @@ export default function LaporanWargaPage() {
                 <div className="grid grid-cols-3 gap-4">
                   <button
                     onClick={() => handleUpdateStatus('PROCESSED')}
-                    disabled={updating || selectedReport.status === 'PROCESSED'}
+                    disabled={updating || selectedReport.status === 'PROCESS' || selectedReport.status === 'PROCESSED'}
                     className={`px-4 py-3.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${
-                      selectedReport.status === 'PROCESSED'
+                      selectedReport.status === 'PROCESS' || selectedReport.status === 'PROCESSED'
                         ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-400 cursor-not-allowed border border-blue-100 dark:border-blue-900/30'
                         : 'bg-white dark:bg-slate-800 border-2 border-blue-100 dark:border-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-200 shadow-sm hover:shadow-lg hover:shadow-blue-500/10 hover:-translate-y-0.5 transition-all duration-300'
                     }`}
@@ -523,9 +496,9 @@ export default function LaporanWargaPage() {
                   </button>
                   <button
                     onClick={() => handleUpdateStatus('DONE')}
-                    disabled={updating || selectedReport.status === 'DONE'}
+                    disabled={updating || selectedReport.status === 'RESOLVED' || selectedReport.status === 'DONE'}
                     className={`px-4 py-3.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${
-                      selectedReport.status === 'DONE'
+                      selectedReport.status === 'RESOLVED' || selectedReport.status === 'DONE'
                         ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-400 cursor-not-allowed border border-emerald-100 dark:border-emerald-900/30'
                         : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-200 dark:shadow-none shadow-lg hover:shadow-xl hover:-translate-y-0.5'
                     }`}
