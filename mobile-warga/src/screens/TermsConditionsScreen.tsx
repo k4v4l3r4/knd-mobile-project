@@ -16,7 +16,7 @@ const TermsConditionsScreen = ({ }: TermsConditionsScreenProps) => {
   const { t } = useLanguage();
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <View
@@ -74,7 +74,7 @@ const TermsConditionsScreen = ({ }: TermsConditionsScreenProps) => {
           </Text>
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
