@@ -315,29 +315,47 @@ export default function ReportScreen() {
     setIsSubmitting(true);
 
     try {
-      const formData = new FormData();
-      formData.append('title', title.trim());
-      formData.append('description', description.trim());
-      formData.append('category', category);
-      if (userRtId) formData.append('rt_id', userRtId.toString());
+      let response;
+      
+      // SMART SUBMIT: Use JSON for text-only, FormData for photos
+      if (!photo) {
+          // JSON Submission (Faster, less error-prone)
+          const payload = {
+              title: title.trim(),
+              description: description.trim(),
+              category: category,
+              rt_id: userRtId ? userRtId.toString() : undefined
+          };
+          console.log('Submitting Report (JSON)...', payload);
+          response = await api.post('/reports', payload);
+      } else {
+          // FormData Submission (Only when photo exists)
+          const formData = new FormData();
+          formData.append('title', title.trim());
+          formData.append('description', description.trim());
+          formData.append('category', category);
+          if (userRtId) formData.append('rt_id', userRtId.toString());
 
-      if (photo) {
-        const filename = photo.split('/').pop() || 'photo.jpg';
-        const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : `image/jpeg`;
-        
-        // Ensure proper object structure for React Native FormData
-        const photoData = {
-          uri: Platform.OS === 'android' ? photo : photo.replace('file://', ''),
-          name: filename,
-          type: type
-        };
-        
-        // @ts-ignore
-        formData.append('photo', photoData);
+          const filename = photo.split('/').pop() || 'photo.jpg';
+          const match = /\.(\w+)$/.exec(filename);
+          const type = match ? `image/${match[1]}` : `image/jpeg`;
+          
+          const photoData = {
+            uri: Platform.OS === 'android' ? photo : photo.replace('file://', ''),
+            name: filename,
+            type: type
+          };
+          
+          // @ts-ignore
+          formData.append('photo', photoData);
+          
+          console.log('Submitting Report (FormData)...');
+          response = await api.post('/reports', formData, {
+              headers: {
+                  'Content-Type': 'multipart/form-data',
+              },
+          });
       }
-
-      const response = await api.post('/reports', formData);
 
       if (response.data?.success || response.status === 201 || response.status === 200) {
         setTitle('');

@@ -34,7 +34,7 @@ const api = axios.create({
   timeout: 120000, // 120s global timeout for slow uploads
   headers: {
     'Accept': 'application/json',
-    'User-Agent': 'KND-Mobile-Warga/1.0', // Bypass Cloudflare Bot Protection
+    // Removed User-Agent to avoid potential Cloudflare blocks for unknown UAs
   },
 });
 
