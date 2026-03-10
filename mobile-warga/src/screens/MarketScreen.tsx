@@ -291,7 +291,11 @@ export default function MarketScreen({ onNavigate }: MarketScreenProps) {
         } as any);
       }
 
-      const response = await api.post('/stores', formData);
+      const response = await api.post('/stores', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
 
       Alert.alert(
         t('market.createStore.successTitle'), 
@@ -302,9 +306,18 @@ export default function MarketScreen({ onNavigate }: MarketScreenProps) {
         }}]
       );
     } catch (error: any) {
-      console.error('Create store error:', error?.response?.data || error);
+      console.error('Create store error details:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        headers: error.response?.headers
+      });
+
       const backendMessage = error?.response?.data?.message || '';
       const errors = error?.response?.data?.errors;
+      const status = error?.response?.status;
+      
+      // Handle "Already has store" specific error
       const alreadyHasStore = typeof backendMessage === 'string' && backendMessage.includes('Anda sudah memiliki toko');
 
       if (alreadyHasStore) {
@@ -324,15 +337,26 @@ export default function MarketScreen({ onNavigate }: MarketScreenProps) {
         return;
       }
 
+      // Handle Validation Errors (422)
       if (errors && typeof errors === 'object') {
         const firstKey = Object.keys(errors)[0];
         const firstError = errors[firstKey];
         const message = Array.isArray(firstError) ? firstError[0] : String(firstError);
-        Alert.alert(t('common.failed'), message || t('market.createStore.failed'));
+        Alert.alert(t('common.failed'), `${message}`);
         return;
       }
 
-      Alert.alert(t('common.failed'), backendMessage || t('market.createStore.failed'));
+      // Handle Generic/Server Errors
+      let displayMessage = backendMessage || error.message || t('market.createStore.failed');
+      
+      // If HTML is returned (e.g. Cloudflare or Laravel 500 error page)
+      if (typeof error?.response?.data === 'string' && error.response.data.includes('<html')) {
+        displayMessage = `Server Error (${status}): HTML Response received.`;
+      } else if (status) {
+         displayMessage = `${displayMessage} (Status: ${status})`;
+      }
+
+      Alert.alert('Gagal (Debug)', displayMessage);
     } finally {
       setLoading(false);
     }
