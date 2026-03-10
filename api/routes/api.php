@@ -254,6 +254,12 @@ Route::middleware(['auth:sanctum', 'tenant.status', 'tenant.feature'])->group(fu
 
     // Boarding House
     Route::apiResource('boarding-houses', BoardingHouseController::class);
+    Route::post('/boarding-houses/{id}/tenants', [BoardingHouseController::class, 'addTenant']);
+    Route::patch('/boarding-houses/{id}/tenants/{tenantId}', [BoardingHouseController::class, 'updateTenant']);
+    Route::delete('/boarding-houses/{id}/tenants/{tenantId}', [BoardingHouseController::class, 'removeTenant']);
+    Route::post('/boarding-houses/{id}/tenants/{tenantId}/pay', [BoardingHouseController::class, 'markAsPaid']);
+    Route::post('/boarding-houses/{id}/tenants/{tenantId}/pay-deposit', [BoardingHouseController::class, 'payDeposit']);
+    Route::post('/boarding-houses/{id}/tenants/{tenantId}/process-deposit', [BoardingHouseController::class, 'processDeposit']);
 
     // Letters
     Route::apiResource('letters', LetterController::class);

@@ -684,6 +684,8 @@ export default function BoardingScreen({ onNavigate }: BoardingScreenProps) {
         } else {
           displayMessage = t('boarding.alert.invalidData');
         }
+      } else if (status) {
+        displayMessage = message || displayMessage;
       }
       console.error('Add tenant error:', error?.response?.data || error);
       Alert.alert(t('common.error'), displayMessage);
