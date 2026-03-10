@@ -1390,20 +1390,24 @@ export default function BoardingScreen({ onNavigate }: BoardingScreenProps) {
       )}
 
       {/* Floating Action Button */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => {
-          if (activeTab === 'MY_KOST' && myBoardingHouses.length === 0) {
-            setKostFormData({ name: '', address: '', total_rooms: '', total_floors: '', floor_config: [] });
-            setIsEditingKost(false);
-            setEditingKostId(null);
-            setKostModalVisible(true);
-          } else {
+      {activeTab === 'MY_KOST' && (
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={() => {
+            if (myBoardingHouses.length === 0) {
+              setKostFormData({ name: '', address: '', total_rooms: '', total_floors: '', floor_config: [] });
+              setIsEditingKost(false);
+              setEditingKostId(null);
+              setKostModalVisible(true);
+              return;
+            }
+
             if (myBoardingHouses.length === 1) {
               setSelectedHouseId(myBoardingHouses[0].id);
             } else {
               setSelectedHouseId(null);
             }
+
             const d = new Date();
             d.setMonth(d.getMonth() + 1);
             setFormData({
@@ -1425,12 +1429,12 @@ export default function BoardingScreen({ onNavigate }: BoardingScreenProps) {
             setIsEditMode(false);
             setEditingTenantId(null);
             setModalVisible(true);
-          }
-        }}
-        activeOpacity={0.8}
-      >
-        <Ionicons name="add" size={30} color="#fff" />
-      </TouchableOpacity>
+          }}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="add" size={30} color="#fff" />
+        </TouchableOpacity>
+      )}
 
       {/* Add Kost Modal */}
       <Modal

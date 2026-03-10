@@ -23,7 +23,8 @@ class BoardingHouseController extends Controller
         $user = $request->user('sanctum');
         if (!$user) return response()->json(['message' => 'Unauthorized'], 401);
 
-        $isRtViewer = in_array($user->role, ['RT', 'ADMIN_RT', 'SECRETARY', 'TREASURER', 'ADMIN_RW']);
+        $isAdmin = in_array($user->role, ['SUPER_ADMIN', 'ADMIN', 'ADMIN_RW', 'SECRETARY', 'TREASURER']);
+        $isRtViewer = in_array($user->role, ['RT', 'ADMIN_RT', 'SECRETARY', 'TREASURER']) && !empty($user->rt_id);
         
         // 1. Base Query with Eager Loading
         $query = BoardingHouse::with(['owner', 'tenants' => function ($q) {
@@ -38,16 +39,25 @@ class BoardingHouseController extends Controller
                   });
         }
 
-        // 3. Get All Data (Filter visibility in mapping)
-        // We do NOT filter by owner_id here anymore for Warga, 
-        // because Warga needs to see "Kost Warga" (other kosts) in the 2nd tab.
+        // 3. Visibility Rules
+        // - Owner: only their own kost
+        // - RT Viewer: all kosts in the same RT (for census)
+        // - Admin: all kosts within tenant scope
+        if (!$isAdmin && !$isRtViewer) {
+            $query->where('owner_id', $user->id);
+        } elseif ($isRtViewer && !$isAdmin) {
+            $query->whereHas('owner', function ($q) use ($user) {
+                $q->where('rt_id', $user->rt_id);
+            });
+        }
+
+        // 4. Get Data
         $boardingHouses = $query->latest()->get();
 
-        // 4. Map & Sanitize Data based on Role
+        // 5. Map & Sanitize Data based on Role
         $sanitizedData = $boardingHouses->map(function ($house) use ($user, $isRtViewer) {
             $isOwner = $house->owner_id === $user->id;
             
-            // Base Public Info (Available to All Warga)
             $houseData = [
                 'id' => $house->id,
                 'name' => $house->name,
@@ -95,9 +105,6 @@ class BoardingHouseController extends Controller
                     ];
                 });
             } else {
-                // === WARGA ACCESS (Community View) ===
-                // Hide Internal Config
-                // Hide Tenant List completely (Privacy)
                 $houseData['tenants'] = []; 
             }
 
@@ -192,7 +199,11 @@ class BoardingHouseController extends Controller
         $user = $request->user('sanctum');
         if (!$user) return response()->json(['message' => 'Unauthorized'], 401);
 
-        if (in_array($user->role, ['RT', 'ADMIN_RT'])) {
+        $isOwner = $boardingHouse->owner_id === $user->id;
+        $isAdmin = in_array($user->role, ['SUPER_ADMIN', 'ADMIN', 'ADMIN_RW', 'SECRETARY', 'TREASURER']);
+        $isRtViewer = in_array($user->role, ['RT', 'ADMIN_RT', 'SECRETARY', 'TREASURER']) && !empty($user->rt_id);
+
+        if ($isRtViewer) {
             if (!$user->rt_id) {
                 return response()->json([
                     'success' => false,
@@ -218,13 +229,7 @@ class BoardingHouseController extends Controller
                     'start_date' => $tenant->start_date,
                     'due_date' => $tenant->due_date,
                     'rental_duration' => $tenant->rental_duration,
-                    'room_price' => $tenant->room_price,
-                    'deposit_amount' => $tenant->deposit_amount,
-                    'deposit_status' => $tenant->deposit_status,
-                    'deposit_notes' => $tenant->deposit_notes,
-                    'payment_status' => $tenant->payment_status,
                     'status' => $tenant->status,
-                    'notification_enabled' => $tenant->notification_enabled,
                     'user' => $u ? [
                         'id' => $u->id,
                         'name' => $u->name,
@@ -244,14 +249,19 @@ class BoardingHouseController extends Controller
                 'data' => [
                     'id' => $boardingHouse->id,
                     'name' => $boardingHouse->name,
+                    'address' => $boardingHouse->address,
+                    'owner_id' => $boardingHouse->owner_id,
+                    'owner' => $boardingHouse->owner ? [
+                        'id' => $boardingHouse->owner->id,
+                        'name' => $boardingHouse->owner->name,
+                        'phone' => $boardingHouse->owner->phone,
+                        'photo_url' => $boardingHouse->owner->photo_url ?? null,
+                    ] : null,
                     'tenants' => $tenants
                 ]
             ]);
         }
 
-        $isAdmin = in_array($user->role, ['SUPER_ADMIN', 'ADMIN', 'ADMIN_RW', 'SECRETARY', 'TREASURER']);
-        $isOwner = $boardingHouse->owner_id === $user->id;
-        
         $isTenantHere = false;
         if (in_array($user->role, ['WARGA_KOST', 'WARGA', 'WARGA_TETAP'])) {
              $isTenantHere = $boardingHouse->tenants->contains('user_id', $user->id);
@@ -263,11 +273,42 @@ class BoardingHouseController extends Controller
                 'message' => 'Anda tidak memiliki akses ke data kost ini'
             ], 403);
         }
+
+        if ($isOwner || $isAdmin) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Detail data kost',
+                'data' => $boardingHouse
+            ]);
+        }
+
+        $tenant = $boardingHouse->tenants ? $boardingHouse->tenants->firstWhere('user_id', $user->id) : null;
         
         return response()->json([
             'success' => true,
             'message' => 'Detail data kost',
-            'data' => $boardingHouse
+            'data' => [
+                'id' => $boardingHouse->id,
+                'name' => $boardingHouse->name,
+                'address' => $boardingHouse->address,
+                'owner_id' => $boardingHouse->owner_id,
+                'owner' => $boardingHouse->owner ? [
+                    'id' => $boardingHouse->owner->id,
+                    'name' => $boardingHouse->owner->name,
+                    'phone' => $boardingHouse->owner->phone,
+                    'photo_url' => $boardingHouse->owner->photo_url ?? null,
+                ] : null,
+                'tenants' => $tenant ? [[
+                    'id' => $tenant->id,
+                    'boarding_house_id' => $tenant->boarding_house_id,
+                    'user_id' => $tenant->user_id,
+                    'room_number' => $tenant->room_number,
+                    'start_date' => $tenant->start_date,
+                    'due_date' => $tenant->due_date,
+                    'rental_duration' => $tenant->rental_duration,
+                    'status' => $tenant->status,
+                ]] : [],
+            ]
         ]);
     }
 
@@ -393,22 +434,31 @@ class BoardingHouseController extends Controller
         $user = $request->user('sanctum');
         if (!$user) return response()->json(['message' => 'Unauthorized'], 401);
 
-        $isAdmin = in_array($user->role, ['SUPER_ADMIN', 'ADMIN', 'ADMIN_RW', 'SECRETARY', 'TREASURER']);
         $isOwner = $boardingHouse->owner_id === $user->id;
+        $isAdminOrRt = in_array($user->role, ['SUPER_ADMIN', 'ADMIN', 'ADMIN_RW', 'SECRETARY', 'TREASURER', 'RT', 'ADMIN_RT']);
 
-        if (!$isAdmin && !$isOwner) {
+        if (!$isOwner && !$isAdminOrRt) {
             return response()->json([
                 'success' => false,
                 'message' => 'Anda tidak memiliki akses ke kost ini'
             ], 403);
         }
 
-        // RT can only view (read-only) UNLESS they are the owner
-        if (in_array($user->role, ['RT', 'ADMIN_RT']) && !$isOwner) {
-            return response()->json([
-                'success' => false,
-                'message' => 'RT hanya memiliki akses baca (read-only)'
-            ], 403);
+        if (!$isOwner && in_array($user->role, ['RT', 'ADMIN_RT', 'SECRETARY', 'TREASURER'])) {
+            if (!$user->rt_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki akses ke kost ini'
+                ], 403);
+            }
+
+            $ownerRtId = $boardingHouse->owner ? $boardingHouse->owner->rt_id : null;
+            if (!$ownerRtId || (int) $ownerRtId !== (int) $user->rt_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki akses ke kost ini'
+                ], 403);
+            }
         }
 
         // Map legacy marital status to Title Case

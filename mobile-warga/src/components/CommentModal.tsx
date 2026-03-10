@@ -6,7 +6,6 @@ import {
   StyleSheet, 
   TouchableOpacity, 
   TextInput, 
-  KeyboardAvoidingView, 
   Platform,
   FlatList,
   Image,
@@ -40,7 +39,7 @@ export default function CommentModal({ visible, announcementId, onClose }: Comme
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const inputRef = useRef<TextInput>(null);
 
   const COMMON_EMOJIS = [
@@ -67,18 +66,22 @@ export default function CommentModal({ visible, announcementId, onClose }: Comme
   }, [visible, announcementId]);
 
   useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+    const showEventName = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEventName = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener(showEventName as any, (event: any) => {
+      const height = event?.endCoordinates?.height ?? 0;
       setShowEmojiPicker(false);
-      setIsKeyboardVisible(true);
+      setKeyboardHeight(typeof height === 'number' ? height : 0);
     });
 
-    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
-      setIsKeyboardVisible(false);
+    const hideSub = Keyboard.addListener(hideEventName as any, () => {
+      setKeyboardHeight(0);
     });
 
     return () => {
-      keyboardDidShowListener.remove();
-      keyboardDidHideListener.remove();
+      showSub.remove();
+      hideSub.remove();
     };
   }, []);
 
@@ -173,11 +176,9 @@ export default function CommentModal({ visible, announcementId, onClose }: Comme
       onRequestClose={onClose}
       statusBarTranslucent={true}
     >
-      {Platform.OS === 'ios' ? (
-        <KeyboardAvoidingView behavior="padding" keyboardVerticalOffset={0} style={styles.overlay}>
-          <TouchableOpacity style={styles.backdrop} onPress={onClose} />
-          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
-          {/* Header */}
+      <View style={styles.overlay}>
+        <TouchableOpacity style={styles.backdrop} onPress={onClose} />
+        <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
           <View style={[styles.header, { borderBottomColor: colors.border }]}>
             <Text style={[styles.title, { color: colors.text }]}>Komentar</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -185,7 +186,6 @@ export default function CommentModal({ visible, announcementId, onClose }: Comme
             </TouchableOpacity>
           </View>
 
-          {/* Comments List */}
           {loading ? (
             <View style={styles.centerContainer}>
               <ActivityIndicator color={colors.primary} />
@@ -207,34 +207,33 @@ export default function CommentModal({ visible, announcementId, onClose }: Comme
             />
           )}
 
-          {/* Input Area */}
           <View
             style={[
               styles.inputContainer,
               {
                 borderTopColor: colors.border,
                 backgroundColor: colors.card,
-                paddingBottom: isKeyboardVisible ? 16 : 16 + insets.bottom,
+                paddingBottom: keyboardHeight > 0 ? keyboardHeight : insets.bottom,
               },
             ]}
           >
-            <TouchableOpacity 
-                style={styles.iconButton}
-                onPress={toggleEmojiPicker}
-            >
-                <Ionicons 
-                    name={showEmojiPicker ? "keypad-outline" : "happy-outline"} 
-                    size={24} 
-                    color={colors.textSecondary} 
-                />
+            <TouchableOpacity style={styles.iconButton} onPress={toggleEmojiPicker}>
+              <Ionicons
+                name={showEmojiPicker ? 'keypad-outline' : 'happy-outline'}
+                size={24}
+                color={colors.textSecondary}
+              />
             </TouchableOpacity>
 
             <TextInput
               ref={inputRef}
-              style={[styles.input, { 
-                backgroundColor: isDarkMode ? '#0f172a' : '#f1f5f9',
-                color: colors.text 
-              }]}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: isDarkMode ? '#0f172a' : '#f1f5f9',
+                  color: colors.text,
+                },
+              ]}
               placeholder="Tulis komentar..."
               placeholderTextColor={colors.textSecondary}
               value={newComment}
@@ -242,7 +241,7 @@ export default function CommentModal({ visible, announcementId, onClose }: Comme
               multiline
               onFocus={() => setShowEmojiPicker(false)}
             />
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.sendButton, { backgroundColor: newComment.trim() ? colors.primary : colors.border }]}
               onPress={handlePostComment}
               disabled={!newComment.trim() || submitting}
@@ -255,130 +254,24 @@ export default function CommentModal({ visible, announcementId, onClose }: Comme
             </TouchableOpacity>
           </View>
 
-          {/* Emoji Picker */}
           {showEmojiPicker && (
             <View style={[styles.emojiPicker, { backgroundColor: isDarkMode ? '#0f172a' : '#f1f5f9' }]}>
-                <FlatList
-                    data={COMMON_EMOJIS}
-                    numColumns={8}
-                    keyExtractor={(item, index) => index.toString()}
-                    renderItem={({ item }) => (
-                        <TouchableOpacity 
-                            style={styles.emojiItem}
-                            onPress={() => handleAddEmoji(item)}
-                        >
-                            <Text style={styles.emojiText}>{item}</Text>
-                        </TouchableOpacity>
-                    )}
-                    keyboardShouldPersistTaps="handled"
-                    contentContainerStyle={{ padding: 8, paddingBottom: 8 + insets.bottom }}
-                />
+              <FlatList
+                data={COMMON_EMOJIS}
+                numColumns={8}
+                keyExtractor={(item, index) => index.toString()}
+                renderItem={({ item }) => (
+                  <TouchableOpacity style={styles.emojiItem} onPress={() => handleAddEmoji(item)}>
+                    <Text style={styles.emojiText}>{item}</Text>
+                  </TouchableOpacity>
+                )}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={{ padding: 8, paddingBottom: 8 + insets.bottom }}
+              />
             </View>
           )}
-          </View>
-        </KeyboardAvoidingView>
-      ) : (
-        <View style={styles.overlay}>
-          <TouchableOpacity style={styles.backdrop} onPress={onClose} />
-          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
-            {/* Header */}
-            <View style={[styles.header, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.title, { color: colors.text }]}>Komentar</Text>
-              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                <Ionicons name="close" size={24} color={colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-
-            {/* Comments List */}
-            {loading ? (
-              <View style={styles.centerContainer}>
-                <ActivityIndicator color={colors.primary} />
-              </View>
-            ) : (
-              <FlatList
-                data={comments}
-                renderItem={renderItem}
-                keyExtractor={(item, index) => item.id?.toString() || index.toString()}
-                contentContainerStyle={styles.listContent}
-                style={{ flex: 1 }}
-                keyboardShouldPersistTaps="handled"
-                keyboardDismissMode="on-drag"
-                ListEmptyComponent={
-                  <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                    Belum ada komentar. Tulis sesuatu!
-                  </Text>
-                }
-              />
-            )}
-
-            {/* Input Area */}
-            <View
-              style={[
-                styles.inputContainer,
-                {
-                  borderTopColor: colors.border,
-                  backgroundColor: colors.card,
-                  paddingBottom: isKeyboardVisible ? 16 : 16 + insets.bottom,
-                },
-              ]}
-            >
-              <TouchableOpacity style={styles.iconButton} onPress={toggleEmojiPicker}>
-                <Ionicons
-                  name={showEmojiPicker ? 'keypad-outline' : 'happy-outline'}
-                  size={24}
-                  color={colors.textSecondary}
-                />
-              </TouchableOpacity>
-
-              <TextInput
-                ref={inputRef}
-                style={[
-                  styles.input,
-                  {
-                    backgroundColor: isDarkMode ? '#0f172a' : '#f1f5f9',
-                    color: colors.text,
-                  },
-                ]}
-                placeholder="Tulis komentar..."
-                placeholderTextColor={colors.textSecondary}
-                value={newComment}
-                onChangeText={setNewComment}
-                multiline
-                onFocus={() => setShowEmojiPicker(false)}
-              />
-              <TouchableOpacity
-                style={[styles.sendButton, { backgroundColor: newComment.trim() ? colors.primary : colors.border }]}
-                onPress={handlePostComment}
-                disabled={!newComment.trim() || submitting}
-              >
-                {submitting ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Ionicons name="send" size={20} color="#fff" />
-                )}
-              </TouchableOpacity>
-            </View>
-
-            {/* Emoji Picker */}
-            {showEmojiPicker && (
-              <View style={[styles.emojiPicker, { backgroundColor: isDarkMode ? '#0f172a' : '#f1f5f9' }]}>
-                <FlatList
-                  data={COMMON_EMOJIS}
-                  numColumns={8}
-                  keyExtractor={(item, index) => index.toString()}
-                  renderItem={({ item }) => (
-                    <TouchableOpacity style={styles.emojiItem} onPress={() => handleAddEmoji(item)}>
-                      <Text style={styles.emojiText}>{item}</Text>
-                    </TouchableOpacity>
-                  )}
-                  keyboardShouldPersistTaps="handled"
-                  contentContainerStyle={{ padding: 8, paddingBottom: 8 + insets.bottom }}
-                />
-              </View>
-            )}
-          </View>
         </View>
-      )}
+      </View>
     </Modal>
   );
 }
@@ -458,7 +351,8 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 16,
     borderTopWidth: 1,
     gap: 12,
   },
