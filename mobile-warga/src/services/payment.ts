@@ -126,11 +126,39 @@ export const paymentService = {
       : '/transactions/confirm';
 
     try {
-      // Let api.ts handle Content-Type removal
-      const response = await api.post(endpoint, formData);
+      const response = await api.post(endpoint, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { success: false, message: 'Terjadi kesalahan koneksi' };
+      const status = error?.response?.status;
+      const dataResp = error?.response?.data;
+
+      let message = 'Terjadi kesalahan koneksi';
+
+      if (typeof dataResp === 'string') {
+        message = dataResp.includes('<html') ? `Server Error (${status || '-'})` : dataResp;
+      } else if (dataResp && typeof dataResp === 'object') {
+        if (typeof dataResp.message === 'string' && dataResp.message.trim() !== '') {
+          message = dataResp.message;
+        } else if (dataResp.errors && typeof dataResp.errors === 'object') {
+          const firstKey = Object.keys(dataResp.errors)[0];
+          const firstErr = firstKey ? dataResp.errors[firstKey] : null;
+          if (Array.isArray(firstErr) && firstErr.length > 0) {
+            message = firstErr[0];
+          } else {
+            message = `Request gagal (Status: ${status || '-'})`;
+          }
+        } else {
+          message = `Request gagal (Status: ${status || '-'})`;
+        }
+      } else if (typeof error?.message === 'string' && error.message.trim() !== '') {
+        message = error.message;
+      }
+
+      throw new Error(message);
     }
   }
 };

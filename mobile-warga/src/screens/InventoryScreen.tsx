@@ -175,9 +175,9 @@ export default function InventoryScreen() {
     } catch (error: any) {
       console.log(error);
       if (error.response?.status === 401) {
-        Alert.alert(t('common.sessionExpired'), t('common.sessionExpiredMessage'));
+        Alert.alert(t('common.sessionExpired'), t('common.sessionExpiredMsg'));
       } else {
-        Alert.alert(t('common.error'), t('common.error.loadData'));
+        Alert.alert(t('common.error'), t('common.errorMsg'));
       }
     } finally {
       setLoading(false);

@@ -281,20 +281,26 @@ export default function AddProductScreen({ onSuccess, editingProduct }: AddProdu
           };
           
           // @ts-ignore
-          formData.append('images[]', photoData);
+          formData.append('images', photoData);
         });
       }
 
       if (editingProduct) {
         formData.append('_method', 'PUT');
-        // Let api.ts handle Content-Type removal
-        await api.post(`/products/${editingProduct.id}`, formData);
+        await api.post(`/products/${editingProduct.id}`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
         Alert.alert('Sukses', 'Produk berhasil diperbarui', [
            { text: t('common.ok'), onPress: onSuccess }
         ]);
       } else {
-        // Let api.ts handle Content-Type removal
-        await api.post('/products', formData);
+        await api.post('/products', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
         Alert.alert(t('market.addProduct.successTitle'), t('market.addProduct.successMsg'), [
            { text: t('common.ok'), onPress: onSuccess }
         ]);
@@ -318,8 +324,12 @@ export default function AddProductScreen({ onSuccess, editingProduct }: AddProdu
         }
       } else if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
+      } else if (typeof error.response?.data === 'string' && error.response.data.includes('<html')) {
+        errorMessage = `Server Error (Status: ${error.response?.status || '-'})`;
+      } else if (error.response?.status) {
+        errorMessage = `${errorMessage} (Status: ${error.response.status})`;
       } else if (error.message === 'Network Error') {
-        errorMessage = 'Gagal terhubung ke server. Periksa koneksi internet atau ukuran foto terlalu besar.';
+        errorMessage = 'Tidak ada respon dari server saat upload. Biasanya karena koneksi tidak stabil atau request upload diblokir. Coba ulang, atau coba tanpa foto terlebih dulu.';
       }
       
       Alert.alert(t('market.addProduct.errorTitle'), errorMessage);

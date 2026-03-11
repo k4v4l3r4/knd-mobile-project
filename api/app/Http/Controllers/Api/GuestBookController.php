@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class GuestBookController extends Controller
 {
@@ -62,12 +63,21 @@ class GuestBookController extends Controller
             $hostUserId = $user->id;
         }
 
+        if (!$rtId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akun Anda belum terhubung ke RT. Mohon lengkapi data RT terlebih dahulu.',
+            ], 422);
+        }
+
         DB::beginTransaction();
         try {
             $photoPath = null;
             if ($request->hasFile('id_card_photo')) {
                 $photoPath = $request->file('id_card_photo')->store('guest_ids', 'public');
             }
+
+            $visitDate = Carbon::parse($request->visit_date)->toDateTimeString();
 
             $guest = GuestBook::create([
                 'rt_id' => $rtId,
@@ -76,7 +86,7 @@ class GuestBookController extends Controller
                 'guest_phone' => $request->guest_phone,
                 'origin' => $request->origin,
                 'purpose' => $request->purpose,
-                'visit_date' => $request->visit_date,
+                'visit_date' => $visitDate,
                 'id_card_photo' => $photoPath,
                 'status' => 'CHECK_IN',
             ]);

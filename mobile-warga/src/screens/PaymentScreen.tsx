@@ -220,10 +220,6 @@ export default function PaymentScreen({ initialData, onSuccess, onBack }: { init
             setPhoto(originalUri); // Fallback
         }
       }
-
-      if (!result.canceled) {
-        setPhoto(result.assets[0].uri);
-      }
     } catch (error) {
       console.log('Error picking image:', error);
     }

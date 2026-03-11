@@ -147,7 +147,9 @@ export default function GuestReportScreen() {
       data.append('guest_phone', formData.guest_phone);
       data.append('origin', formData.origin);
       data.append('purpose', formData.purpose);
-      data.append('visit_date', formData.visit_date); // Send ISO string directly
+      const visitDate = new Date(formData.visit_date || new Date().toISOString());
+      const visitDateSql = visitDate.toISOString().split('.')[0].replace('T', ' ').replace('Z', '');
+      data.append('visit_date', visitDateSql);
 
       if (photo) {
         const filename = photo.split('/').pop();
@@ -158,7 +160,11 @@ export default function GuestReportScreen() {
         data.append('id_card_photo', { uri: photo, name: filename, type });
       }
 
-      await api.post('/guest-books', data);
+      await api.post('/guest-books', data, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
 
       Alert.alert(t('common.success'), t('guest.alert.success'), [
         { text: 'OK', onPress: () => {
@@ -174,8 +180,35 @@ export default function GuestReportScreen() {
         }}
       ]);
     } catch (error: any) {
-      console.error('Error submitting guest:', error);
-      Alert.alert(t('common.error'), error.response?.data?.message || t('guest.alert.failed'));
+      console.error('Error submitting guest details:', {
+        message: error?.message,
+        status: error?.response?.status,
+        data: error?.response?.data,
+        headers: error?.response?.headers,
+      });
+
+      const status = error?.response?.status;
+      const dataResp = error?.response?.data;
+      const message = dataResp?.message;
+      const errors = dataResp?.errors;
+
+      let displayMessage = t('guest.alert.failed');
+
+      if (typeof dataResp === 'string' && dataResp.includes('<html')) {
+        displayMessage = `Server Error (${status || '-'})`;
+      } else if (status === 422 && errors && typeof errors === 'object') {
+        const firstKey = Object.keys(errors)[0];
+        const firstError = firstKey ? errors[firstKey] : null;
+        displayMessage = Array.isArray(firstError) ? firstError[0] : (message || displayMessage);
+      } else if (message) {
+        displayMessage = message;
+      } else if (status) {
+        displayMessage = `${displayMessage} (Status: ${status})`;
+      } else if (error?.message) {
+        displayMessage = error.message;
+      }
+
+      Alert.alert(t('common.error'), displayMessage);
     } finally {
       setSubmitting(false);
     }
