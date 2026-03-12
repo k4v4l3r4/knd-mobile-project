@@ -461,8 +461,10 @@ class BoardingHouseController extends Controller
             }
         }
 
-        // Map legacy marital status to Title Case
+        // Map marital status variants to Title Case
         $maritalMap = [
+            'SINGLE' => 'Belum Kawin',
+            'MARRIED' => 'Kawin',
             'Lajang' => 'Belum Kawin',
             'LAJANG' => 'Belum Kawin',
             'BELUM_KAWIN' => 'Belum Kawin',
@@ -480,11 +482,20 @@ class BoardingHouseController extends Controller
             'CERAI MATI' => 'Cerai Mati',
         ];
 
-        if ($request->has('marital_status') && isset($maritalMap[$request->marital_status])) {
-            $request->merge(['marital_status' => $maritalMap[$request->marital_status]]);
-        } elseif ($request->has('marital_status')) {
-            // Try to capitalize if not in map (fallback)
-            $request->merge(['marital_status' => ucwords(strtolower($request->marital_status))]);
+        if ($request->has('marital_status')) {
+            $rawStatus = (string) $request->marital_status;
+            $upper = strtoupper(trim($rawStatus));
+            $upperUnderscore = str_replace(' ', '_', $upper);
+
+            if (isset($maritalMap[$rawStatus])) {
+                $request->merge(['marital_status' => $maritalMap[$rawStatus]]);
+            } elseif (isset($maritalMap[$upperUnderscore])) {
+                $request->merge(['marital_status' => $maritalMap[$upperUnderscore]]);
+            } elseif (isset($maritalMap[$upper])) {
+                $request->merge(['marital_status' => $maritalMap[$upper]]);
+            } else {
+                $request->merge(['marital_status' => ucwords(strtolower($rawStatus))]);
+            }
         }
 
         $request->validate([
@@ -666,8 +677,10 @@ class BoardingHouseController extends Controller
             return response()->json(['success' => false, 'message' => 'Data penghuni tidak ditemukan'], 404);
         }
 
-        // Map legacy marital status to Title Case
+        // Map marital status variants to Title Case
         $maritalMap = [
+            'SINGLE' => 'Belum Kawin',
+            'MARRIED' => 'Kawin',
             'Lajang' => 'Belum Kawin',
             'LAJANG' => 'Belum Kawin',
             'BELUM_KAWIN' => 'Belum Kawin',
@@ -685,11 +698,20 @@ class BoardingHouseController extends Controller
             'CERAI MATI' => 'Cerai Mati',
         ];
 
-        if ($request->has('marital_status') && isset($maritalMap[$request->marital_status])) {
-            $request->merge(['marital_status' => $maritalMap[$request->marital_status]]);
-        } elseif ($request->has('marital_status')) {
-            // Try to capitalize if not in map (fallback)
-            $request->merge(['marital_status' => ucwords(strtolower($request->marital_status))]);
+        if ($request->has('marital_status')) {
+            $rawStatus = (string) $request->marital_status;
+            $upper = strtoupper(trim($rawStatus));
+            $upperUnderscore = str_replace(' ', '_', $upper);
+
+            if (isset($maritalMap[$rawStatus])) {
+                $request->merge(['marital_status' => $maritalMap[$rawStatus]]);
+            } elseif (isset($maritalMap[$upperUnderscore])) {
+                $request->merge(['marital_status' => $maritalMap[$upperUnderscore]]);
+            } elseif (isset($maritalMap[$upper])) {
+                $request->merge(['marital_status' => $maritalMap[$upper]]);
+            } else {
+                $request->merge(['marital_status' => ucwords(strtolower($rawStatus))]);
+            }
         }
 
         $request->validate([
