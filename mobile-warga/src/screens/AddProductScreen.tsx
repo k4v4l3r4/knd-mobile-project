@@ -281,7 +281,7 @@ export default function AddProductScreen({ onSuccess, editingProduct }: AddProdu
           };
           
           // @ts-ignore
-          formData.append('images', photoData);
+          formData.append('images[]', photoData);
         });
       }
 

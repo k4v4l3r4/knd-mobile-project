@@ -29,13 +29,39 @@ export interface LoginResponse {
   };
 }
 
+const normalizeApiError = (error: any, fallbackMessage: string) => {
+  const status = error?.response?.status;
+  const dataResp = error?.response?.data;
+  const message = dataResp?.message;
+  const errors = dataResp?.errors;
+
+  let displayMessage = fallbackMessage;
+
+  if (typeof dataResp === 'string') {
+    displayMessage = dataResp.includes('<html') ? `Server Error (${status || '-'})` : dataResp;
+  } else if (status === 422 && errors && typeof errors === 'object') {
+    const firstKey = Object.keys(errors)[0];
+    const firstErr = firstKey ? errors[firstKey] : null;
+    displayMessage = Array.isArray(firstErr) && firstErr.length > 0 ? firstErr[0] : (message || displayMessage);
+  } else if (typeof message === 'string' && message.trim() !== '') {
+    displayMessage = message;
+  } else if (typeof error?.message === 'string' && error.message.trim() !== '') {
+    displayMessage = error.message;
+  } else if (status) {
+    displayMessage = `${displayMessage} (Status: ${status})`;
+  }
+
+  return { status, displayMessage };
+};
+
 export const authService = {
   async login(phone: string, password: string): Promise<LoginResponse> {
     try {
       const response = await api.post('/login', { phone, password });
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { success: false, message: 'Terjadi kesalahan koneksi' };
+      const { displayMessage } = normalizeApiError(error, 'Terjadi kesalahan koneksi');
+      throw new Error(displayMessage);
     }
   },
   
@@ -44,7 +70,8 @@ export const authService = {
       const response = await api.post('/auth/forgot-password', { phone });
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { success: false, message: 'Terjadi kesalahan koneksi' };
+      const { displayMessage } = normalizeApiError(error, 'Terjadi kesalahan koneksi');
+      throw new Error(displayMessage);
     }
   },
 
@@ -53,7 +80,8 @@ export const authService = {
       const response = await api.post('/auth/verify-otp', { phone, otp });
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { success: false, message: 'Terjadi kesalahan koneksi' };
+      const { displayMessage } = normalizeApiError(error, 'Terjadi kesalahan koneksi');
+      throw new Error(displayMessage);
     }
   },
 
@@ -62,7 +90,8 @@ export const authService = {
       const response = await api.post('/auth/reset-password', { phone, password, token });
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { success: false, message: 'Terjadi kesalahan koneksi' };
+      const { displayMessage } = normalizeApiError(error, 'Terjadi kesalahan koneksi');
+      throw new Error(displayMessage);
     }
   },
 
@@ -71,7 +100,8 @@ export const authService = {
       const response = await api.post('/register', data);
       return response.data;
     } catch (error: any) {
-      throw error.response?.data || { success: false, message: 'Terjadi kesalahan koneksi' };
+      const { displayMessage } = normalizeApiError(error, 'Terjadi kesalahan koneksi');
+      throw new Error(displayMessage);
     }
   },
 

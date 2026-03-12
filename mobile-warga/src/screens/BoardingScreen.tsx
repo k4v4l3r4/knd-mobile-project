@@ -641,7 +641,11 @@ export default function BoardingScreen({ onNavigate }: BoardingScreenProps) {
         : `/boarding-houses/${selectedHouseId}/tenants`;
       const method = isEditMode && editingTenantId ? 'patch' : 'post';
       // @ts-ignore
-      const response = await api[method](url, data);
+      const response = await api[method](url, data, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
       
       if (response.data.success) {
         Alert.alert(t('common.success'), isEditMode ? t('boarding.alert.updateSuccess') : t('boarding.alert.addSuccess'));
@@ -670,10 +674,13 @@ export default function BoardingScreen({ onNavigate }: BoardingScreenProps) {
       }
     } catch (error: any) {
       const status = error?.response?.status;
-      const message = error?.response?.data?.message;
-      const errors = error?.response?.data?.errors;
+      const dataResp = error?.response?.data;
+      const message = dataResp?.message;
+      const errors = dataResp?.errors;
       let displayMessage = t('boarding.alert.networkError');
-      if (status === 422) {
+      if (typeof dataResp === 'string' && dataResp.includes('<html')) {
+        displayMessage = `Server Error (${status || '-'})`;
+      } else if (status === 422) {
         if (message) {
           displayMessage = message;
         } else if (errors) {
@@ -685,7 +692,7 @@ export default function BoardingScreen({ onNavigate }: BoardingScreenProps) {
           displayMessage = t('boarding.alert.invalidData');
         }
       } else if (status) {
-        displayMessage = message || displayMessage;
+        displayMessage = message || `Request gagal (Status: ${status})`;
       }
       console.error('Add tenant error:', error?.response?.data || error);
       Alert.alert(t('common.error'), displayMessage);
