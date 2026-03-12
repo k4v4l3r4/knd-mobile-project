@@ -2,6 +2,7 @@ export const id = {
   common: {
     back: 'Kembali',
     save: 'Simpan',
+    close: 'Tutup',
     cancel: 'Batal',
     delete: 'Hapus',
     edit: 'Ubah',
@@ -892,6 +893,7 @@ export const id = {
     
     roomStatus: {
       title: 'Status Kamar & Lantai',
+      toggle: 'Lihat Status Kamar & Lantai',
       legendTitle: 'Status Kamar',
       empty: 'Kosong',
       notActive: 'Belum Aktif',

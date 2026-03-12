@@ -3,6 +3,7 @@ export const en = {
     back: 'Back',
     cancel: 'Cancel',
     save: 'Save',
+    close: 'Close',
     loading: 'Loading...',
     error: 'Error',
     success: 'Success',
@@ -97,6 +98,11 @@ export const en = {
       loadComments: 'Failed to load comments',
       submitComment: 'Failed to submit comment',
     },
+  },
+  boarding: {
+    roomStatus: {
+      toggle: 'Room & Floor Status',
+    }
   },
   settings: {
     title: 'Settings',
