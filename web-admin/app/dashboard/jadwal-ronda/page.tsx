@@ -294,13 +294,31 @@ export default function JadwalRondaPage() {
       toast.error('Akses Terbatas: Silakan perpanjang langganan');
       return;
     }
+    
+    // Validation for edit mode
+    if (modalMode === 'edit' && !schedule) {
+      toast.error('Jadwal tidak ditemukan');
+      return;
+    }
+    
+    // Validation for create mode
+    if (modalMode === 'create' && !form.start_date) {
+      toast.error('Tanggal mulai wajib diisi');
+      return;
+    }
+    
+    // Validate officers selection
+    if (batchMode && groups[activeGroupIndex]?.officers.length === 0) {
+      toast.error(`Pilih minimal 1 petugas untuk ${groups[activeGroupIndex]?.name}`);
+      return;
+    } else if (selectedUserIds.length === 0 && !batchMode) {
+      toast.error('Pilih minimal 1 petugas');
+      return;
+    }
+    
     setSaving(true);
     try {
       if (modalMode === 'create') {
-        if (!form.start_date) {
-          toast.error('Tanggal mulai wajib diisi');
-          return;
-        }
         if (batchMode) {
           const payloads = groups.map(g => ({
             schedule_type: form.schedule_type,
@@ -340,11 +358,18 @@ export default function JadwalRondaPage() {
         }
       } else {
         if (!schedule) return;
-        const res = await api.patch(`/ronda-schedules/${schedule.id}`, {
+        
+        // Ensure we're sending proper data
+        const payload = {
           start_time: form.start_time,
           end_time: form.end_time,
-          officers: selectedUserIds
-        });
+          officers: selectedUserIds.map(id => Number(id)), // Ensure numeric IDs
+          shift_name: form.shift_name
+        };
+        
+        console.log('Updating schedule:', schedule.id, payload);
+        
+        const res = await api.patch(`/ronda-schedules/${schedule.id}`, payload);
         if (res.data.success) {
           toast.success('Jadwal berhasil diperbarui');
         } else {
@@ -353,9 +378,23 @@ export default function JadwalRondaPage() {
       }
       setShowModal(false);
       fetchData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving schedule:', error);
-      const msg = (error as any)?.response?.data?.message || 'Gagal menyimpan perubahan';
+      
+      // Extract detailed error message
+      let msg = 'Gagal menyimpan perubahan';
+      
+      if (error?.response?.data?.message) {
+        msg = error.response.data.message;
+      } else if (error?.response?.data?.errors) {
+        // Handle validation errors
+        const errors = error.response.data.errors;
+        const firstError = Object.values(errors)[0] as any;
+        msg = Array.isArray(firstError) ? firstError[0] : 'Validasi gagal';
+      } else if (error?.message) {
+        msg = error.message;
+      }
+      
       toast.error(msg);
     } finally {
       setSaving(false);

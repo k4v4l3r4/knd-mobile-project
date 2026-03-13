@@ -547,12 +547,19 @@ class RondaController extends Controller
             return response()->json(['message' => 'Unauthorized access to other RT schedule'], 403);
         }
 
+        // Log the incoming request for debugging
+        \Illuminate\Support\Facades\Log::info('Updating ronda schedule', [
+            'schedule_id' => $id,
+            'user_id' => $user->id,
+            'payload' => $request->all()
+        ]);
+
         $validated = $request->validate([
             'start_time' => 'nullable|date_format:H:i',
             'end_time' => 'nullable|date_format:H:i',
             'status' => 'nullable|in:ACTIVE,INACTIVE',
             'shift_name' => 'nullable|string|max:100',
-            'officers' => 'array',
+            'officers' => 'nullable|array',
             'officers.*' => 'exists:users,id',
         ]);
 
@@ -570,14 +577,20 @@ class RondaController extends Controller
         }
         $schedule->save();
 
-        if (array_key_exists('officers', $validated)) {
+        // Handle officers update
+        if (isset($validated['officers'])) {
+            // Delete existing participants
             RondaParticipant::where('schedule_id', $schedule->id)->delete();
-            foreach ($validated['officers'] as $userId) {
-                RondaParticipant::create([
-                    'schedule_id' => $schedule->id,
-                    'user_id' => $userId,
-                    'status' => 'PENDING'
-                ]);
+            
+            // Add new participants only if officers array is not empty
+            if (!empty($validated['officers'])) {
+                foreach ($validated['officers'] as $userId) {
+                    RondaParticipant::create([
+                        'schedule_id' => $schedule->id,
+                        'user_id' => $userId,
+                        'status' => 'PENDING'
+                    ]);
+                }
             }
         }
 
