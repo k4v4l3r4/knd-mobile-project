@@ -42,6 +42,7 @@ import FinanceReportScreen from './src/screens/FinanceReportScreen';
 import RondaFineSettingsScreen from './src/screens/RondaFineSettingsScreen';
 import RondaFineReportScreen from './src/screens/RondaFineReportScreen';
 import RondaLocationScreen from './src/screens/RondaLocationScreen';
+import RondaAttendanceScreen from './src/screens/RondaAttendanceScreen';
 import BansosScreen from './src/screens/BansosScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
 import IuranScreen from './src/screens/IuranScreen';
@@ -67,7 +68,7 @@ const ThemedContainer = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-type ScreenState = 'LOGIN' | 'HOME' | 'REPORT' | 'MARKET' | 'CART' | 'CHECKOUT' | 'PAYMENT' | 'PATROL' | 'LETTER' | 'INFORMATION' | 'INVENTORY' | 'GUEST' | 'POLLING' | 'EMERGENCY' | 'BOARDING' | 'ANNOUNCEMENT_DETAIL' | 'PRODUCT_DETAIL' | 'ADD_PRODUCT' | 'CCTV' | 'SETTINGS' | 'BILLS' | 'FINANCE_REPORT' | 'WARGA_LIST' | 'TERMS' | 'CHANGE_PASSWORD' | 'PROFILE' | 'REGISTER_RT' | 'REGISTER_WARGA' | 'HELP_SUPPORT' | 'RONDA_FINE_SETTINGS' | 'RONDA_FINE_REPORT' | 'RONDA_LOCATION' | 'BANSOS' | 'SYSTEM_SETTINGS' | 'RT_PROFILE' | 'WALLET_SETTINGS' | 'ACTIVITY_SETTINGS' | 'ROLE_SETTINGS' | 'ADMIN_SETTINGS' | 'FEE_SETTINGS' | 'LETTER_TYPE_SETTINGS' | 'NOTIFICATIONS' | 'CONTRIBUTION_REPORT' | 'BILLING' | 'TENANT_LIST';
+type ScreenState = 'LOGIN' | 'HOME' | 'REPORT' | 'MARKET' | 'CART' | 'CHECKOUT' | 'PAYMENT' | 'PATROL' | 'LETTER' | 'INFORMATION' | 'INVENTORY' | 'GUEST' | 'POLLING' | 'EMERGENCY' | 'BOARDING' | 'ANNOUNCEMENT_DETAIL' | 'PRODUCT_DETAIL' | 'ADD_PRODUCT' | 'CCTV' | 'SETTINGS' | 'BILLS' | 'FINANCE_REPORT' | 'WARGA_LIST' | 'TERMS' | 'CHANGE_PASSWORD' | 'PROFILE' | 'REGISTER_RT' | 'REGISTER_WARGA' | 'HELP_SUPPORT' | 'RONDA_FINE_SETTINGS' | 'RONDA_FINE_REPORT' | 'RONDA_LOCATION' | 'RONDA_ATTENDANCE' | 'BANSOS' | 'SYSTEM_SETTINGS' | 'RT_PROFILE' | 'WALLET_SETTINGS' | 'ACTIVITY_SETTINGS' | 'ROLE_SETTINGS' | 'ADMIN_SETTINGS' | 'FEE_SETTINGS' | 'LETTER_TYPE_SETTINGS' | 'NOTIFICATIONS' | 'CONTRIBUTION_REPORT' | 'BILLING' | 'TENANT_LIST';
 
 const AppContent = () => {
   const [fontsLoaded] = useFonts({
@@ -143,7 +144,7 @@ const AppContent = () => {
         return true;
       }
 
-      if (['RONDA_FINE_SETTINGS', 'RONDA_FINE_REPORT', 'RONDA_LOCATION'].includes(currentScreen)) {
+      if (['RONDA_FINE_SETTINGS', 'RONDA_FINE_REPORT', 'RONDA_LOCATION', 'RONDA_ATTENDANCE'].includes(currentScreen)) {
         setCurrentScreen('PATROL');
         return true;
       }
@@ -310,6 +311,7 @@ const AppContent = () => {
       {currentScreen === 'RONDA_FINE_SETTINGS' && <RondaFineSettingsScreen navigation={{ goBack: () => setCurrentScreen('PATROL') }} />}
       {currentScreen === 'RONDA_FINE_REPORT' && <RondaFineReportScreen navigation={{ goBack: () => setCurrentScreen('PATROL') }} />}
       {currentScreen === 'RONDA_LOCATION' && <RondaLocationScreen navigation={{ goBack: () => setCurrentScreen('PATROL') }} />}
+      {currentScreen === 'RONDA_ATTENDANCE' && <RondaAttendanceScreen navigation={{ goBack: () => setCurrentScreen('PATROL') }} />}
       {currentScreen === 'BANSOS' && <BansosScreen onNavigate={handleNavigate} />}
       {currentScreen === 'SYSTEM_SETTINGS' && <SystemSettingsScreen onNavigate={handleNavigate} />}
         {currentScreen === 'RT_PROFILE' && <RTProfileScreen onNavigate={handleNavigate} />}

@@ -26,7 +26,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentScreen, onNavigate 
     if (tabId === 'HOME' && [
       'LETTER', 'PATROL', 'INFORMATION', 'INVENTORY', 'GUEST', 
       'POLLING', 'EMERGENCY', 'BOARDING', 'BILLS', 'ANNOUNCEMENT_DETAIL', 
-      'CCTV', 'WARGA_LIST', 'PAYMENT', 'BILLING', 'BANSOS', 'CONTRIBUTION_REPORT', 'SYSTEM_SETTINGS'
+      'CCTV', 'WARGA_LIST', 'PAYMENT', 'BILLING', 'BANSOS', 'CONTRIBUTION_REPORT', 'SYSTEM_SETTINGS',
+      'RONDA_ATTENDANCE'
     ].includes(currentScreen)) return true;
 
     // MARKET Sub-screens

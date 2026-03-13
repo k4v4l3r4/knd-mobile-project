@@ -572,8 +572,16 @@ export default function PatrolScreen({ onNavigate }: PatrolScreenProps) {
                     horizontal 
                     showsHorizontalScrollIndicator={false} 
                     style={{ marginBottom: 20 }}
-                    contentContainerStyle={{ paddingHorizontal: 4 }}
+                    contentContainerStyle={{ paddingHorizontal: 4, gap: 8 }}
                 >
+                    <TouchableOpacity 
+                        style={[styles.chipButton, { borderColor: colors.primary, backgroundColor: colors.card }]} 
+                        onPress={() => onNavigate?.('RONDA_ATTENDANCE')}
+                    >
+                        <Ionicons name="checkmark-circle-outline" size={18} color={colors.primary} />
+                        <Text style={[styles.chipText, { color: colors.primary }]}>Absen Kehadiran</Text>
+                    </TouchableOpacity>
+
                     <TouchableOpacity 
                         style={[styles.chipButton, { borderColor: colors.primary, backgroundColor: colors.card }]} 
                         onPress={() => onNavigate?.('RONDA_FINE_REPORT')}
