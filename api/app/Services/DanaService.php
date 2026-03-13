@@ -93,7 +93,9 @@ class DanaService
 
             return null;
         } catch (Exception $e) {
-            Log::error('DANA access token error: ' . $e->getMessage());
+            Log::error('DANA access token error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
             return null;
         }
     }
@@ -191,6 +193,7 @@ class DanaService
         } catch (Exception $e) {
             Log::error('DANA create order error: ' . $e->getMessage(), [
                 'order_id' => $orderData['order_id'] ?? null,
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return [
