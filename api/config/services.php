@@ -49,4 +49,13 @@ return [
         'delay_seconds' => env('WA_DELAY_SECONDS', 2),
     ],
 
+    'dana' => [
+        'sandbox_url' => env('DANA_SANDBOX_BASE_URL', 'https://api.sandbox.dana.id'),
+        'merchant_id' => env('DANA_MERCHANT_ID'),
+        'client_id' => env('DANA_CLIENT_ID'),
+        'client_secret' => env('DANA_CLIENT_SECRET'),
+        'public_key' => env('DANA_PUBLIC_KEY'),
+        'private_key' => env('DANA_PRIVATE_KEY'),
+        'callback_url' => env('DANA_CALLBACK_URL'),
+    ],
 ];

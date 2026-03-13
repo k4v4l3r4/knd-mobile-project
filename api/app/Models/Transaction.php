@@ -26,12 +26,19 @@ class Transaction extends Model
         'dana_reference_no',
         'payment_url',
         'payment_method',
+        'payment_status',
+        'dana_order_id',
         'status',
+        'paid_at',
+        'failed_at',
+        'order_id',
     ];
 
     protected $casts = [
         'items' => 'array',
         'date' => 'date',
+        'paid_at' => 'datetime',
+        'failed_at' => 'datetime',
     ];
 
     public function wallet()

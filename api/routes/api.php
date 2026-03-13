@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\PatrolController;
 use App\Http\Controllers\Api\PollController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\RegionController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\RondaController;
@@ -51,7 +52,7 @@ Route::get('/reports/dues/pdf', [\App\Http\Controllers\Api\ReportController::cla
 
 // Webhooks
 Route::post('/webhooks/flip/payment', [\App\Http\Controllers\FlipWebhookController::class, 'handlePayment']);
-Route::post('/dana/callback', [DanaCallbackController::class, 'handle']);
+Route::post('/dana/callback', [PaymentController::class, 'callback']); // PUBLIC - No auth middleware
 
 // Public Routes
 Route::prefix('auth')->group(function () {
@@ -114,6 +115,10 @@ Route::middleware(['auth:sanctum', 'tenant.status', 'tenant.feature'])->group(fu
 
     // Payments Routes
     Route::prefix('payments')->name('payments.')->group(function () {
+        // DANA Payment Gateway
+        Route::post('/dana/checkout', [PaymentController::class, 'checkoutDana'])->middleware('auth:sanctum');
+        Route::post('/dana/status', [PaymentController::class, 'checkStatus'])->middleware('auth:sanctum');
+        
         // Step 6a: Generic Pay (Resolver) - keeping strictly if needed, but Step 6b asks for specific endpoint.
         // Step 6b says "POST /api/payments/pay".
         // If 6a implemented it in BillingController, we might want to consolidate or route to PaymentController.
