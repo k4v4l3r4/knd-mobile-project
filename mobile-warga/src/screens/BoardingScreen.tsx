@@ -207,6 +207,9 @@ export default function BoardingScreen({ onNavigate }: BoardingScreenProps) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [activeDateField, setActiveDateField] = useState<'start_date' | 'due_date'>('start_date');
   
+  // Collapsible Room Status State
+  const [expandedHouseId, setExpandedHouseId] = useState<number | null>(null);
+  
   // Add Kost Form
   const [isKostModalVisible, setKostModalVisible] = useState(false);
   const [isEditingKost, setIsEditingKost] = useState(false);
@@ -931,6 +934,9 @@ export default function BoardingScreen({ onNavigate }: BoardingScreenProps) {
        );
     }
 
+    const isExpanded = expandedHouseId === house.id;
+
+    // Room calculation logic (moved inside collapsible)
     const totalRooms = house.total_rooms || 0;
     const totalFloors = house.total_floors || 1;
     const floorConfig = house.floor_config || [];
@@ -1006,51 +1012,83 @@ export default function BoardingScreen({ onNavigate }: BoardingScreenProps) {
     }
 
     return (
-      <View style={{ marginTop: 24 }}>
-        <Text style={styles.sectionHeader}>{t('boarding.roomStatus.title')}</Text>
-        
-        {/* Legend: Status Kamar */}
-        <View style={{ marginBottom: 8 }}>
-          <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textSecondary, marginBottom: 8 }}>{t('boarding.roomStatus.legendTitle')}</Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#cbd5e1' }} />
-              <Text style={{ fontSize: 12, color: colors.textSecondary }}>{t('boarding.roomStatus.empty')}</Text>
-            </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#3b82f6' }} />
-              <Text style={{ fontSize: 12, color: colors.textSecondary }}>{t('boarding.roomStatus.notActive')}</Text>
-            </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: (!house.is_mine && isRtViewer) ? '#64748b' : '#10b981' }} />
-              <Text style={{ fontSize: 12, color: colors.textSecondary }}>{t('boarding.roomStatus.occupied')}</Text>
-            </View>
-          </View>
-        </View>
+      <View style={{ marginTop: 16 }}>
+        {/* Collapsible Trigger Button */}
+        <TouchableOpacity 
+          style={{ 
+            flexDirection: 'row', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            paddingVertical: 12,
+            paddingHorizontal: 16,
+            backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9',
+            borderRadius: 8,
+            marginBottom: isExpanded ? 12 : 0,
+          }}
+          onPress={() => {
+            if (isExpanded) {
+              setExpandedHouseId(null);
+            } else {
+              setExpandedHouseId(house.id);
+            }
+          }}
+          activeOpacity={0.7}
+        >
+          <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text }}>
+            {isExpanded ? (t('boarding.roomStatus.close') || 'Tutup Status Kamar & Lantai') : (t('boarding.roomStatus.toggle') || 'Lihat Status Kamar & Lantai')}
+          </Text>
+          <MaterialIcons 
+            name={isExpanded ? 'keyboard-arrow-up' : 'keyboard-arrow-down'} 
+            size={24} 
+            color={colors.textSecondary} 
+          />
+        </TouchableOpacity>
 
-        {/* Legend: Status Pembayaran - ONLY FOR OWNER */}
-        {house.is_mine && (
-        <View style={{ marginBottom: 16 }}>
-          <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textSecondary, marginBottom: 8 }}>{t('boarding.legend.paymentStatus')}</Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#10b981' }} />
-              <Text style={{ fontSize: 12, color: colors.textSecondary }}>{t('boarding.status.paid')}</Text>
+        {/* Collapsible Content */}
+        {isExpanded && (
+          <>
+            {/* Legend: Status Kamar */}
+            <View style={{ marginBottom: 8 }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textSecondary, marginBottom: 8 }}>{t('boarding.roomStatus.legendTitle')}</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#cbd5e1' }} />
+                  <Text style={{ fontSize: 12, color: colors.textSecondary }}>{t('boarding.roomStatus.empty')}</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#3b82f6' }} />
+                  <Text style={{ fontSize: 12, color: colors.textSecondary }}>{t('boarding.roomStatus.notActive')}</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: (!house.is_mine && isRtViewer) ? '#64748b' : '#10b981' }} />
+                  <Text style={{ fontSize: 12, color: colors.textSecondary }}>{t('boarding.roomStatus.occupied')}</Text>
+                </View>
+              </View>
             </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#f59e0b' }} />
-              <Text style={{ fontSize: 12, color: colors.textSecondary }}>{t('boarding.status.dueSoon')}</Text>
-            </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#ef4444' }} />
-              <Text style={{ fontSize: 12, color: colors.textSecondary }}>{t('boarding.status.overdue')}</Text>
-            </View>
-          </View>
-        </View>
-        )}
 
-        {/* Floors Loop */}
-        {floors.map((floor) => (
+            {/* Legend: Status Pembayaran - ONLY FOR OWNER */}
+            {house.is_mine && (
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textSecondary, marginBottom: 8 }}>{t('boarding.legend.paymentStatus')}</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#10b981' }} />
+                  <Text style={{ fontSize: 12, color: colors.textSecondary }}>{t('boarding.status.paid')}</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#f59e0b' }} />
+                  <Text style={{ fontSize: 12, color: colors.textSecondary }}>{t('boarding.status.dueSoon')}</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#ef4444' }} />
+                  <Text style={{ fontSize: 12, color: colors.textSecondary }}>{t('boarding.status.overdue')}</Text>
+                </View>
+              </View>
+            </View>
+            )}
+
+            {/* Floors Loop */}
+            {floors.map((floor) => (
           <View key={floor.floorNumber} style={{ marginBottom: 20 }}>
             <Text style={{ 
               fontSize: 14, 
@@ -1153,6 +1191,8 @@ export default function BoardingScreen({ onNavigate }: BoardingScreenProps) {
             </View>
           </View>
         ))}
+          </>
+        )}
       </View>
     );
   };

@@ -894,6 +894,7 @@ export const id = {
     roomStatus: {
       title: 'Status Kamar & Lantai',
       toggle: 'Lihat Status Kamar & Lantai',
+      close: 'Tutup Status Kamar & Lantai',
       legendTitle: 'Status Kamar',
       empty: 'Kosong',
       notActive: 'Belum Aktif',

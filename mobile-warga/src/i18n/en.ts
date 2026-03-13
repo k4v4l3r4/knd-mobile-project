@@ -99,11 +99,6 @@ export const en = {
       submitComment: 'Failed to submit comment',
     },
   },
-  boarding: {
-    roomStatus: {
-      toggle: 'Room & Floor Status',
-    }
-  },
   settings: {
     title: 'Settings',
     account: 'ACCOUNT',
@@ -844,6 +839,8 @@ export const en = {
     },
     roomStatus: {
       title: 'Room & Floor Status',
+      toggle: 'View Room & Floor Status',
+      close: 'Close Room & Floor Status',
       legendTitle: 'Room Status',
       empty: 'Empty',
       notActive: 'Not Active',
