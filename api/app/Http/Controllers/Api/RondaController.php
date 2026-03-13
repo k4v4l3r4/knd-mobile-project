@@ -351,6 +351,14 @@ class RondaController extends Controller
                 'shift_name' => 'nullable|string|max:100'
             ]);
 
+            // Log validation result
+            \Illuminate\Support\Facades\Log::info('Ronda schedule validation passed', [
+                'user_id' => $user->id,
+                'user_role' => $user->role,
+                'user_rt_id' => $user->rt_id,
+                'validated_data' => $validated,
+            ]);
+
             $rtId = $validated['rt_id'] ?? (Auth::user()->rt_id ?? null);
             
             // Security: Ensure RT/ADMIN_RT can only create for their own RT
@@ -359,9 +367,15 @@ class RondaController extends Controller
             }
             
             if (!$rtId) {
+                \Illuminate\Support\Facades\Log::error('RT ID is null', [
+                    'user_id' => $user->id,
+                    'user_rt_id' => $user->rt_id,
+                    'validated_rt_id' => $validated['rt_id'] ?? null,
+                ]);
+                
                 return response()->json([
                     'success' => false,
-                    'message' => 'RT tidak diketahui'
+                    'message' => 'RT tidak diketahui. Pastikan pengguna memiliki rt_id yang valid.'
                 ], 422);
             }
 
@@ -401,13 +415,14 @@ class RondaController extends Controller
                 'status' => $validated['status'] ?? 'ACTIVE',
             ]);
 
-            // Log successful creation for debugging
-            \Illuminate\Support\Facades\Log::info('Ronda schedule created', [
-                'schedule_id' => $schedule->id,
-                'rt_id' => $rtId,
-                'tenant_id' => $schedule->tenant_id,
-                'user_id' => $user->id,
-            ]);
+            // Verify tenant_id was set by BelongsToTenant trait
+            if (!$schedule->tenant_id) {
+                \Illuminate\Support\Facades\Log::warning('Schedule created without tenant_id', [
+                    'schedule_id' => $schedule->id,
+                    'user_id' => $user->id,
+                    'user_tenant_id' => $user->tenant_id ?? null,
+                ]);
+            }
 
             if (!empty($validated['officers'])) {
                 foreach ($validated['officers'] as $userId) {
@@ -418,6 +433,15 @@ class RondaController extends Controller
                     ]);
                 }
             }
+
+            // Log successful creation for debugging
+            \Illuminate\Support\Facades\Log::info('Ronda schedule created successfully', [
+                'schedule_id' => $schedule->id,
+                'rt_id' => $rtId,
+                'tenant_id' => $schedule->tenant_id,
+                'user_id' => $user->id,
+                'participants_count' => count($validated['officers'] ?? []),
+            ]);
 
             $schedule->load(['participants.user' => function($query) {
                 $query->select('id', 'name', 'phone');
