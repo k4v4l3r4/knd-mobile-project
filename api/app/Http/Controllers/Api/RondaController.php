@@ -29,7 +29,7 @@ class RondaController extends Controller
 
         // Deactivate expired schedules
         foreach ($schedules as $schedule) {
-            if ($schedule->week_end_date < $today) {
+            if ($schedule->end_date < $today) {
                 $schedule->status = 'INACTIVE';
                 $schedule->save();
             }
@@ -127,8 +127,8 @@ class RondaController extends Controller
         
         $schedule = RondaSchedule::where('rt_id', $user->rt_id)
             ->where('status', 'ACTIVE')
-            ->where('week_start_date', '<=', $today)
-            ->where('week_end_date', '>=', $today)
+            ->where('start_date', '<=', $today)
+            ->where('end_date', '>=', $today)
             ->whereHas('participants', function($q) use ($user) {
                 $q->where('user_id', $user->id);
             })
