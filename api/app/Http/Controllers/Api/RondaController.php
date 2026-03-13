@@ -401,6 +401,14 @@ class RondaController extends Controller
                 'status' => $validated['status'] ?? 'ACTIVE',
             ]);
 
+            // Log successful creation for debugging
+            \Illuminate\Support\Facades\Log::info('Ronda schedule created', [
+                'schedule_id' => $schedule->id,
+                'rt_id' => $rtId,
+                'tenant_id' => $schedule->tenant_id,
+                'user_id' => $user->id,
+            ]);
+
             if (!empty($validated['officers'])) {
                 foreach ($validated['officers'] as $userId) {
                     RondaParticipant::create([
@@ -423,11 +431,20 @@ class RondaController extends Controller
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::error('Failed to create ronda schedule', [
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'user_id' => $user->id,
+                'rt_id' => $rtId ?? null,
+                'payload' => $request->all(),
             ]);
+
+            // Return more detailed error message in development
+            $detailedMessage = config('app.debug') 
+                ? 'Server error: ' . $e->getMessage() 
+                : 'Terjadi kesalahan pada server saat menyimpan jadwal ronda.';
 
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan pada server saat menyimpan jadwal ronda.',
+                'message' => $detailedMessage,
             ], 500);
         }
     }
@@ -554,55 +571,75 @@ class RondaController extends Controller
             'payload' => $request->all()
         ]);
 
-        $validated = $request->validate([
-            'start_time' => 'nullable|date_format:H:i',
-            'end_time' => 'nullable|date_format:H:i',
-            'status' => 'nullable|in:ACTIVE,INACTIVE',
-            'shift_name' => 'nullable|string|max:100',
-            'officers' => 'nullable|array',
-            'officers.*' => 'exists:users,id',
-        ]);
+        try {
+            $validated = $request->validate([
+                'start_time' => 'nullable|date_format:H:i',
+                'end_time' => 'nullable|date_format:H:i',
+                'status' => 'nullable|in:ACTIVE,INACTIVE',
+                'shift_name' => 'nullable|string|max:100',
+                'officers' => 'nullable|array',
+                'officers.*' => 'exists:users,id',
+            ]);
 
-        if (isset($validated['start_time'])) {
-            $schedule->start_time = $validated['start_time'];
-        }
-        if (isset($validated['end_time'])) {
-            $schedule->end_time = $validated['end_time'];
-        }
-        if (isset($validated['status'])) {
-            $schedule->status = $validated['status'];
-        }
-        if (array_key_exists('shift_name', $validated)) {
-            $schedule->shift_name = $validated['shift_name'];
-        }
-        $schedule->save();
+            if (isset($validated['start_time'])) {
+                $schedule->start_time = $validated['start_time'];
+            }
+            if (isset($validated['end_time'])) {
+                $schedule->end_time = $validated['end_time'];
+            }
+            if (isset($validated['status'])) {
+                $schedule->status = $validated['status'];
+            }
+            if (array_key_exists('shift_name', $validated)) {
+                $schedule->shift_name = $validated['shift_name'];
+            }
+            $schedule->save();
 
-        // Handle officers update
-        if (isset($validated['officers'])) {
-            // Delete existing participants
-            RondaParticipant::where('schedule_id', $schedule->id)->delete();
-            
-            // Add new participants only if officers array is not empty
-            if (!empty($validated['officers'])) {
-                foreach ($validated['officers'] as $userId) {
-                    RondaParticipant::create([
-                        'schedule_id' => $schedule->id,
-                        'user_id' => $userId,
-                        'status' => 'PENDING'
-                    ]);
+            // Handle officers update
+            if (isset($validated['officers'])) {
+                // Delete existing participants
+                RondaParticipant::where('schedule_id', $schedule->id)->delete();
+                
+                // Add new participants only if officers array is not empty
+                if (!empty($validated['officers'])) {
+                    foreach ($validated['officers'] as $userId) {
+                        RondaParticipant::create([
+                            'schedule_id' => $schedule->id,
+                            'user_id' => $userId,
+                            'status' => 'PENDING'
+                        ]);
+                    }
                 }
             }
+
+            $schedule->load(['participants.user' => function($query) {
+                $query->select('id', 'name', 'phone');
+            }]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Jadwal mingguan berhasil diperbarui',
+                'data' => $schedule
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to update ronda schedule', [
+                'schedule_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'user_id' => $user->id,
+                'payload' => $request->all(),
+            ]);
+
+            // Return more detailed error message in development
+            $detailedMessage = config('app.debug') 
+                ? 'Server error: ' . $e->getMessage() 
+                : 'Terjadi kesalahan pada server saat memperbarui jadwal.';
+
+            return response()->json([
+                'success' => false,
+                'message' => $detailedMessage,
+            ], 500);
         }
-
-        $schedule->load(['participants.user' => function($query) {
-            $query->select('id', 'name', 'phone');
-        }]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Jadwal mingguan berhasil diperbarui',
-            'data' => $schedule
-        ]);
     }
 
     /**
