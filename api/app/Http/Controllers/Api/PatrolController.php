@@ -106,33 +106,80 @@ class PatrolController extends Controller
             }
             $tenantId = $rt->tenant_id;
 
-            // Get today's day name in Indonesian
-            $dayMap = [
-                'Sunday' => 'MINGGU',
-                'Monday' => 'SENIN',
-                'Tuesday' => 'SELASA',
-                'Wednesday' => 'RABU',
-                'Thursday' => 'KAMIS',
-                'Friday' => 'JUMAT',
-                'Saturday' => 'SABTU'
-            ];
-            $today = $dayMap[Carbon::now()->format('l')];
-            $weekNumber = 1; // Default to week 1 for now
+            // Get today's date
+            $today = now()->format('Y-m-d');
 
-            $schedule = PatrolSchedule::firstOrCreate(
-                ['rt_id' => $rtId, 'day_of_week' => $today, 'week_number' => $weekNumber],
-                [
-                    'start_time' => '22:00', 
-                    'end_time' => '04:00',
-                    'tenant_id' => $tenantId // Explicitly set tenant_id
-                ]
-            );
+            // Get active schedules for today from RondaSchedule (NEW SYSTEM)
+            $schedules = RondaSchedule::with(['participants.user'])
+                ->where('rt_id', $rtId)
+                ->where('status', 'ACTIVE')
+                ->where('start_date', '<=', $today)
+                ->where('end_date', '>=', $today)
+                ->orderByDesc('created_at')
+                ->get();
 
-            $schedule->load(['members.user']);
+            // If no new system schedules, fall back to old PatrolSchedule
+            if ($schedules->isEmpty()) {
+                // Get today's day name in Indonesian
+                $dayMap = [
+                    'Sunday' => 'MINGGU',
+                    'Monday' => 'SENIN',
+                    'Tuesday' => 'SELASA',
+                    'Wednesday' => 'RABU',
+                    'Thursday' => 'KAMIS',
+                    'Friday' => 'JUMAT',
+                    'Saturday' => 'SABTU'
+                ];
+                $todayDayName = $dayMap[Carbon::now()->format('l')];
+                $weekNumber = 1;
+
+                $schedule = PatrolSchedule::firstOrCreate(
+                    ['rt_id' => $rtId, 'day_of_week' => $todayDayName, 'week_number' => $weekNumber],
+                    [
+                        'start_time' => '22:00', 
+                        'end_time' => '04:00',
+                        'tenant_id' => $tenantId
+                    ]
+                );
+
+                $schedule->load(['members.user']);
+
+                return response()->json([
+                    'success' => true,
+                    'data' => [$schedule]
+                ]);
+            }
+
+            // Transform RondaSchedule data to match expected format
+            $transformedSchedules = $schedules->map(function($schedule) use ($today) {
+                // Map participants to members format
+                $members = $schedule->participants->map(function($participant) {
+                    return [
+                        'id' => $participant->id,
+                        'user' => $participant->user,
+                        'status' => $participant->status,
+                        'attendance_at' => $participant->attendance_at,
+                    ];
+                });
+
+                return [
+                    'id' => $schedule->id,
+                    'schedule_type' => $schedule->schedule_type,
+                    'start_date' => $schedule->start_date,
+                    'end_date' => $schedule->end_date,
+                    'start_time' => $schedule->start_time,
+                    'end_time' => $schedule->end_time,
+                    'shift_name' => $schedule->shift_name,
+                    'members' => $members,
+                    // For backward compatibility with old format
+                    'day_of_week' => Carbon::parse($schedule->start_date)->format('l'),
+                    'week_number' => 1,
+                ];
+            });
 
             return response()->json([
                 'success' => true,
-                'data' => $schedule
+                'data' => $transformedSchedules
             ]);
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Error in PatrolController@today: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
