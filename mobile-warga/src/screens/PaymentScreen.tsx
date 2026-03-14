@@ -72,7 +72,7 @@ export default function PaymentScreen({
   const [lastInstruction, setLastInstruction] = useState<any | null>(null);
 
   // DANA WebView states
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);   // FIX: was true → button was ALWAYS showing spinner
   const [processing, setProcessing] = useState(false);
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const [isPaymentModalVisible, setPaymentModalVisible] = useState(false);
@@ -602,21 +602,19 @@ export default function PaymentScreen({
             </View>
 
             <TouchableOpacity
+              style={[styles.danaPayButton, processing && styles.danaPayButtonDisabled]}
               onPress={handleCreateDanaPayment}
-              disabled={processing || loading}
-              style={[
-                styles.danaPayButton,
-                (processing || loading) && styles.danaPayButtonDisabled
-              ]}
-              activeOpacity={0.8}
+              disabled={processing}
             >
-              {processing || loading ? (
+              {processing ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <>
-                  <Ionicons name="wallet" size={24} color="#fff" />
-                  <Text style={styles.danaPayButtonText}>Bayar Sekarang via DANA</Text>
-                </>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <MaterialCommunityIcons name="wallet" size={24} color="#fff" />
+                  <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>
+                    Bayar Sekarang via DANA
+                  </Text>
+                </View>
               )}
             </TouchableOpacity>
 
