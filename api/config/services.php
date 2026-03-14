@@ -50,7 +50,8 @@ return [
     ],
 
     'dana' => [
-        'sandbox_url' => env('DANA_SANDBOX_BASE_URL', 'https://api.sandbox.dana.id'),
+        'env' => env('DANA_ENV', 'SANDBOX'),
+        'base_url' => env('DANA_BASE_URL', 'https://api.dana.id'),
         'merchant_id' => env('DANA_MERCHANT_ID'),
         'client_id' => env('DANA_CLIENT_ID'),
         'client_secret' => env('DANA_CLIENT_SECRET'),

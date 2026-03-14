@@ -20,7 +20,7 @@ class DanaService
 
     public function __construct()
     {
-        $this->baseUrl = config('services.dana.sandbox_url', 'https://api.sandbox.dana.id');
+        $this->baseUrl = config('services.dana.base_url', 'https://api.dana.id');
         $this->merchantId = config('services.dana.merchant_id');
         $this->clientId = config('services.dana.client_id');
         $this->clientSecret = config('services.dana.client_secret');
@@ -75,7 +75,9 @@ class DanaService
             $response = Http::withHeaders([
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json',
-            ])->post($this->baseUrl . '/v1/oauth/access_token', [
+            ])
+            ->withoutVerifying() // Skip SSL verification for DANA sandbox self-signed certs
+            ->post($this->baseUrl . '/v1/oauth/access_token', [
                 'grant_type' => 'client_credentials',
                 'client_id' => $this->clientId,
                 'client_secret' => $this->clientSecret,
@@ -157,10 +159,12 @@ class DanaService
 
             // Make request to DANA API
             /** @var Response $response */
-            $response = Http::withHeaders($headers)->post(
-                $this->baseUrl . '/v1/payment/create',
-                $payload
-            );
+            $response = Http::withHeaders($headers)
+                ->withoutVerifying() // Skip SSL verification for DANA sandbox
+                ->post(
+                    $this->baseUrl . '/v1/payment/create',
+                    $payload
+                );
 
             if ($response->successful()) {
                 $result = $response->json();
@@ -230,9 +234,11 @@ class DanaService
             ];
 
             /** @var Response $response */
-            $response = Http::withHeaders($headers)->get(
-                $this->baseUrl . '/v1/payment/status?order_id=' . urlencode($orderId)
-            );
+            $response = Http::withHeaders($headers)
+                ->withoutVerifying() // Skip SSL verification for DANA sandbox
+                ->get(
+                    $this->baseUrl . '/v1/payment/status?order_id=' . urlencode($orderId)
+                );
 
             if ($response->successful()) {
                 return [
