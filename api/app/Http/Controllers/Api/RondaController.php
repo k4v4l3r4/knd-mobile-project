@@ -8,6 +8,7 @@ use App\Models\RondaSchedule;
 use App\Models\RondaLocation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Carbon\Carbon;
 
 class RondaController extends Controller
@@ -74,29 +75,71 @@ class RondaController extends Controller
             ], 403);
         }
 
-        // 1. Find Location by Token
-        $location = RondaLocation::where('qr_token', $validated['qr_token'])->first();
-        if (!$location) {
-            return response()->json([
-                'success' => false,
-                'message' => 'QR Code tidak valid atau lokasi tidak ditemukan'
-            ], 404);
-        }
+        // 1. Find Location by Token (support manual check-in with special token)
+        $location = null;
+        $isManualCheckIn = in_array($validated['qr_token'], ['manual-checkin-gps', 'manual-checkout']);
+        
+        if (!$isManualCheckIn) {
+            // Regular QR code scan - find location by token
+            $location = RondaLocation::where('qr_token', $validated['qr_token'])->first();
+            if (!$location) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'QR Code tidak valid atau lokasi tidak ditemukan'
+                ], 404);
+            }
 
-        // Check Token Expiration
-        if ($location->token_expires_at && Carbon::now()->gt($location->token_expires_at)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'QR Token sudah kadaluarsa. Minta petugas untuk refresh QR Code.'
-            ], 400);
-        }
+            // Check Token Expiration
+            if ($location->token_expires_at && Carbon::now()->gt($location->token_expires_at)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'QR Token sudah kadaluarsa. Minta petugas untuk refresh QR Code.'
+                ], 400);
+            }
 
-        // Optional: Check if location belongs to same RT
-        if ($location->rt_id !== $user->rt_id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Lokasi ini bukan milik RT Anda'
-            ], 403);
+            // Check if location belongs to same RT
+            if ($location->rt_id !== $user->rt_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Lokasi ini bukan milik RT Anda'
+                ], 403);
+            }
+        } else {
+            // Manual check-in: Find active schedule location for this user
+            $today = now()->toDateString();
+            $schedule = RondaSchedule::where('rt_id', $user->rt_id)
+                ->where('status', 'ACTIVE')
+                ->where('start_date', '<=', $today)
+                ->where('end_date', '>=', $today)
+                ->whereHas('participants', function($q) use ($user) {
+                    $q->where('user_id', $user->id);
+                })
+                ->first();
+
+            if ($schedule) {
+                // Get the first location associated with this schedule or create one
+                $location = RondaLocation::where('rt_id', $user->rt_id)->first();
+                
+                if (!$location) {
+                    // Create a default location based on user's current position
+                    $location = RondaLocation::create([
+                        'rt_id' => $user->rt_id,
+                        'name' => 'Lokasi Default - ' . date('Y-m-d'),
+                        'latitude' => $validated['latitude'],
+                        'longitude' => $validated['longitude'],
+                        'radius_meters' => 100,
+                        'qr_token' => Str::random(32),
+                        'token_expires_at' => now()->addDays(30),
+                    ]);
+                }
+            }
+            
+            if (!$location) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tidak ada jadwal ronda aktif hari ini. Hubungi admin RT.'
+                ], 404);
+            }
         }
 
         // 2. Calculate Distance (Haversine Formula)
