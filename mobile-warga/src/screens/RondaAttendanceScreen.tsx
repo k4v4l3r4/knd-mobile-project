@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, ScrollView, Modal, Dimensions, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, ScrollView, Modal, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -20,13 +20,14 @@ export default function RondaAttendanceScreen({ navigation }: any) {
   const { t } = useLanguage();
   const isFocused = useIsFocused();
   const styles = React.useMemo(() => getStyles(colors, isDarkMode), [colors, isDarkMode]);
-  
+
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [attendanceStatus, setAttendanceStatus] = useState<AttendanceStatus | null>(null);
   const [scheduleInfo, setScheduleInfo] = useState<any>(null);
-  
+  const [initError, setInitError] = useState<string | null>(null);
+
   // QR Scanner State
   const [permission, requestPermission] = useCameraPermissions();
   const [showScanner, setShowScanner] = useState(false);
@@ -34,52 +35,46 @@ export default function RondaAttendanceScreen({ navigation }: any) {
   const scannerRef = useRef<CameraView>(null);
 
   useEffect(() => {
-    // Request camera permission on mount
-    if (!permission?.granted && !permission?.canAskAgain) {
-      requestPermission();
-    }
+    initScreen();
   }, []);
 
-  useEffect(() => {
-    checkAttendanceStatus();
-  }, []);
-
-  // Handle camera on/off based on focus
-  useEffect(() => {
-    if (scannerRef.current) {
-      if (isFocused && showScanner) {
-        // Camera will auto-start when focused
-      } else {
-        // Camera will auto-pause when not focused
-      }
-    }
-  }, [isFocused, showScanner]);
-
-  const checkAttendanceStatus = async () => {
+  const initScreen = async () => {
     try {
       setLoading(true);
-      
-      // Get current location
+      setInitError(null);
+
+      // Step 1: Request GPS permission
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Error', 'Lokasi GPS diperlukan untuk absensi');
+        setInitError('Izin GPS diperlukan untuk absensi. Silakan aktifkan di pengaturan perangkat.');
         return;
       }
 
+      // Step 2: Get current location
       const currentLocation = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
+        accuracy: Location.Accuracy.Balanced,
       });
       setLocation(currentLocation);
 
-      // Check today's schedule and attendance status
+      // Step 3: Fetch schedule & attendance status
+      await fetchAttendanceStatus();
+    } catch (error: any) {
+      console.error('initScreen error:', error);
+      setInitError('Gagal memuat halaman. Silakan kembali dan coba lagi.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchAttendanceStatus = async () => {
+    try {
       const response = await api.get('/patrols/mine');
       if (response.data.success) {
         const schedules = response.data.data;
         if (schedules && schedules.length > 0) {
           const todaySchedule = schedules[0];
           setScheduleInfo(todaySchedule);
-          
-          // Check if user already attended
+
           if (todaySchedule.members && todaySchedule.members.length > 0) {
             const myAttendance = todaySchedule.members.find((m: any) => m.is_me);
             if (myAttendance) {
@@ -93,8 +88,16 @@ export default function RondaAttendanceScreen({ navigation }: any) {
         }
       }
     } catch (error) {
-      console.error('Error checking attendance:', error);
-      Alert.alert('Error', 'Gagal memuat status absensi');
+      console.error('fetchAttendanceStatus error:', error);
+      // Non-fatal: show empty state
+    }
+  };
+
+  // Called after successful check-in/out to refresh status
+  const checkAttendanceStatus = async () => {
+    try {
+      setLoading(true);
+      await fetchAttendanceStatus();
     } finally {
       setLoading(false);
     }
@@ -102,33 +105,33 @@ export default function RondaAttendanceScreen({ navigation }: any) {
 
   const handleCheckIn = async () => {
     if (!location) {
-      Alert.alert('Error', 'Lokasi GPS belum tersedia');
+      Alert.alert('Error', 'Lokasi GPS belum tersedia. Tunggu sebentar atau restart halaman.');
       return;
     }
 
-    // Check camera permission first
-    if (!permission?.granted) {
-      // Request permission
-      const perm = await requestPermission();
-      if (!perm.granted) {
-        // Permission denied - show fallback UI
-        Alert.alert(
-          'Izin Kamera Dibutuhkan',
-          'Izin kamera dibutuhkan untuk scan QR Code. Silakan gunakan absensi manual dengan GPS.',
-          [
-            { text: 'Batal', style: 'cancel' },
-            { 
-              text: 'Gunakan GPS', 
-              onPress: () => handleManualCheckIn() 
-            }
-          ]
-        );
-        return;
+    try {
+      // Request camera permission if not yet granted
+      if (!permission?.granted) {
+        const perm = await requestPermission();
+        if (!perm.granted) {
+          Alert.alert(
+            'Izin Kamera Dibutuhkan',
+            'Izin kamera dibutuhkan untuk scan QR Code. Gunakan absensi GPS sebagai alternatif.',
+            [
+              { text: 'Batal', style: 'cancel' },
+              { text: 'Gunakan GPS', onPress: () => handleManualCheckIn() }
+            ]
+          );
+          return;
+        }
       }
+      // Permission granted - open scanner
+      setScannedToken(null);
+      setShowScanner(true);
+    } catch (error: any) {
+      console.error('handleCheckIn error:', error);
+      Alert.alert('Error', 'Gagal membuka kamera. Gunakan GPS sebagai alternatif.');
     }
-
-    // Permission granted - show scanner
-    setShowScanner(true);
   };
 
   const handleManualCheckIn = async () => {
@@ -139,6 +142,7 @@ export default function RondaAttendanceScreen({ navigation }: any) {
 
     try {
       setSubmitting(true);
+      setShowScanner(false);
 
       const response = await api.post('/ronda-schedules/scan-attendance', {
         qr_token: 'manual-checkin-gps',
@@ -150,13 +154,13 @@ export default function RondaAttendanceScreen({ navigation }: any) {
         Alert.alert(
           'Berhasil!',
           response.data.message || 'Absensi kehadiran berhasil dicatat',
-          [{ text: 'OK', onPress: () => { setShowScanner(false); checkAttendanceStatus(); } }]
+          [{ text: 'OK', onPress: () => checkAttendanceStatus() }]
         );
       } else {
-        Alert.alert('Gagal', response.data.message);
+        Alert.alert('Gagal', response.data.message || 'Gagal melakukan absensi');
       }
     } catch (error: any) {
-      console.error('Check-in error:', error);
+      console.error('handleManualCheckIn error:', error);
       const message = error.response?.data?.message || 'Gagal melakukan absensi';
       Alert.alert('Error', message);
     } finally {
@@ -165,19 +169,19 @@ export default function RondaAttendanceScreen({ navigation }: any) {
   };
 
   const handleBarCodeScanned = async ({ type, data }: { type: string; data: string }) => {
-    // Prevent double scans
-    if (scannedToken) return;
-    
+    if (scannedToken) return; // Prevent double scan
+    if (!location) return;
+
     setScannedToken(data);
     setShowScanner(false);
-    
+
     try {
       setSubmitting(true);
 
       const response = await api.post('/ronda-schedules/scan-attendance', {
         qr_token: data,
-        latitude: location!.coords.latitude,
-        longitude: location!.coords.longitude,
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
       });
 
       if (response.data.success) {
@@ -187,14 +191,14 @@ export default function RondaAttendanceScreen({ navigation }: any) {
           [{ text: 'OK', onPress: () => checkAttendanceStatus() }]
         );
       } else {
-        Alert.alert('Gagal', response.data.message);
-        setScannedToken(null); // Reset for retry
+        Alert.alert('Gagal', response.data.message || 'Gagal melakukan absensi');
+        setScannedToken(null); // Allow retry
       }
     } catch (error: any) {
-      console.error('QR Scan check-in error:', error);
+      console.error('handleBarCodeScanned error:', error);
       const message = error.response?.data?.message || 'Gagal melakukan absensi';
       Alert.alert('Error', message);
-      setScannedToken(null); // Reset for retry
+      setScannedToken(null); // Allow retry
     } finally {
       setSubmitting(false);
     }
@@ -222,10 +226,10 @@ export default function RondaAttendanceScreen({ navigation }: any) {
           [{ text: 'OK', onPress: () => checkAttendanceStatus() }]
         );
       } else {
-        Alert.alert('Gagal', response.data.message);
+        Alert.alert('Gagal', response.data.message || 'Gagal melakukan clock out');
       }
     } catch (error: any) {
-      console.error('Check-out error:', error);
+      console.error('handleCheckOut error:', error);
       const message = error.response?.data?.message || 'Gagal melakukan clock out';
       Alert.alert('Error', message);
     } finally {
@@ -233,18 +237,58 @@ export default function RondaAttendanceScreen({ navigation }: any) {
     }
   };
 
+  // --- Render Guards ---
+
+  // Render guard: while loading, show spinner with full background
   if (loading) {
     return (
-      <View style={[styles.container, styles.centerContent]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Memuat status absensi...</Text>
-      </View>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Absensi Ronda</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <View style={styles.centerContent}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Memuat status absensi...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Render guard: fatal init error (GPS denied, network error, etc.)
+  if (initError) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Absensi Ronda</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <View style={styles.centerContent}>
+          <Ionicons name="alert-circle" size={64} color="#ef4444" />
+          <Text style={[styles.loadingText, { color: '#ef4444', textAlign: 'center', marginHorizontal: 24 }]}>
+            {initError}
+          </Text>
+          <TouchableOpacity
+            style={[styles.submitButton, { marginTop: 24 }]}
+            onPress={initScreen}
+          >
+            <Ionicons name="refresh" size={20} color="#fff" />
+            <Text style={styles.submitButtonText}>Coba Lagi</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -255,7 +299,7 @@ export default function RondaAttendanceScreen({ navigation }: any) {
         </View>
 
         {/* Schedule Info */}
-        {scheduleInfo && (
+        {scheduleInfo ? (
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <Ionicons name="shield-checkmark" size={32} color={colors.primary} />
@@ -264,19 +308,26 @@ export default function RondaAttendanceScreen({ navigation }: any) {
                 <Text style={styles.cardSubtitle}>{scheduleInfo.shift_name || 'Petugas Malam'}</Text>
               </View>
             </View>
-            
+
             <View style={styles.infoRow}>
               <Ionicons name="calendar" size={20} color={colors.textSecondary} />
               <Text style={styles.infoLabel}>Tanggal:</Text>
-              <Text style={styles.infoValue}>{scheduleInfo.start_date}</Text>
+              <Text style={styles.infoValue}>{scheduleInfo.start_date || '-'}</Text>
             </View>
-            
+
             <View style={styles.infoRow}>
               <Ionicons name="time" size={20} color={colors.textSecondary} />
               <Text style={styles.infoLabel}>Waktu:</Text>
               <Text style={styles.infoValue}>
-                {scheduleInfo.start_time} - {scheduleInfo.end_time}
+                {scheduleInfo.start_time || '-'} - {scheduleInfo.end_time || '-'}
               </Text>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.card}>
+            <View style={styles.noAttendance}>
+              <Ionicons name="calendar-outline" size={48} color={colors.textSecondary} />
+              <Text style={styles.noAttendanceText}>Tidak ada jadwal ronda hari ini</Text>
             </View>
           </View>
         )}
@@ -284,35 +335,35 @@ export default function RondaAttendanceScreen({ navigation }: any) {
         {/* Attendance Status */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Status Kehadiran</Text>
-          
+
           {attendanceStatus ? (
             <View style={styles.statusContainer}>
               <View style={[
                 styles.statusBadge,
-                { 
-                  backgroundColor: 
+                {
+                  backgroundColor:
                     attendanceStatus.status === 'PRESENT' ? '#10b98120' :
                     attendanceStatus.status === 'ABSENT' ? '#ef444420' :
                     '#f59e0b20'
                 }
               ]}>
-                <Ionicons 
+                <Ionicons
                   name={
                     attendanceStatus.status === 'PRESENT' ? 'checkmark-circle' :
                     attendanceStatus.status === 'ABSENT' ? 'close-circle' :
                     'time-outline'
-                  } 
-                  size={24} 
+                  }
+                  size={24}
                   color={
                     attendanceStatus.status === 'PRESENT' ? '#10b981' :
                     attendanceStatus.status === 'ABSENT' ? '#ef4444' :
                     '#f59e0b'
-                  } 
+                  }
                 />
                 <Text style={[
                   styles.statusText,
-                  { 
-                    color: 
+                  {
+                    color:
                       attendanceStatus.status === 'PRESENT' ? '#10b981' :
                       attendanceStatus.status === 'ABSENT' ? '#ef4444' :
                       '#f59e0b'
@@ -353,10 +404,7 @@ export default function RondaAttendanceScreen({ navigation }: any) {
         {/* Action Buttons */}
         {!attendanceStatus || attendanceStatus.status !== 'PRESENT' ? (
           <TouchableOpacity
-            style={[
-              styles.submitButton,
-              submitting && styles.submitButtonDisabled
-            ]}
+            style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
             onPress={handleCheckIn}
             disabled={submitting}
           >
@@ -371,11 +419,7 @@ export default function RondaAttendanceScreen({ navigation }: any) {
           </TouchableOpacity>
         ) : !attendanceStatus.clock_out_at ? (
           <TouchableOpacity
-            style={[
-              styles.submitButton,
-              { backgroundColor: '#3b82f6' },
-              submitting && styles.submitButtonDisabled
-            ]}
+            style={[styles.submitButton, { backgroundColor: '#3b82f6' }, submitting && styles.submitButtonDisabled]}
             onPress={handleCheckOut}
             disabled={submitting}
           >
@@ -398,88 +442,91 @@ export default function RondaAttendanceScreen({ navigation }: any) {
         {/* Helper Text */}
         <View style={styles.helperCard}>
           <Ionicons name="information-circle" size={24} color={colors.primary} />
-          <Text style={styles.helperText}>
-            • Scan QR Code di pos ronda untuk absensi kehadiran
-          </Text>
-          <Text style={styles.helperText}>
-            • Atau gunakan GPS untuk verifikasi lokasi Anda
-          </Text>
-          <Text style={styles.helperText}>
-            • Check-in dilakukan saat mulai bertugas
-          </Text>
-          <Text style={styles.helperText}>
-            • Check-out dilakukan setelah selesai bertugas
-          </Text>
+          <Text style={styles.helperText}>• Scan QR Code di pos ronda untuk absensi kehadiran</Text>
+          <Text style={styles.helperText}>• Atau gunakan GPS untuk verifikasi lokasi Anda</Text>
+          <Text style={styles.helperText}>• Check-in dilakukan saat mulai bertugas</Text>
+          <Text style={styles.helperText}>• Check-out dilakukan setelah selesai bertugas</Text>
         </View>
       </ScrollView>
 
-      {/* QR Scanner Modal */}
-      <Modal visible={showScanner} animationType="slide" transparent={true}>
-        <View style={styles.scannerOverlay}>
-          <View style={styles.scannerContainer}>
+      {/* QR Scanner Modal - transparent:false prevents blank/black screen */}
+      <Modal
+        visible={showScanner}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => { setShowScanner(false); setScannedToken(null); }}
+      >
+        <View style={styles.scannerFullScreen}>
+
+          {/* Camera View - only render when focused AND permission granted */}
+          {permission?.granted && isFocused && showScanner ? (
+            <CameraView
+              ref={scannerRef}
+              style={StyleSheet.absoluteFillObject}
+              barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+              onBarcodeScanned={scannedToken ? undefined : handleBarCodeScanned}
+            />
+          ) : null}
+
+          {/* No Permission Overlay */}
+          {!permission?.granted && (
+            <View style={styles.noPermissionOverlay}>
+              <Ionicons name="alert-circle" size={64} color="#ef4444" />
+              <Text style={styles.noPermissionText}>
+                Izin kamera dibutuhkan untuk scan QR
+              </Text>
+              <Text style={styles.noPermissionSub}>
+                Silakan gunakan tombol GPS di bawah
+              </Text>
+            </View>
+          )}
+
+          {/* Scan Frame Overlay */}
+          {permission?.granted && isFocused && (
+            <View style={styles.overlay} pointerEvents="none">
+              <View style={styles.overlayTop} />
+              <View style={styles.overlayMiddle}>
+                <View style={styles.overlayLeft} />
+                <View style={styles.scanFrame}>
+                  <View style={styles.cornerTopLeft} />
+                  <View style={styles.cornerTopRight} />
+                  <View style={styles.cornerBottomLeft} />
+                  <View style={styles.cornerBottomRight} />
+                  <Text style={styles.scanInstruction}>Arahkan ke QR Code</Text>
+                </View>
+                <View style={styles.overlayRight} />
+              </View>
+              <View style={styles.overlayBottom} />
+            </View>
+          )}
+
+          {/* Header Bar */}
+          <SafeAreaView style={styles.scannerHeaderSafe}>
             <View style={styles.scannerHeader}>
               <Text style={styles.scannerTitle}>Scan QR Code Pos Ronda</Text>
               <TouchableOpacity onPress={() => { setShowScanner(false); setScannedToken(null); }}>
                 <Ionicons name="close" size={32} color="#fff" />
               </TouchableOpacity>
             </View>
-            
-            <View style={styles.scannerContent}>
-              {permission?.granted && isFocused ? (
-                <>
-                  <CameraView
-                    ref={scannerRef}
-                    style={styles.scanner}
-                    barcodeScannerSettings={{
-                      barcodeTypes: ['qr'],
-                    }}
-                    onBarcodeScanned={handleBarCodeScanned}
-                  />
-                  
-                  {/* Overlay with cutout */}
-                  <View style={styles.overlay}>
-                    <View style={styles.overlayTop} />
-                    <View style={styles.overlayMiddle}>
-                      <View style={styles.overlayLeft} />
-                      <View style={styles.scanFrame}>
-                        <View style={styles.cornerTopLeft} />
-                        <View style={styles.cornerTopRight} />
-                        <View style={styles.cornerBottomLeft} />
-                        <View style={styles.cornerBottomRight} />
-                        <Text style={styles.scanInstruction}>Arahkan kamera ke QR Code</Text>
-                      </View>
-                      <View style={styles.overlayRight} />
-                    </View>
-                    <View style={styles.overlayBottom} />
-                  </View>
-                </>
-              ) : (
-                <View style={styles.noPermissionContainer}>
-                  <Ionicons name="alert-circle" size={64} color="#ef4444" />
-                  <Text style={styles.noPermissionText}>
-                    {!permission?.granted 
-                      ? 'Izin kamera dibutuhkan untuk scan QR' 
-                      : 'Kamera tidak aktif'}
-                  </Text>
-                  <Text style={styles.helperText}>
-                    Silakan gunakan absensi manual dengan GPS
-                  </Text>
-                </View>
-              )}
-            </View>
+          </SafeAreaView>
 
-            {/* Manual Check-in Button - Always visible */}
-            <TouchableOpacity 
+          {/* GPS Fallback Button - always visible at bottom */}
+          <SafeAreaView style={styles.scannerFooterSafe}>
+            <TouchableOpacity
               style={styles.manualButton}
               onPress={handleManualCheckIn}
               disabled={submitting}
             >
-              <Ionicons name="location" size={20} color="#fff" />
-              <Text style={styles.manualButtonText}>
-                {submitting ? 'Memproses...' : 'Gunakan Lokasi GPS Saya'}
-              </Text>
+              {submitting ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <Ionicons name="location" size={20} color="#fff" />
+                  <Text style={styles.manualButtonText}>Gunakan Lokasi GPS Saja</Text>
+                </>
+              )}
             </TouchableOpacity>
-          </View>
+          </SafeAreaView>
         </View>
       </Modal>
     </SafeAreaView>
@@ -492,8 +539,10 @@ const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
     backgroundColor: isDarkMode ? '#0f172a' : '#f8fafc',
   },
   centerContent: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 24,
   },
   loadingText: {
     marginTop: 16,
@@ -502,6 +551,9 @@ const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 40,
   },
   header: {
     flexDirection: 'row',
@@ -657,46 +709,45 @@ const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
     color: colors.textSecondary,
     lineHeight: 20,
   },
-  // Scanner Styles
-  scannerOverlay: {
+  // Scanner - Full Screen Modal
+  scannerFullScreen: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.9)',
-    justifyContent: 'flex-end',
-  },
-  scannerContainer: {
     backgroundColor: '#000',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    overflow: 'hidden',
-    maxHeight: Dimensions.get('window').height * 0.85,
+  },
+  scannerHeaderSafe: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    backgroundColor: 'rgba(0,0,0,0.7)',
   },
   scannerHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
   scannerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#fff',
   },
-  scannerContent: {
-    flex: 1,
-    position: 'relative',
+  scannerFooterSafe: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    backgroundColor: 'rgba(0,0,0,0.7)',
   },
-  scanner: {
-    flex: 1,
-    width: '100%',
-  },
-  noPermissionContainer: {
-    flex: 1,
+  noPermissionOverlay: {
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#111',
     padding: 40,
-    backgroundColor: 'rgba(255,255,255,0.95)',
   },
   noPermissionText: {
     fontSize: 18,
@@ -705,6 +756,11 @@ const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
     textAlign: 'center',
     marginTop: 16,
     marginBottom: 8,
+  },
+  noPermissionSub: {
+    fontSize: 14,
+    color: '#aaa',
+    textAlign: 'center',
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
