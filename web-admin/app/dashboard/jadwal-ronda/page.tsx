@@ -196,8 +196,10 @@ export default function JadwalRondaPage() {
     const date = new Date(startDate);
     if (type === 'WEEKLY') {
       date.setDate(date.getDate() + 6);
+      return date.toISOString().split('T')[0];
     }
-    // For DAILY, start_date = end_date, so no change needed
+    // For DAILY: default end_date to next day to allow overnight shifts (e.g. 22:00–04:00)
+    date.setDate(date.getDate() + 1);
     return date.toISOString().split('T')[0];
   };
 
@@ -359,8 +361,10 @@ export default function JadwalRondaPage() {
       } else {
         if (!schedule) return;
         
-        // Ensure we're sending proper data
+        // Ensure we're sending proper data, including updated dates
         const payload = {
+          start_date: form.start_date,
+          end_date: form.end_date,
           start_time: form.start_time,
           end_time: form.end_time,
           officers: selectedUserIds.map(id => Number(id)), // Ensure numeric IDs
@@ -840,11 +844,12 @@ export default function JadwalRondaPage() {
                 </div>
                 <div>
                   <label className="text-sm text-slate-600 dark:text-slate-300 font-medium">
-                    {form.schedule_type === 'DAILY' ? 'Tanggal Akhir' : 'Tanggal Akhir (+6 Hari)'}
+                    {form.schedule_type === 'DAILY' ? 'Tanggal Akhir (boleh beda hari)' : 'Tanggal Akhir (+6 Hari)'}
                   </label>
                   <input 
                     type="date" 
                     value={form.end_date}
+                    min={form.start_date}
                     onChange={(e) => setForm({ ...form, end_date: e.target.value })}
                     className="w-full px-5 py-3 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                   />

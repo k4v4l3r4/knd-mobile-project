@@ -640,6 +640,8 @@ class RondaController extends Controller
 
         try {
             $validated = $request->validate([
+                'start_date' => 'nullable|date',
+                'end_date'   => 'nullable|date|after_or_equal:start_date',
                 'start_time' => 'nullable|date_format:H:i',
                 'end_time' => 'nullable|date_format:H:i',
                 'status' => 'nullable|in:ACTIVE,INACTIVE',
@@ -647,6 +649,13 @@ class RondaController extends Controller
                 'officers' => 'nullable|array',
                 'officers.*' => 'exists:users,id',
             ]);
+
+            if (isset($validated['start_date'])) {
+                $schedule->start_date = $validated['start_date'];
+            }
+            if (isset($validated['end_date'])) {
+                $schedule->end_date = $validated['end_date'];
+            }
 
             if (isset($validated['start_time'])) {
                 $schedule->start_time = $validated['start_time'];
