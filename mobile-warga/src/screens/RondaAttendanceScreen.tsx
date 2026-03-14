@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, ScrollView, Modal, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, ScrollView, Modal, Dimensions, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { useIsFocused } from '@react-navigation/native';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import api from '../services/api';
@@ -17,6 +18,7 @@ interface AttendanceStatus {
 export default function RondaAttendanceScreen({ navigation }: any) {
   const { colors, isDarkMode } = useTheme();
   const { t } = useLanguage();
+  const isFocused = useIsFocused();
   const styles = React.useMemo(() => getStyles(colors, isDarkMode), [colors, isDarkMode]);
   
   const [loading, setLoading] = useState(true);
@@ -32,8 +34,26 @@ export default function RondaAttendanceScreen({ navigation }: any) {
   const scannerRef = useRef<CameraView>(null);
 
   useEffect(() => {
+    // Request camera permission on mount
+    if (!permission?.granted && !permission?.canAskAgain) {
+      requestPermission();
+    }
+  }, []);
+
+  useEffect(() => {
     checkAttendanceStatus();
   }, []);
+
+  // Handle camera on/off based on focus
+  useEffect(() => {
+    if (scannerRef.current) {
+      if (isFocused && showScanner) {
+        // Camera will auto-start when focused
+      } else {
+        // Camera will auto-pause when not focused
+      }
+    }
+  }, [isFocused, showScanner]);
 
   const checkAttendanceStatus = async () => {
     try {
@@ -86,27 +106,29 @@ export default function RondaAttendanceScreen({ navigation }: any) {
       return;
     }
 
-    // Show scanner modal
-    if (permission?.granted) {
-      setShowScanner(true);
-    } else {
+    // Check camera permission first
+    if (!permission?.granted) {
+      // Request permission
       const perm = await requestPermission();
-      if (perm.granted) {
-        setShowScanner(true);
-      } else {
+      if (!perm.granted) {
+        // Permission denied - show fallback UI
         Alert.alert(
-          'Permission Required',
-          'Camera permission is required to scan QR code. Please use manual check-in instead.',
+          'Izin Kamera Dibutuhkan',
+          'Izin kamera dibutuhkan untuk scan QR Code. Silakan gunakan absensi manual dengan GPS.',
           [
-            { text: 'Cancel', style: 'cancel' },
+            { text: 'Batal', style: 'cancel' },
             { 
-              text: 'Manual Check-In', 
+              text: 'Gunakan GPS', 
               onPress: () => handleManualCheckIn() 
             }
           ]
         );
+        return;
       }
     }
+
+    // Permission granted - show scanner
+    setShowScanner(true);
   };
 
   const handleManualCheckIn = async () => {
@@ -403,47 +425,59 @@ export default function RondaAttendanceScreen({ navigation }: any) {
             </View>
             
             <View style={styles.scannerContent}>
-              {permission?.granted ? (
-                <CameraView
-                  ref={scannerRef}
-                  style={styles.scanner}
-                  barcodeScannerSettings={{
-                    barcodeTypes: ['qr'],
-                  }}
-                  onBarcodeScanned={handleBarCodeScanned}
-                />
+              {permission?.granted && isFocused ? (
+                <>
+                  <CameraView
+                    ref={scannerRef}
+                    style={styles.scanner}
+                    barcodeScannerSettings={{
+                      barcodeTypes: ['qr'],
+                    }}
+                    onBarcodeScanned={handleBarCodeScanned}
+                  />
+                  
+                  {/* Overlay with cutout */}
+                  <View style={styles.overlay}>
+                    <View style={styles.overlayTop} />
+                    <View style={styles.overlayMiddle}>
+                      <View style={styles.overlayLeft} />
+                      <View style={styles.scanFrame}>
+                        <View style={styles.cornerTopLeft} />
+                        <View style={styles.cornerTopRight} />
+                        <View style={styles.cornerBottomLeft} />
+                        <View style={styles.cornerBottomRight} />
+                        <Text style={styles.scanInstruction}>Arahkan kamera ke QR Code</Text>
+                      </View>
+                      <View style={styles.overlayRight} />
+                    </View>
+                    <View style={styles.overlayBottom} />
+                  </View>
+                </>
               ) : (
                 <View style={styles.noPermissionContainer}>
-                  <Ionicons name="camera" size={64} color="#999" />
-                  <Text style={styles.noPermissionText}>Camera permission not granted</Text>
+                  <Ionicons name="alert-circle" size={64} color="#ef4444" />
+                  <Text style={styles.noPermissionText}>
+                    {!permission?.granted 
+                      ? 'Izin kamera dibutuhkan untuk scan QR' 
+                      : 'Kamera tidak aktif'}
+                  </Text>
+                  <Text style={styles.helperText}>
+                    Silakan gunakan absensi manual dengan GPS
+                  </Text>
                 </View>
               )}
-              
-              {/* Overlay with cutout */}
-              <View style={styles.overlay}>
-                <View style={styles.overlayTop} />
-                <View style={styles.overlayMiddle}>
-                  <View style={styles.overlayLeft} />
-                  <View style={styles.scanFrame}>
-                    <View style={styles.cornerTopLeft} />
-                    <View style={styles.cornerTopRight} />
-                    <View style={styles.cornerBottomLeft} />
-                    <View style={styles.cornerBottomRight} />
-                    <Text style={styles.scanInstruction}>Arahkan kamera ke QR Code</Text>
-                  </View>
-                  <View style={styles.overlayRight} />
-                </View>
-                <View style={styles.overlayBottom} />
-              </View>
             </View>
 
-            {/* Manual Check-in Button */}
+            {/* Manual Check-in Button - Always visible */}
             <TouchableOpacity 
               style={styles.manualButton}
               onPress={handleManualCheckIn}
+              disabled={submitting}
             >
               <Ionicons name="location" size={20} color="#fff" />
-              <Text style={styles.manualButtonText}>Gunakan Lokasi GPS Saya</Text>
+              <Text style={styles.manualButtonText}>
+                {submitting ? 'Memproses...' : 'Gunakan Lokasi GPS Saya'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -661,14 +695,16 @@ const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#000',
+    padding: 40,
+    backgroundColor: 'rgba(255,255,255,0.95)',
   },
   noPermissionText: {
-    color: '#fff',
-    fontSize: 16,
-    marginTop: 16,
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#ef4444',
     textAlign: 'center',
-    paddingHorizontal: 40,
+    marginTop: 16,
+    marginBottom: 8,
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
