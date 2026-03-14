@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -12,7 +12,8 @@ import {
   TouchableOpacity,
   Modal,
   TextInput,
-  Switch
+  Switch,
+  RefreshControl
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons, Feather, MaterialIcons } from '@expo/vector-icons';
@@ -76,6 +77,7 @@ export default function PatrolScreen({ onNavigate }: PatrolScreenProps) {
   const [isRT, setIsRT] = useState(false);
   const [isManageMode, setIsManageMode] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Modal State
   const [modalVisible, setModalVisible] = useState(false);
@@ -101,6 +103,12 @@ export default function PatrolScreen({ onNavigate }: PatrolScreenProps) {
 
   useEffect(() => {
     fetchData();
+  }, []);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
   }, []);
 
   useEffect(() => {
@@ -498,6 +506,14 @@ export default function PatrolScreen({ onNavigate }: PatrolScreenProps) {
           mySchedules.length === 0 && { marginTop: 10 }
         ]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
       >
         {isManageMode ? (
             // Manage Mode View
@@ -614,9 +630,12 @@ export default function PatrolScreen({ onNavigate }: PatrolScreenProps) {
                                     <View style={styles.myScheduleIconBox}>
                                         <MaterialCommunityIcons name="shield-account" size={20} color={colors.primary} />
                                     </View>
-                                    <View>
-                                        <Text style={styles.myScheduleDay}>{schedule.day_of_week}</Text>
-                                        <Text style={styles.myScheduleTime}>{schedule.start_time.substring(0, 5)} WIB</Text>
+                                    <View style={{ flex: 1 }}>
+                                        {/* Dynamic label from API — Indonesian day + date */}
+                                        <Text style={styles.myScheduleDay} numberOfLines={2}>{schedule.day_of_week}</Text>
+                                        <Text style={styles.myScheduleTime}>
+                                            {schedule.start_time.substring(0, 5)} - {schedule.end_time.substring(0, 5)} WIB
+                                        </Text>
                                     </View>
                                 </View>
                             </LinearGradient>
@@ -633,7 +652,10 @@ export default function PatrolScreen({ onNavigate }: PatrolScreenProps) {
                     </View>
                     {todaySchedules.length > 0 && (
                         <View style={styles.badge}>
-                            <Text style={styles.badgeText}>{todaySchedules[0].day_of_week}</Text>
+                            {/* Dynamic label: use day_of_week from API (already Indonesian + date) */}
+                            <Text style={styles.badgeText} numberOfLines={2}>
+                              {todaySchedules[0].day_of_week || formatSchedulePeriod(todaySchedules[0])}
+                            </Text>
                         </View>
                     )}
                 </View>
@@ -655,25 +677,34 @@ export default function PatrolScreen({ onNavigate }: PatrolScreenProps) {
                                     </View>
                                 )}
                             </View>
+
+                            {/* Member count label */}
+                            <Text style={[styles.sectionSubtitleSmall, { marginBottom: 10, paddingHorizontal: 2 }]}>
+                              {schedule.members?.length > 0
+                                ? `${schedule.members.length} petugas bertugas malam ini`
+                                : 'Belum ada petugas yang ditugaskan'}
+                            </Text>
                             
                             <View style={styles.membersGrid}>
                                 {schedule.members?.length > 0 ? (
                                     <View style={styles.membersListHorizontal}>
                                         {schedule.members.map((member) => (
                                             <View key={member.id} style={styles.memberAvatarWrapper}>
-                                                <View style={styles.memberAvatarContainer}>
+                                                <View style={[styles.memberAvatarContainer, (member as any).is_me && { borderWidth: 2, borderColor: colors.primary, borderRadius: 14 }]}>
                                                     {member.user.photo_url ? (
                                                         <Image 
                                                             source={{ uri: getStorageUrl(member.user.photo_url) || '' }} 
                                                             style={styles.memberAvatar} 
                                                         />
                                                     ) : (
-                                                        <View style={[styles.memberAvatarPlaceholder, { backgroundColor: colors.primary + '10' }]}>
+                                                        <View style={[styles.memberAvatarPlaceholder, { backgroundColor: (member as any).is_me ? colors.primary + '30' : colors.primary + '10' }]}>
                                                             <Text style={[styles.memberAvatarText, { color: colors.primary }]}>{member.user.name.charAt(0)}</Text>
                                                         </View>
                                                     )}
                                                 </View>
-                                                <Text style={styles.memberNameSmall} numberOfLines={1}>{member.user.name.split(' ')[0]}</Text>
+                                                <Text style={[styles.memberNameSmall, (member as any).is_me && { color: colors.primary, fontWeight: '700' }]} numberOfLines={1}>
+                                                    {(member as any).is_me ? 'Kamu' : member.user.name.split(' ')[0]}
+                                                </Text>
                                             </View>
                                         ))}
                                     </View>

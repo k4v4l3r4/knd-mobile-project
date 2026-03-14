@@ -174,30 +174,56 @@ class PatrolController extends Controller
                 ]);
             }
 
+            // Build Indonesian day name map
+            $dayMapId = [
+                'Sunday'    => 'Minggu',
+                'Monday'    => 'Senin',
+                'Tuesday'   => 'Selasa',
+                'Wednesday' => 'Rabu',
+                'Thursday'  => 'Kamis',
+                'Friday'    => 'Jumat',
+                'Saturday'  => 'Sabtu',
+            ];
+
+            $authUserId = Auth::id();
+
             // Transform RondaSchedule data to match expected format
-            $transformedSchedules = $schedules->map(function($schedule) use ($today) {
-                // Map participants to members format
-                $members = $schedule->participants->map(function($participant) {
+            $transformedSchedules = $schedules->map(function($schedule) use ($today, $dayMapId, $authUserId) {
+                // Map participants to members format, and mark the current user with is_me
+                $members = $schedule->participants->map(function($participant) use ($authUserId) {
                     return [
-                        'id' => $participant->id,
-                        'user' => $participant->user,
-                        'status' => $participant->status,
+                        'id'            => $participant->id,
+                        'user'          => $participant->user,
+                        'status'        => $participant->status,
                         'attendance_at' => $participant->attendance_at,
+                        'clock_out_at'  => $participant->clock_out_at ?? null,
+                        'is_me'         => $participant->user_id === $authUserId,
                     ];
                 });
 
+                // Build dynamic Indonesian day label from start_date
+                $dayLabel = '';
+                if ($schedule->start_date) {
+                    $parsed    = Carbon::parse($schedule->start_date);
+                    $dayNameId = $dayMapId[$parsed->format('l')] ?? $parsed->format('l');
+                    $dateLabel = $parsed->format('d M Y');
+                    $dayLabel  = $schedule->shift_name
+                        ? "{$schedule->shift_name} — {$dayNameId}, {$dateLabel}"
+                        : "{$dayNameId}, {$dateLabel}";
+                }
+
                 return [
-                    'id' => $schedule->id,
+                    'id'            => $schedule->id,
                     'schedule_type' => $schedule->schedule_type,
-                    'start_date' => $schedule->start_date,
-                    'end_date' => $schedule->end_date,
-                    'start_time' => $schedule->start_time,
-                    'end_time' => $schedule->end_time,
-                    'shift_name' => $schedule->shift_name,
-                    'members' => $members,
-                    // For backward compatibility with old format
-                    'day_of_week' => Carbon::parse($schedule->start_date)->format('l'),
-                    'week_number' => 1,
+                    'start_date'    => $schedule->start_date,
+                    'end_date'      => $schedule->end_date,
+                    'start_time'    => $schedule->start_time,
+                    'end_time'      => $schedule->end_time,
+                    'shift_name'    => $schedule->shift_name,
+                    'members'       => $members,
+                    // Dynamic Indonesian label — NOT hardcoded
+                    'day_of_week'   => $dayLabel,
+                    'week_number'   => 1,
                 ];
             });
 
@@ -375,19 +401,48 @@ class PatrolController extends Controller
 
         Carbon::setLocale('id');
 
-        $data = $schedules->map(function($s) {
-            // Build label using time window when date fields are unavailable
-            $dayLabel = strtoupper(Carbon::now()->isoFormat('dddd')) . " (" . Carbon::now()->format('d M') . ")";
-            if ($s->schedule_type === 'WEEKLY') {
-                $dayLabel = "MINGGUAN (" . substr((string)$s->start_time, 0, 5) . " - " . substr((string)$s->end_time, 0, 5) . ")";
+        $dayMapId = [
+            'Sunday'    => 'Minggu',
+            'Monday'    => 'Senin',
+            'Tuesday'   => 'Selasa',
+            'Wednesday' => 'Rabu',
+            'Thursday'  => 'Kamis',
+            'Friday'    => 'Jumat',
+            'Saturday'  => 'Sabtu',
+        ];
+
+        $data = $schedules->map(function($s) use ($dayMapId) {
+            // Build a fully dynamic Indonesian day label from start_date
+            if ($s->start_date) {
+                $parsed    = Carbon::parse($s->start_date);
+                $dayNameId = $dayMapId[$parsed->format('l')] ?? $parsed->format('l');
+                $dateLabel = $parsed->format('d M Y');
+                if ($s->end_date && $s->end_date !== $s->start_date) {
+                    $endParsed    = Carbon::parse($s->end_date);
+                    $endDateLabel = $endParsed->format('d M Y');
+                    $dayLabel = $s->shift_name
+                        ? "{$s->shift_name} — {$dayNameId}, {$dateLabel} s/d {$endDateLabel}"
+                        : "{$dayNameId}, {$dateLabel} s/d {$endDateLabel}";
+                } else {
+                    $dayLabel = $s->shift_name
+                        ? "{$s->shift_name} — {$dayNameId}, {$dateLabel}"
+                        : "{$dayNameId}, {$dateLabel}";
+                }
+            } else {
+                // Fallback for legacy schedules with no date
+                $dayLabel = strtoupper(Carbon::now()->isoFormat('dddd')) . ' (' . Carbon::now()->format('d M Y') . ')';
             }
 
             return [
-                'id' => $s->id,
-                'day_of_week' => $dayLabel,
-                'start_time' => $s->start_time,
-                'end_time' => $s->end_time,
-                'members' => []
+                'id'            => $s->id,
+                'schedule_type' => $s->schedule_type,
+                'start_date'    => $s->start_date,
+                'end_date'      => $s->end_date,
+                'shift_name'    => $s->shift_name,
+                'day_of_week'   => $dayLabel,
+                'start_time'    => $s->start_time,
+                'end_time'      => $s->end_time,
+                'members'       => [],  // "My schedule" list — no need to expose other warga names
             ];
         });
 
