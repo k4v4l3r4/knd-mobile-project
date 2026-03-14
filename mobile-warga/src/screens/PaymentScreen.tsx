@@ -485,7 +485,7 @@ export default function PaymentScreen({
       onPress={() => setActiveTab(type)}
       activeOpacity={0.7}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      <View style={styles.tabButtonInner}>
         <MaterialCommunityIcons 
           name={icon} 
           size={24} 
@@ -697,7 +697,8 @@ export default function PaymentScreen({
         <ScrollView 
           horizontal 
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 4 }}
+          contentContainerStyle={styles.tabScrollContent}
+          style={styles.tabScrollView}
         >
           {renderTabButton('BANK', 'Transfer', 'bank-transfer')}
           {renderTabButton('QRIS', 'QRIS', 'qrcode-scan')}
@@ -923,15 +924,22 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
   content: {
     padding: 20,
     paddingBottom: 120,
-    marginTop: 10,
+    marginTop: 16,
   },
   // Tabs
+  tabScrollView: {
+    marginBottom: 24,
+  },
+  tabScrollContent: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
   tabContainer: {
     flexDirection: 'row',
     backgroundColor: colors.card,
     borderRadius: 16,
     padding: 6,
-    marginBottom: 24,
+    marginBottom: 0,
     shadowColor: colors.text,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -942,12 +950,20 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     flexGrow: 0,
   },
   tabButton: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginHorizontal: 6,
     borderRadius: 12,
+    gap: 8,
+    minWidth: 100,
+  },
+  tabButtonInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
   },
   activeTabButton: {
@@ -973,6 +989,7 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     borderRadius: 24,
     padding: 24,
     marginBottom: 24,
+    marginTop: 8,
     shadowColor: colors.text,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
