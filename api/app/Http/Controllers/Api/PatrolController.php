@@ -10,6 +10,7 @@ use App\Models\RondaParticipant;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 use App\Models\WilayahRt; // Add this import
@@ -107,16 +108,39 @@ class PatrolController extends Controller
             $tenantId = $rt->tenant_id;
 
             // Get today's date
-            $today = now()->format('Y-m-d');
+            $today = Carbon::today()->format('Y-m-d');
+            
+            Log::info('Patrol today query', [
+                'rt_id' => $rtId,
+                'today' => $today,
+                'datetime' => now()->toDateTimeString()
+            ]);
 
             // Get active schedules for today from RondaSchedule (NEW SYSTEM)
+            // Include schedules with NULL dates (legacy) OR within date range
             $schedules = RondaSchedule::with(['participants.user'])
                 ->where('rt_id', $rtId)
                 ->where('status', 'ACTIVE')
-                ->where('start_date', '<=', $today)
-                ->where('end_date', '>=', $today)
+                ->where(function($query) use ($today) {
+                    $query->whereNull('start_date') // Legacy schedules without dates
+                          ->orWhereNull('end_date')
+                          ->orWhere(function($q) use ($today) {
+                              $q->whereDate('start_date', '<=', $today)
+                                ->whereDate('end_date', '>=', $today);
+                          });
+                })
                 ->orderByDesc('created_at')
                 ->get();
+            
+            Log::info('Patrol schedules found', [
+                'count' => $schedules->count(),
+                'schedules' => $schedules->map(fn($s) => [
+                    'id' => $s->id,
+                    'start_date' => $s->start_date,
+                    'end_date' => $s->end_date,
+                    'shift_name' => $s->shift_name
+                ])->toArray()
+            ]);
 
             // If no new system schedules, fall back to old PatrolSchedule
             if ($schedules->isEmpty()) {
@@ -182,7 +206,7 @@ class PatrolController extends Controller
                 'data' => $transformedSchedules
             ]);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Error in PatrolController@today: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
+            Log::error('Error in PatrolController@today: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
             return response()->json(['message' => 'Internal Server Error: ' . $e->getMessage()], 500);
         }
     }
@@ -241,19 +265,46 @@ class PatrolController extends Controller
     {
         $user = Auth::user();
         $todayDate = now()->toDateString();
+        $today = Carbon::today()->format('Y-m-d');
         
         // Get today's day name in Indonesian (uppercase)
         Carbon::setLocale('id');
         $todayDayName = strtoupper(Carbon::now()->isoFormat('dddd'));
         
-            // Find active schedules for today based on time window
+        Log::info('Patrol mine query', [
+            'rt_id' => $user->rt_id,
+            'today' => $today,
+            'datetime' => now()->toDateTimeString()
+        ]);
+        
+            // Find active schedules for today based on date range AND time window
             $currentTime = Carbon::now()->format('H:i:s');
             $schedules = RondaSchedule::with(['participants.user'])
                 ->where('rt_id', $user->rt_id)
                 ->where('status', 'ACTIVE')
+                ->where(function($query) use ($today) {
+                    $query->whereNull('start_date') // Legacy schedules without dates
+                          ->orWhereNull('end_date')
+                          ->orWhere(function($q) use ($today) {
+                              $q->whereDate('start_date', '<=', $today)
+                                ->whereDate('end_date', '>=', $today);
+                          });
+                })
                 ->where('start_time', '<=', $currentTime)
                 ->where('end_time', '>=', $currentTime)
                 ->get();
+            
+            Log::info('Patrol mine schedules found', [
+                'count' => $schedules->count(),
+                'schedules' => $schedules->map(fn($s) => [
+                    'id' => $s->id,
+                    'shift_name' => $s->shift_name,
+                    'start_date' => $s->start_date,
+                    'end_date' => $s->end_date,
+                    'start_time' => $s->start_time,
+                    'end_time' => $s->end_time
+                ])->toArray()
+            ]);
 
         if ($schedules->isEmpty()) {
              return response()->json([
