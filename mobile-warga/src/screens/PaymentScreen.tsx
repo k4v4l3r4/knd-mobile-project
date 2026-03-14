@@ -694,17 +694,16 @@ export default function PaymentScreen({
       <ScrollView contentContainerStyle={styles.content}>
         
         {/* Tabs */}
-        <View style={styles.tabContainerWrapper}>
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-          >
-            {renderTabButton('BANK', 'Transfer', 'bank-transfer')}
-            {renderTabButton('QRIS', 'QRIS', 'qrcode-scan')}
-            {renderTabButton('DANA', 'DANA', 'wallet')}
-            {renderTabButton('CASH', 'Tunai', 'cash-multiple')}
-          </ScrollView>
-        </View>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabScrollContent}
+        >
+          {renderTabButton('BANK', 'Transfer', 'bank-transfer')}
+          {renderTabButton('QRIS', 'QRIS', 'qrcode-scan')}
+          {renderTabButton('DANA', 'DANA', 'wallet')}
+          {renderTabButton('CASH', 'Tunai', 'cash-multiple')}
+        </ScrollView>
 
         {/* Dynamic Content */}
         {renderInfoContent()}
@@ -927,9 +926,9 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     marginTop: 16,
   },
   // Tabs
-  tabContainerWrapper: {
+  tabScrollContent: {
     paddingHorizontal: 16,
-    marginBottom: 24,
+    paddingVertical: 10,
   },
   tabContainer: {
     flexDirection: 'row',
@@ -951,16 +950,16 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     marginRight: 12,
     borderRadius: 12,
-    gap: 8,
-    minWidth: 100,
+    gap: 10,
+    minWidth: 110,
   },
   tabButtonInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
   activeTabButton: {
     backgroundColor: colors.primary,
