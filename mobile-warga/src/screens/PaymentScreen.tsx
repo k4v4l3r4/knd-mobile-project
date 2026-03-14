@@ -694,17 +694,17 @@ export default function PaymentScreen({
       <ScrollView contentContainerStyle={styles.content}>
         
         {/* Tabs */}
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.tabScrollContent}
-          style={styles.tabScrollView}
-        >
-          {renderTabButton('BANK', 'Transfer', 'bank-transfer')}
-          {renderTabButton('QRIS', 'QRIS', 'qrcode-scan')}
-          {renderTabButton('DANA', 'DANA', 'wallet')}
-          {renderTabButton('CASH', 'Tunai', 'cash-multiple')}
-        </ScrollView>
+        <View style={styles.tabContainerWrapper}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+          >
+            {renderTabButton('BANK', 'Transfer', 'bank-transfer')}
+            {renderTabButton('QRIS', 'QRIS', 'qrcode-scan')}
+            {renderTabButton('DANA', 'DANA', 'wallet')}
+            {renderTabButton('CASH', 'Tunai', 'cash-multiple')}
+          </ScrollView>
+        </View>
 
         {/* Dynamic Content */}
         {renderInfoContent()}
@@ -927,12 +927,9 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     marginTop: 16,
   },
   // Tabs
-  tabScrollView: {
+  tabContainerWrapper: {
+    paddingHorizontal: 16,
     marginBottom: 24,
-  },
-  tabScrollContent: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
   },
   tabContainer: {
     flexDirection: 'row',
@@ -955,7 +952,7 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     justifyContent: 'center',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    marginHorizontal: 6,
+    marginRight: 12,
     borderRadius: 12,
     gap: 8,
     minWidth: 100,
@@ -963,7 +960,6 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
   tabButtonInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: 8,
   },
   activeTabButton: {
