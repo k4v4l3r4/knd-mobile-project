@@ -277,8 +277,15 @@ class PatrolController extends Controller
             'datetime' => now()->toDateTimeString()
         ]);
         
-            // Find active schedules for today based on date range AND time window
-            $currentTime = Carbon::now()->format('H:i:s');
+            // Find active schedules for today based on date range.
+            // We intentionally do NOT filter by start_time/end_time here because:
+            // - Overnight shifts (e.g. 22:00–04:00) would be invisible after midnight
+            //   since end_time 04:00 < currentTime 23:00 → false positive empty result.
+            // - The correct gate for "is this schedule active tonight?" is the date range:
+            //   start_date <= today AND end_date >= today.
+            // For an overnight schedule saved with start_date=14 / end_date=15,
+            // at 23:00 on day 14: today=14, start_date=14 ≤ 14 ✓, end_date=15 ≥ 14 ✓ → shown.
+            // At 02:00 on day 15: today=15, start_date=14 ≤ 15 ✓, end_date=15 ≥ 15 ✓ → still shown.
             $schedules = RondaSchedule::with(['participants.user'])
                 ->where('rt_id', $user->rt_id)
                 ->where('status', 'ACTIVE')
@@ -290,8 +297,6 @@ class PatrolController extends Controller
                                 ->whereDate('end_date', '>=', $today);
                           });
                 })
-                ->where('start_time', '<=', $currentTime)
-                ->where('end_time', '>=', $currentTime)
                 ->get();
             
             Log::info('Patrol mine schedules found', [
@@ -349,12 +354,22 @@ class PatrolController extends Controller
         $user = Auth::user();
         $todayDate = now()->toDateString();
 
+        // For "my schedule" we show schedules whose date window covers today.
+        // We do NOT gate on start_time/end_time to avoid hiding overnight shifts
+        // (a 22:00-04:00 shift has end_time=04:00 which is always < currentTime at night).
         $schedules = RondaSchedule::whereHas('participants', function($q) use ($user) {
             $q->where('user_id', $user->id);
         })
         ->where('rt_id', $user->rt_id)
         ->where('status', 'ACTIVE')
-        ->where('end_time', '>=', Carbon::now()->format('H:i:s')) // FIXED: Use end_time, not end_date
+        ->where(function($query) use ($todayDate) {
+            $query->whereNull('start_date')
+                  ->orWhereNull('end_date')
+                  ->orWhere(function($q) use ($todayDate) {
+                      $q->whereDate('start_date', '<=', $todayDate)
+                        ->whereDate('end_date', '>=', $todayDate);
+                  });
+        })
         ->orderBy('start_time')
         ->get();
 

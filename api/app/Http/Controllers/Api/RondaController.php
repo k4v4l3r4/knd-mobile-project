@@ -21,16 +21,21 @@ class RondaController extends Controller
         $user = Auth::user();
         $today = now()->format('Y-m-d');
 
-        // Check active schedules
+        // Check active schedules.
+        // For the web-admin list we show ALL active schedules (no date filter)
+        // so admins can manage past/future schedules.
+        // Deactivation only fires when end_date has truly passed (strictly < today),
+        // meaning overnight schedules whose end_date = today are kept ACTIVE.
         $schedules = RondaSchedule::with(['participants.user', 'participants'])
         ->where('rt_id', $user->rt_id)
         ->where('status', 'ACTIVE')
         ->orderByDesc('created_at')
         ->get();
 
-        // Deactivate expired schedules
+        // Deactivate expired schedules: only when end_date is strictly in the past.
+        // Using Carbon comparison to avoid string comparison edge cases.
         foreach ($schedules as $schedule) {
-            if ($schedule->end_date < $today) {
+            if ($schedule->end_date && \Carbon\Carbon::parse($schedule->end_date)->lt(\Carbon\Carbon::today())) {
                 $schedule->status = 'INACTIVE';
                 $schedule->save();
             }
