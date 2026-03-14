@@ -28,7 +28,7 @@ import { formatPhoneNumber } from '../utils/phoneUtils';
 import api from '../services/api';
 import { WebView } from 'react-native-webview';
 
-type PaymentMethod = 'BANK' | 'QRIS' | 'CASH' | 'DANA_MANUAL' | 'DANA_AUTO';
+type PaymentMethod = 'BANK' | 'QRIS' | 'CASH' | 'DANA';
 
 export default function PaymentScreen({ 
   initialData, 
@@ -129,10 +129,10 @@ export default function PaymentScreen({
       return;
     }
 
-    try {
-      setProcessing(true);
-      setLoading(true);
+    setProcessing(true);
+    setLoading(true);
 
+    try {
       console.log('[DANA] Creating payment:', {
         order_id: paymentData.orderId,
         amount: paymentData.amount,
@@ -168,9 +168,31 @@ export default function PaymentScreen({
         status: error.response?.status,
       });
       
-      const message = error.response?.data?.message || error.message || 'Gagal memproses pembayaran';
-      Alert.alert('Error', message);
+      // Diagnostic alert based on error type
+      let diagnosticMessage = '';
+      const statusCode = error.response?.status;
+      
+      if (statusCode === 401) {
+        diagnosticMessage = 'Error 401: Unauthorized - Sesi Anda tidak valid. Silakan login ulang.';
+      } else if (statusCode === 500) {
+        diagnosticMessage = 'Error 500: Server Error - Masalah di server DANA/Laravel.';
+      } else if (statusCode === 400) {
+        diagnosticMessage = 'Error 400: Bad Request - Data pembayaran tidak valid.';
+      } else if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        diagnosticMessage = 'Timeout: Koneksi ke server DANA terlalu lama. Periksa koneksi internet Anda.';
+      } else if (!error.response) {
+        diagnosticMessage = 'Network Error: Tidak dapat terhubung ke server. Periksa koneksi internet Anda.';
+      } else {
+        diagnosticMessage = `Error ${statusCode}: ${error.response?.data?.message || error.message}`;
+      }
+      
+      Alert.alert(
+        'Gagal Koneksi DANA',
+        diagnosticMessage,
+        [{ text: 'OK' }]
+      );
     } finally {
+      // ALWAYS stop loading regardless of success/failure
       setProcessing(false);
       setLoading(false);
     }
@@ -266,46 +288,6 @@ export default function PaymentScreen({
     Alert.alert('Mode Pembayaran', message);
   };
 
-  const handleOpenDanaManual = () => {
-    // Nomor DANA tujuan dari config
-    const danaNumber = paymentConfig?.dana_number;
-    
-    if (!danaNumber) {
-      Alert.alert('Info', 'Nomor DANA belum dikonfigurasi oleh admin.');
-      return;
-    }
-
-    // Link deep link ke aplikasi DANA untuk transfer
-    const formatted = formatPhoneNumber(danaNumber);
-    const danaUrl = `https://link.dana.id/transfer?phoneNumber=${formatted}`;
-
-    Alert.alert(
-      'Buka DANA',
-      'Akan membuka aplikasi DANA untuk melakukan pembayaran. Pastikan Anda memiliki aplikasi DANA.',
-      [
-        {
-          text: 'Batal',
-          style: 'cancel'
-        },
-        {
-          text: 'Buka Aplikasi',
-          onPress: async () => {
-             try {
-               const supported = await Linking.canOpenURL(danaUrl);
-               if (supported) {
-                 await Linking.openURL(danaUrl);
-               } else {
-                 Alert.alert('Info', 'Aplikasi DANA tidak ditemukan. Silakan install terlebih dahulu.');
-               }
-             } catch (err) {
-               Alert.alert('Error', 'Gagal membuka aplikasi DANA');
-             }
-          }
-        }
-      ]
-    );
-  };
-
   const handleContactBendahara = () => {
     const phoneNumber = paymentConfig?.cash_contact_phone;
     if (!phoneNumber) {
@@ -399,7 +381,7 @@ export default function PaymentScreen({
     try {
       const response = await paymentService.submitPayment({
         amount,
-        payment_method: activeTab === 'DANA_MANUAL' ? 'DANA' : activeTab,
+        payment_method: activeTab,
         description: description || 'Iuran Warga',
         photoUri: photo,
         feeIds,
@@ -588,76 +570,14 @@ export default function PaymentScreen({
             </View>
           </View>
         );
-      case 'DANA_MANUAL':
-        const danaNumber = paymentConfig?.dana_number;
-        const danaName = paymentConfig?.dana_name || 'Kas RT';
-        
-        if (!danaNumber) {
-            return (
-                <View style={styles.infoCard}>
-                    <View style={{ alignItems: 'center', padding: 20 }}>
-                        <Ionicons name="alert-circle-outline" size={48} color={colors.textSecondary} />
-                        <Text style={{ marginTop: 12, color: colors.textSecondary, textAlign: 'center' }}>
-                            Informasi pembayaran DANA belum dikonfigurasi oleh admin.
-                        </Text>
-                    </View>
-                </View>
-            );
-        }
-
-        return (
-          <View style={styles.infoCard}>
-            <View style={styles.infoHeader}>
-              <View style={[styles.bankIcon, { backgroundColor: '#118EEA' }]}>
-                 <Text style={[styles.bankIconText, { color: '#fff' }]}>DANA</Text>
-              </View>
-              <View>
-                <Text style={styles.infoLabel}>Nomor DANA</Text>
-                <Text style={styles.infoValue}>{danaNumber}</Text>
-                <Text style={styles.infoSub}>a.n {danaName}</Text>
-              </View>
-            </View>
-            <TouchableOpacity 
-              onPress={async () => {
-                if (danaNumber) {
-                  await Clipboard.setStringAsync(danaNumber);
-                  Alert.alert("Tersalin", "Nomor DANA berhasil disalin ke clipboard.");
-                }
-              }} 
-              style={styles.actionButton}
-              activeOpacity={0.7}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Ionicons name="copy-outline" size={20} color={colors.primary} />
-                <Text style={styles.actionText}>Salin Nomor</Text>
-              </View>
-            </TouchableOpacity>
-
-            <View style={{ marginTop: 16 }}>
-               <Text style={[styles.qrisInstruction, { textAlign: 'left', marginBottom: 8 }]}>Cara Pembayaran:</Text>
-               <Text style={[styles.qrisInstruction, { textAlign: 'left', fontSize: 13 }]}>1. Buka aplikasi DANA</Text>
-               <Text style={[styles.qrisInstruction, { textAlign: 'left', fontSize: 13 }]}>2. Pilih menu Kirim</Text>
-               <Text style={[styles.qrisInstruction, { textAlign: 'left', fontSize: 13 }]}>3. Masukkan nomor tujuan di atas</Text>
-               <Text style={[styles.qrisInstruction, { textAlign: 'left', fontSize: 13 }]}>4. Masukkan nominal pembayaran</Text>
-            </View>
-
-            <TouchableOpacity
-              onPress={handleOpenDanaManual}
-              style={{ marginTop: 16, borderRadius: 24, width: '100%', backgroundColor: '#118EEA', padding: 12, alignItems: 'center', justifyContent: 'center' }}
-              activeOpacity={0.8}
-            >
-              <Text style={{ color: '#fff', fontWeight: 'bold' }}>Buka Aplikasi DANA</Text>
-            </TouchableOpacity>
-          </View>
-        );
-      case 'DANA_AUTO':
+      case 'DANA':
         return (
           <View style={[styles.infoCard, styles.danaAutoCard]}>
             <View style={styles.danaAutoHeader}>
               <View style={styles.danaLogoLarge}>
                 <Text style={styles.danaLogoText}>DANA</Text>
               </View>
-              <Text style={styles.danaAutoTitle}>Pembayaran Otomatis via WebView</Text>
+              <Text style={styles.danaAutoTitle}>Pembayaran via WebView</Text>
             </View>
 
             <View style={styles.featuresList}>
@@ -774,19 +694,22 @@ export default function PaymentScreen({
       <ScrollView contentContainerStyle={styles.content}>
         
         {/* Tabs */}
-        <View style={styles.tabContainer}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 4 }}
+        >
           {renderTabButton('BANK', 'Transfer', 'bank-transfer')}
           {renderTabButton('QRIS', 'QRIS', 'qrcode-scan')}
-          {renderTabButton('DANA_MANUAL', 'DANA Manual', 'wallet')}
-          {renderTabButton('DANA_AUTO', 'DANA Otomatis', 'card')}
+          {renderTabButton('DANA', 'DANA', 'wallet')}
           {renderTabButton('CASH', 'Tunai', 'cash-multiple')}
-        </View>
+        </ScrollView>
 
         {/* Dynamic Content */}
         {renderInfoContent()}
 
         {/* Common Form for Manual Payments */}
-        {activeTab !== 'DANA_AUTO' && (
+        {activeTab !== 'DANA' && (
           <View style={styles.formSection}>
             <Text style={styles.sectionTitle}>Detail Pembayaran</Text>
             
@@ -1016,6 +939,7 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     elevation: 2,
     borderWidth: 1,
     borderColor: colors.border,
+    flexGrow: 0,
   },
   tabButton: {
     flex: 1,
