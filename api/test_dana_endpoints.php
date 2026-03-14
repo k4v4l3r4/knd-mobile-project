@@ -31,6 +31,10 @@ foreach ($endpoints as $endpoint) {
     echo "Trying: {$baseUrl}{$endpoint}\n";
     
     try {
+        /** 
+         * @var \Illuminate\Http\Client\Response $response
+         * @psalm-suppress UndefinedMethod
+         */
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
             'Accept' => 'application/json',
@@ -43,14 +47,24 @@ foreach ($endpoints as $endpoint) {
             'client_secret' => $clientSecret,
         ]);
 
-        echo "Status: " . $response->status() . "\n";
+        echo "Status: " . $response->statusCode() . "\n";
         
         if ($response->successful()) {
             echo "✅ SUCCESS!\n";
-            echo "Response: " . json_encode($response->json(), JSON_PRETTY_PRINT) . "\n";
+            /** 
+             * @var array<string, mixed> $responseData
+             * @psalm-suppress UndefinedMethod
+             */
+            $responseData = $response->json();
+            echo "Response: " . json_encode($responseData, JSON_PRETTY_PRINT) . "\n";
             exit(0);
         } else {
-            echo "❌ Failed - " . json_encode($response->json()) . "\n";
+            /** 
+             * @var array<string, mixed> $errorData
+             * @psalm-suppress UndefinedMethod
+             */
+            $errorData = $response->json();
+            echo "❌ Failed - " . json_encode($errorData) . "\n";
         }
     } catch (Exception $e) {
         echo "❌ Error: " . $e->getMessage() . "\n";
