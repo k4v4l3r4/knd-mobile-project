@@ -479,24 +479,30 @@ export default function PaymentScreen({
 
   // --- Render Components ---
 
-  const renderTabButton = (type: PaymentMethod, label: string, icon: any) => (
-    <TouchableOpacity 
-      style={[styles.tabButton, activeTab === type && styles.activeTabButton]}
-      onPress={() => setActiveTab(type)}
-      activeOpacity={0.7}
-    >
-      <View style={styles.tabButtonInner}>
-        <MaterialCommunityIcons 
-          name={icon} 
-          size={24} 
-          color={activeTab === type ? '#fff' : colors.textSecondary} 
-        />
-        <Text style={[styles.tabText, activeTab === type && styles.activeTabText]}>
-          {label}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
+  const renderTabButton = (type: PaymentMethod, label: string, icon: any) => {
+    const isActive = activeTab === type;
+    
+    return (
+      <TouchableOpacity 
+        style={[styles.tabButton, isActive && styles.activeTabButton]}
+        onPress={() => setActiveTab(type)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.tabButtonInner}>
+          <MaterialCommunityIcons 
+            name={icon} 
+            size={24} 
+            color={isActive ? '#2E7D32' : colors.textSecondary} 
+          />
+          <Text style={[styles.tabText, isActive && styles.activeTabText]}>
+            {label}
+          </Text>
+        </View>
+        {/* Active Tab Indicator Line */}
+        {isActive && <View style={styles.activeTabIndicator} />}
+      </TouchableOpacity>
+    );
+  };
 
   const renderInfoContent = () => {
     switch (activeTab) {
@@ -951,10 +957,13 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     justifyContent: 'center',
     paddingVertical: 12,
     paddingHorizontal: 20,
+    paddingBottom: 8,      // ← Space between content and indicator line
     marginRight: 12,
     borderRadius: 12,
     gap: 10,
     minWidth: 110,
+    borderBottomWidth: 3,   // ← Always present (transparent when inactive)
+    borderBottomColor: 'transparent',
   },
   tabButtonInner: {
     flexDirection: 'row',
@@ -962,12 +971,18 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     gap: 10,
   },
   activeTabButton: {
-    backgroundColor: colors.primary,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    backgroundColor: colors.card,
+    borderBottomColor: '#2E7D32',  // ← KND Green for active tab
+  },
+  activeTabIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    backgroundColor: '#2E7D32',
+    borderTopLeftRadius: 3,
+    borderTopRightRadius: 3,
   },
   tabText: {
     fontSize: 13,
@@ -975,8 +990,8 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     color: colors.textSecondary,
   },
   activeTabText: {
-    color: '#fff',
-    fontWeight: '700',
+    color: '#2E7D32',      // ← KND Green for active tab text
+    fontWeight: '700',     // ← Bolder weight for emphasis
   },
   // Info Card
   infoCard: {
