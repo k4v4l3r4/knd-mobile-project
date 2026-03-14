@@ -33,7 +33,8 @@ $schedules = RondaSchedule::with(['participants.user'])
     ->where('status', 'ACTIVE')
     ->whereDate('start_date', '<=', $today)
     ->whereDate('end_date', '>=', $today)
-    ->orderByDesc('created_at')
+    ->orderBy('schedule_type', 'desc') // WEEKLY before DAILY
+    ->orderBy('start_time', 'asc') // Earliest shift first
     ->get();
 
 echo "Found {$schedules->count()} active schedule(s):\n\n";

@@ -129,7 +129,8 @@ class PatrolController extends Controller
                                 ->whereDate('end_date', '>=', $today);
                           });
                 })
-                ->orderByDesc('created_at')
+                ->orderBy('schedule_type', 'desc') // WEEKLY before DAILY
+                ->orderBy('start_time', 'asc') // Earliest shift first
                 ->get();
             
             Log::info('Patrol schedules found', [
@@ -201,15 +202,45 @@ class PatrolController extends Controller
                     ];
                 });
 
-                // Build dynamic Indonesian day label from start_date
+                // Build dynamic Indonesian day label based on TODAY's date for "tonight" display
+                // This ensures the badge shows the correct day/date for when the schedule is active
                 $dayLabel = '';
-                if ($schedule->start_date) {
+                $todayCarbon = Carbon::parse($today);
+                $todayDayNameId = $dayMapId[$todayCarbon->format('l')] ?? $todayCarbon->format('l');
+                $todayDateLabel = $todayCarbon->format('d M Y');
+                
+                if ($schedule->start_date && $schedule->end_date) {
+                    // For date-range schedules (WEEKLY), check if today falls within the range
+                    $startCarbon = Carbon::parse($schedule->start_date);
+                    $endCarbon = Carbon::parse($schedule->end_date);
+                    
+                    if ($todayCarbon->between($startCarbon, $endCarbon)) {
+                        // Today is within the schedule range - use TODAY's date
+                        $dayLabel = $schedule->shift_name
+                            ? "{$schedule->shift_name} — {$todayDayNameId}, {$todayDateLabel}"
+                            : "{$todayDayNameId}, {$todayDateLabel}";
+                    } else {
+                        // Outside range (shouldn't happen due to query, but fallback)
+                        $parsed = $startCarbon;
+                        $dayNameId = $dayMapId[$parsed->format('l')] ?? $parsed->format('l');
+                        $dateLabel = $parsed->format('d M Y');
+                        $dayLabel = $schedule->shift_name
+                            ? "{$schedule->shift_name} — {$dayNameId}, {$dateLabel}"
+                            : "{$dayNameId}, {$dateLabel}";
+                    }
+                } elseif ($schedule->start_date) {
+                    // For DAILY schedules or schedules without end_date
                     $parsed    = Carbon::parse($schedule->start_date);
                     $dayNameId = $dayMapId[$parsed->format('l')] ?? $parsed->format('l');
                     $dateLabel = $parsed->format('d M Y');
                     $dayLabel  = $schedule->shift_name
                         ? "{$schedule->shift_name} — {$dayNameId}, {$dateLabel}"
                         : "{$dayNameId}, {$dateLabel}";
+                } else {
+                    // Fallback to today's date if no start_date (legacy)
+                    $dayLabel = $schedule->shift_name
+                        ? "{$schedule->shift_name} — {$todayDayNameId}, {$todayDateLabel}"
+                        : "{$todayDayNameId}, {$todayDateLabel}";
                 }
 
                 return [
@@ -396,7 +427,8 @@ class PatrolController extends Controller
                         ->whereDate('end_date', '>=', $todayDate);
                   });
         })
-        ->orderBy('start_time')
+        ->orderBy('schedule_type', 'desc') // WEEKLY before DAILY
+        ->orderBy('start_time', 'asc') // Earliest shift first
         ->get();
 
         Carbon::setLocale('id');
