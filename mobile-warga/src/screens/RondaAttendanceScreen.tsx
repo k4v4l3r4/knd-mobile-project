@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, ScrollView, Modal, Dimensions } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, ScrollView, Modal, Dimensions, AppState } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { useIsFocused } from '@react-navigation/native';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import api from '../services/api';
@@ -18,7 +17,8 @@ interface AttendanceStatus {
 export default function RondaAttendanceScreen({ navigation }: any) {
   const { colors, isDarkMode } = useTheme();
   const { t } = useLanguage();
-  const isFocused = useIsFocused();
+  // isFocused: true when scanner modal is visible and app is in foreground
+  const [isFocused, setIsFocused] = useState(true);
   const styles = React.useMemo(() => getStyles(colors, isDarkMode), [colors, isDarkMode]);
 
   const [loading, setLoading] = useState(true);
@@ -36,6 +36,12 @@ export default function RondaAttendanceScreen({ navigation }: any) {
 
   useEffect(() => {
     initScreen();
+
+    // Track app foreground/background to pause camera
+    const subscription = AppState.addEventListener('change', (state) => {
+      setIsFocused(state === 'active');
+    });
+    return () => subscription.remove();
   }, []);
 
   const initScreen = async () => {
