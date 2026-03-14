@@ -206,6 +206,7 @@ export default function PatrolScreen({ onNavigate }: PatrolScreenProps) {
 
       if (todayRes.data.success) {
         const data = todayRes.data.data;
+        console.log('[PatrolScreen] /patrols/today response:', JSON.stringify(data, null, 2));
         if (Array.isArray(data)) {
           setTodaySchedules(data);
         } else if (data) {
@@ -216,6 +217,7 @@ export default function PatrolScreen({ onNavigate }: PatrolScreenProps) {
       }
       
       if (myRes.data.success) {
+        console.log('[PatrolScreen] /patrols/mine response:', JSON.stringify(myRes.data.data, null, 2));
         setMySchedules(myRes.data.data);
       }
 
@@ -632,9 +634,11 @@ export default function PatrolScreen({ onNavigate }: PatrolScreenProps) {
                                     </View>
                                     <View style={{ flex: 1 }}>
                                         {/* Dynamic label from API — Indonesian day + date */}
-                                        <Text style={styles.myScheduleDay} numberOfLines={2}>{schedule.day_of_week}</Text>
+                                        <Text style={styles.myScheduleDay} numberOfLines={2}>
+                                            {schedule.day_of_week || 'Memuat jadwal...'}
+                                        </Text>
                                         <Text style={styles.myScheduleTime}>
-                                            {schedule.start_time.substring(0, 5)} - {schedule.end_time.substring(0, 5)} WIB
+                                            {(schedule.start_time || '00:00').substring(0, 5)} - {(schedule.end_time || '00:00').substring(0, 5)} WIB
                                         </Text>
                                     </View>
                                 </View>
@@ -680,13 +684,13 @@ export default function PatrolScreen({ onNavigate }: PatrolScreenProps) {
 
                             {/* Member count label */}
                             <Text style={[styles.sectionSubtitleSmall, { marginBottom: 10, paddingHorizontal: 2 }]}>
-                              {schedule.members?.length > 0
+                              {schedule.members && schedule.members.length > 0
                                 ? `${schedule.members.length} petugas bertugas malam ini`
                                 : 'Belum ada petugas yang ditugaskan'}
                             </Text>
                             
                             <View style={styles.membersGrid}>
-                                {schedule.members?.length > 0 ? (
+                                {schedule.members && schedule.members.length > 0 ? (
                                     <View style={styles.membersListHorizontal}>
                                         {schedule.members.map((member) => (
                                             <View key={member.id} style={styles.memberAvatarWrapper}>
