@@ -25,6 +25,9 @@ interface ProductCardProps {
   onClick?: (product: Product) => void;
   getImageUrl: (path: string) => string;
   formatRupiah: (price: string | number) => string;
+  isSelected?: boolean;
+  onToggleSelect?: (productId: number) => void;
+  showCheckbox?: boolean;
 }
 
 export default function ProductCard({ 
@@ -34,7 +37,10 @@ export default function ProductCard({
   onEdit,
   onClick,
   getImageUrl,
-  formatRupiah
+  formatRupiah,
+  isSelected = false,
+  onToggleSelect,
+  showCheckbox = false
 }: ProductCardProps) {
   
   // 1. Placeholder Logic: Colorful Initials Avatar
@@ -96,8 +102,27 @@ export default function ProductCard({
   return (
     <div 
       onClick={() => onClick && onClick(product)}
-      className={`bg-white rounded-xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 group flex flex-col h-full ${onClick ? 'cursor-pointer' : ''}`}
+      className={`bg-white rounded-xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 group flex flex-col h-full relative ${onClick ? 'cursor-pointer' : ''}`}
     >
+      {/* Checkbox Overlay */}
+      {showCheckbox && onToggleSelect && (
+        <div className="absolute top-2 left-2 z-20">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleSelect(product.id);
+            }}
+            className="w-6 h-6 rounded-lg bg-white/90 backdrop-blur-sm border-2 border-slate-300 flex items-center justify-center hover:border-emerald-500 hover:bg-emerald-50 transition-all shadow-sm"
+            title={isSelected ? 'Batal pilih' : 'Pilih produk'}
+          >
+            {isSelected && (
+              <svg className="w-4 h-4 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+            )}
+          </button>
+        </div>
+      )}
       <div className="relative aspect-square bg-slate-50 overflow-hidden">
         {product.image_url ? (
           /* eslint-disable-next-line @next/next/no-img-element */

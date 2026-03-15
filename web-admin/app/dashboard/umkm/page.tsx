@@ -64,6 +64,10 @@ export default function UmkmPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  
+  // Bulk Selection State
+  const [selectedProductIds, setSelectedProductIds] = useState<number[]>([]);
+  const [isSelectAllMode, setIsSelectAllMode] = useState(false);
 
   // Product Detail State & Logic
   const [quantity, setQuantity] = useState(1);
@@ -450,6 +454,60 @@ export default function UmkmPage() {
     }
   };
 
+  // Bulk Selection Handlers
+  const handleToggleSelectProduct = (productId: number) => {
+    setSelectedProductIds(prev => 
+      prev.includes(productId) 
+        ? prev.filter(id => id !== productId)
+        : [...prev, productId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedProductIds.length === filteredProducts.length) {
+      // Deselect all
+      setSelectedProductIds([]);
+    } else {
+      // Select all visible products
+      setSelectedProductIds(filteredProducts.map(p => p.id));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedProductIds.length === 0) {
+      toast.error('Pilih produk yang akan dihapus');
+      return;
+    }
+
+    if (isDemo) {
+      toast.error('Mode Demo: Tidak dapat menghapus produk');
+      return;
+    }
+    if (isExpired) {
+      toast.error('Akses Terbatas: Silakan perpanjang langganan');
+      return;
+    }
+
+    if (!window.confirm(`Apakah Anda yakin ingin menghapus ${selectedProductIds.length} produk yang dipilih?`)) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await Promise.all(
+        selectedProductIds.map(id => api.delete(`/products/${id}`))
+      );
+      setProducts(prev => prev.filter(p => !selectedProductIds.includes(p.id)));
+      toast.success(`${selectedProductIds.length} produk berhasil dihapus`);
+      setSelectedProductIds([]);
+    } catch (error) {
+      console.error('Error bulk deleting products:', error);
+      toast.error('Gagal menghapus produk');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const formatRupiah = (price: string | number) => {
     return formatCurrency(Number(price));
   };
@@ -640,17 +698,48 @@ export default function UmkmPage() {
           {/* Filters & Search */}
           <div className="flex flex-col gap-6">
             <div className="sticky top-0 z-30 py-3 bg-slate-50/80 dark:bg-slate-950/80 backdrop-blur-md shadow-sm border-b border-gray-100 dark:border-gray-800 mb-4">
-              <div className="relative w-full group">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 group-focus-within:text-emerald-500 dark:group-focus-within:text-emerald-400 transition-colors" size={20} />
-                <input
-                  ref={searchInputRef}
-                  autoFocus
-                  type="text"
-                  placeholder="Cari produk atau penjual..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:focus:border-emerald-500 outline-none transition-all shadow-sm text-slate-800 dark:text-white placeholder:text-gray-400 dark:placeholder:text-slate-600"
-                />
+              <div className="flex items-center gap-3 mb-3">
+                <div className="relative flex-1 group">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 group-focus-within:text-emerald-500 dark:group-focus-within:text-emerald-400 transition-colors" size={20} />
+                  <input
+                    ref={searchInputRef}
+                    autoFocus
+                    type="text"
+                    placeholder="Cari produk atau penjual..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:focus:border-emerald-500 outline-none transition-all shadow-sm text-slate-800 dark:text-white placeholder:text-gray-400 dark:placeholder:text-slate-600"
+                  />
+                </div>
+                
+                {/* Select All Toggle Button */}
+                {filteredProducts.length > 0 && (
+                  <button
+                    onClick={handleSelectAll}
+                    className={`px-4 py-3 rounded-xl font-semibold whitespace-nowrap transition-all border flex items-center gap-2 ${
+                      selectedProductIds.length === filteredProducts.length
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-600/20'
+                        : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-emerald-300 hover:text-emerald-600'
+                    }`}
+                    title={selectedProductIds.length === filteredProducts.length ? 'Batal pilih semua' : 'Pilih semua produk'}
+                  >
+                    {selectedProductIds.length === filteredProducts.length ? (
+                      <>
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                        Terpilih
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Pilih Semua
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
             
@@ -734,6 +823,49 @@ export default function UmkmPage() {
           </div>
 
           {/* Product Grid */}
+          {/* Bulk Action Toolbar */}
+          {selectedProductIds.length > 0 && (
+            <div className="sticky top-4 z-30 bg-emerald-600 dark:bg-emerald-700 text-white rounded-2xl p-4 shadow-xl shadow-emerald-600/20 mb-6 animate-in fade-in slide-in-from-top-4 duration-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                    <Trash2 size={20} />
+                  </div>
+                  <div>
+                    <p className="font-bold text-lg">{selectedProductIds.length} produk dipilih</p>
+                    <p className="text-xs text-emerald-100 opacity-90">Siap untuk dihapus</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setSelectedProductIds([])}
+                    className="px-4 py-2.5 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-xl font-semibold transition-all text-sm"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={handleBulkDelete}
+                    disabled={isDeleting}
+                    className="px-6 py-2.5 bg-white text-emerald-600 hover:bg-emerald-50 rounded-xl font-bold transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
+                  >
+                    {isDeleting ? (
+                      <>
+                        <Loader2 className="animate-spin" size={16} />
+                        Menghapus...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 size={16} />
+                        Hapus Terpilih
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Product Grid */}
           {loading ? (
             <ProductGridSkeleton count={10} />
           ) : filteredProducts.length === 0 ? (
@@ -752,11 +884,14 @@ export default function UmkmPage() {
                 <ProductCard 
                   key={product.id}
                   product={product}
-                  isAdmin={isAdmin || false} // Provide fallback
+                  isAdmin={isAdmin || false}
                   onDelete={confirmDelete}
                   onClick={setSelectedProduct}
                   getImageUrl={getImageUrl}
                   formatRupiah={formatRupiah}
+                  isSelected={selectedProductIds.includes(product.id)}
+                  onToggleSelect={handleToggleSelectProduct}
+                  showCheckbox={true}
                 />
               ))}
             </div>
