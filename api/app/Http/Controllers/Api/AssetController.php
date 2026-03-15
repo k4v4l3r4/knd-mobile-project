@@ -323,9 +323,13 @@ class AssetController extends Controller
                 ], 401);
             }
 
-            $loan = AssetLoan::findOrFail($id);
+            $loan = AssetLoan::with('asset')->findOrFail($id);
             if ($loan->status !== 'PENDING') {
                 return response()->json(['message' => 'Status peminjaman tidak valid'], 400);
+            }
+
+            if (!$loan->asset) {
+                return response()->json(['message' => 'Aset tidak ditemukan'], 400);
             }
 
             $loan->update([
