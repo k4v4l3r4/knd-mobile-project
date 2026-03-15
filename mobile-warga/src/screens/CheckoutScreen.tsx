@@ -96,11 +96,12 @@ export default function CheckoutScreen({ onNavigate }: { onNavigate: (screen: st
     return fee > 0 ? fee : 0;
   };
 
-  // Courier options with icons and estimates
+  // Courier options with icons and estimates - Updated to match 4 official methods
   const courierOptions = [
-    { id: 'INSTANT', label: 'Instant', icon: 'motorcycle', estimate: '30-60 menit', color: '#ef4444' },
-    { id: 'REGULAR', label: 'Reguler', icon: 'car', estimate: '1-2 hari', color: '#3b82f6' },
-    { id: 'PICKUP', label: 'Ambil Sendiri', icon: 'storefront', estimate: 'Siap diambil', color: '#10b981' },
+    { id: 'INSTANT', label: 'Instant (Grab/Gojek/Lalamove)', icon: 'bicycle', estimate: '30-60 menit', color: '#ef4444', requiresTrackingLink: true },
+    { id: 'REGULER', label: 'Reguler (JNE/SPX/dll)', icon: 'car', estimate: '1-2 hari', color: '#3b82f6', requiresResi: true },
+    { id: 'KURIR_TOKO', label: 'Kurir Toko (Internal)', icon: 'person', estimate: '1-3 hari', color: '#10b981', usesInternalTracking: true },
+    { id: 'PICKUP', label: 'Ambil Sendiri', icon: 'storefront', estimate: 'Siap diambil', color: '#f59e0b', isPickup: true, fee: 0 },
   ];
 
   const handleCourierSelect = (sellerId: string, courierType: string) => {
@@ -448,6 +449,8 @@ export default function CheckoutScreen({ onNavigate }: { onNavigate: (screen: st
             
             {courierOptions.map((option) => {
               const isSelected = selectedCourier[showCourierModal.sellerId || ''] === option.id;
+              const shippingFee = option.isPickup ? 0 : shippingFeeBySeller[showCourierModal.sellerId || ''] ?? 0;
+              
               return (
                 <TouchableOpacity
                   key={option.id}
@@ -463,11 +466,14 @@ export default function CheckoutScreen({ onNavigate }: { onNavigate: (screen: st
                       styles.courierOptionIconBox,
                       { backgroundColor: `${option.color}20` }
                     ]}>
-                      {option.icon === 'motorcycle' && (
+                      {option.icon === 'bicycle' && (
                         <Ionicons name="bicycle" size={22} color={option.color} />
                       )}
                       {option.icon === 'car' && (
                         <Ionicons name="car" size={22} color={option.color} />
+                      )}
+                      {option.icon === 'person' && (
+                        <Ionicons name="person" size={22} color={option.color} />
                       )}
                       {option.icon === 'storefront' && (
                         <MaterialCommunityIcons name="store" size={22} color={option.color} />
@@ -483,13 +489,21 @@ export default function CheckoutScreen({ onNavigate }: { onNavigate: (screen: st
                       </Text>
                       <Text style={styles.courierOptionEstimate}>
                         🕐 {option.estimate}
+                        {option.isPickup && ' • Gratis Ongkir'}
                       </Text>
                     </View>
                   </View>
                   
-                  {isSelected && (
-                    <Ionicons name="checkmark-circle" size={24} color={option.color} />
-                  )}
+                  <View style={{alignItems: 'flex-end'}}>
+                    {isSelected && (
+                      <Ionicons name="checkmark-circle" size={24} color={option.color} />
+                    )}
+                    {!option.isPickup && (
+                      <Text style={styles.courierOptionFee}>
+                        {formatPrice(shippingFee)}
+                      </Text>
+                    )}
+                  </View>
                 </TouchableOpacity>
               );
             })}
@@ -852,5 +866,11 @@ const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
     marginTop: 2,
+  },
+  courierOptionFee: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginTop: 4,
   },
 });

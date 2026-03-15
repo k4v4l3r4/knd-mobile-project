@@ -17,6 +17,10 @@ use App\Http\Controllers\Api\IssueReportController;
 use App\Http\Controllers\Api\KelurahanIntegrationController;
 use App\Http\Controllers\Api\LetterController;
 use App\Http\Controllers\Api\LetterTypeController;
+use App\Http\Controllers\Api\OrderController; // NEW
+use App\Http\Controllers\Api\AdminOrderController; // NEW - Admin orders
+use App\Http\Controllers\Api\DeviceTokenController; // NEW - Device tokens for notifications
+use App\Http\Controllers\Api\InvoiceController; // NEW - Invoice printing
 use App\Http\Controllers\Api\PatrolController;
 use App\Http\Controllers\Api\PollController;
 use App\Http\Controllers\Api\ProductController;
@@ -272,6 +276,36 @@ Route::middleware(['auth:sanctum', 'tenant.status', 'tenant.feature'])->group(fu
 
     // Products & Stores
     Route::apiResource('products', ProductController::class);
+
+    // Orders (NEW) - User routes
+    Route::prefix('orders')->group(function () {
+        Route::get('/', [OrderController::class, 'index']); // List orders
+        Route::post('/', [OrderController::class, 'store']); // Create order
+        Route::get('/{order}', [OrderController::class, 'show']); // Detail
+        Route::post('/{order}/cancel', [OrderController::class, 'cancel']); // Cancel order
+        Route::post('/{order}/confirm-received', [OrderController::class, 'confirmReceived']); // Confirm receipt
+    });
+
+    // Admin Order Management Routes (requires permission)
+    Route::prefix('admin/orders')->group(function () {
+        Route::get('/', [AdminOrderController::class, 'index']); // All orders
+        Route::get('/statistics', [AdminOrderController::class, 'statistics']); // Dashboard stats
+        Route::get('/{order}', [AdminOrderController::class, 'show']); // Detail
+        Route::post('/{order}/confirm-payment', [AdminOrderController::class, 'confirmPayment']); // Confirm payment
+        Route::post('/{order}/ship', [AdminOrderController::class, 'shipOrder']); // Ship with courier info
+        Route::post('/{order}/complete', [AdminOrderController::class, 'completeOrder']); // Complete order
+        Route::post('/{order}/cancel', [AdminOrderController::class, 'cancelOrder']); // Admin cancel
+    });
+
+    // Device Token Management for Push Notifications
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/device-token', [DeviceTokenController::class, 'store']);
+        Route::delete('/device-token', [DeviceTokenController::class, 'destroy']);
+    });
+
+    // Invoice Routes
+    Route::get('/invoices/{order}/print', [InvoiceController::class, 'print']); // Print invoice (HTML)
+    Route::get('/invoices/{order}', [InvoiceController::class, 'json']); // Invoice data (JSON)
 
     // Store Admin Routes
     Route::get('/stores/my', [StoreController::class, 'myStore']); // Explicit route for "my store"

@@ -60,6 +60,7 @@ class User extends Authenticatable
         'district_code',
         'village_code',
         'data_verified_at',
+        'device_tokens',
     ];
 
     /**
@@ -84,6 +85,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_bansos_eligible' => 'boolean',
             'date_of_birth' => 'date',
+            'device_tokens' => 'array',
         ];
     }
 
