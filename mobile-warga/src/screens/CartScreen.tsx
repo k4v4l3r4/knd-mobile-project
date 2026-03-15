@@ -32,6 +32,21 @@ export default function CartScreen({ onNavigate }: { onNavigate: (screen: string
     toggleAllSelection(!allSelected);
   };
 
+  const handleRemoveItem = (item: any) => {
+    Alert.alert(
+      'Hapus Produk',
+      `Apakah Anda yakin ingin menghapus ${item.name} dari keranjang?`,
+      [
+        { text: 'Batal', style: 'cancel' },
+        { 
+          text: 'Hapus', 
+          style: 'destructive', 
+          onPress: () => removeFromCart(item.id, item.selectedVariants)
+        }
+      ]
+    );
+  };
+
   const formatPrice = (price: number | string) => {
     const numPrice = typeof price === 'string' ? parseFloat(price) : price;
     return new Intl.NumberFormat('id-ID', {
@@ -61,13 +76,15 @@ export default function CartScreen({ onNavigate }: { onNavigate: (screen: string
       <View style={styles.itemHeader}>
         <View style={{flexDirection: 'row', alignItems: 'center'}}>
             <TouchableOpacity 
-              style={styles.checkboxContainer} 
+              style={styles.checkboxContainer}
               onPress={() => toggleSelection(item.id)}
+              activeOpacity={0.7}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Ionicons 
                 name={item.selected ? "checkbox" : "square-outline"} 
                 size={24} 
-                color={item.selected ? colors.primary : colors.textSecondary} 
+                color={item.selected ? colors.primary : colors.textSecondary}
               />
             </TouchableOpacity>
             <MaterialCommunityIcons name="store" size={16} color={colors.textSecondary} />
@@ -87,7 +104,12 @@ export default function CartScreen({ onNavigate }: { onNavigate: (screen: string
       </View>
 
       <View style={styles.itemActions}>
-        <TouchableOpacity onPress={() => removeFromCart(item.id)} style={styles.deleteButton}>
+        <TouchableOpacity 
+          onPress={() => handleRemoveItem(item)} 
+          style={styles.deleteButton}
+          activeOpacity={0.7}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
            <Ionicons name="trash-outline" size={20} color={colors.danger} />
         </TouchableOpacity>
         
@@ -95,13 +117,18 @@ export default function CartScreen({ onNavigate }: { onNavigate: (screen: string
           <TouchableOpacity 
             onPress={() => updateQuantity(item.id, item.quantity - 1)}
             style={styles.quantityButton}
+            activeOpacity={0.7}
+            disabled={item.quantity <= 1}
+            hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
           >
-            <Ionicons name="remove" size={16} color={colors.text} />
+            <Ionicons name="remove" size={16} color={item.quantity <= 1 ? colors.textSecondary : colors.text} />
           </TouchableOpacity>
           <Text style={styles.quantityText}>{item.quantity}</Text>
           <TouchableOpacity 
             onPress={() => updateQuantity(item.id, item.quantity + 1)}
             style={styles.quantityButton}
+            activeOpacity={0.7}
+            hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
           >
             <Ionicons name="add" size={16} color={colors.text} />
           </TouchableOpacity>
@@ -144,13 +171,15 @@ export default function CartScreen({ onNavigate }: { onNavigate: (screen: string
           
           <View style={styles.footer}>
             <TouchableOpacity 
-              style={styles.selectAllContainer} 
+              style={styles.selectAllContainer}
               onPress={handleToggleAll}
+              activeOpacity={0.7}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Ionicons 
                 name={allSelected ? "checkbox" : "square-outline"} 
                 size={24} 
-                color={allSelected ? colors.primary : colors.textSecondary} 
+                color={allSelected ? colors.primary : colors.textSecondary}
               />
               <Text style={styles.selectAllText}>Semua</Text>
             </TouchableOpacity>

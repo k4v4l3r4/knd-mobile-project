@@ -30,6 +30,8 @@ export default function CheckoutScreen({ onNavigate }: { onNavigate: (screen: st
   const [user, setUser] = useState<any>(null);
   const [paymentMethod, setPaymentMethod] = useState('briva');
   const [protection, setProtection] = useState(false);
+  const [selectedCourier, setSelectedCourier] = useState<Record<string, string>>({}); // sellerId -> courier type
+  const [showCourierModal, setShowCourierModal] = useState<{visible: boolean, sellerId: string | null}>({visible: false, sellerId: null});
   
   const selectedItems = cart.filter(item => item.selected);
   
@@ -90,6 +92,23 @@ export default function CheckoutScreen({ onNavigate }: { onNavigate: (screen: st
     
     if (!Number.isFinite(fee)) return 0;
     return fee > 0 ? fee : 0;
+  };
+
+  // Courier options with icons and estimates
+  const courierOptions = [
+    { id: 'INSTANT', label: 'Instant', icon: 'motorcycle', estimate: '30-60 menit', color: '#ef4444' },
+    { id: 'REGULAR', label: 'Reguler', icon: 'car', estimate: '1-2 hari', color: '#3b82f6' },
+    { id: 'PICKUP', label: 'Ambil Sendiri', icon: 'storefront', estimate: 'Siap diambil', color: '#10b981' },
+  ];
+
+  const handleCourierSelect = (sellerId: string, courierType: string) => {
+    setSelectedCourier(prev => ({ ...prev, [sellerId]: courierType }));
+    setShowCourierModal({ visible: false, sellerId: null });
+  };
+
+  const getSelectedCourierData = (sellerId: string) => {
+    const selected = selectedCourier[sellerId] || 'REGULAR'; // Default to regular
+    return courierOptions.find(c => c.id === selected) || courierOptions[1];
   };
 
   const shippingFeeBySeller = Object.entries(itemsBySeller).reduce((acc, [sellerId, group]) => {
@@ -163,12 +182,14 @@ export default function CheckoutScreen({ onNavigate }: { onNavigate: (screen: st
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => onNavigate('CART')} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Checkout</Text>
-      </View>
+      <SafeAreaView edges={['top']} style={{ backgroundColor: colors.card }}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => onNavigate('CART')} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Checkout</Text>
+        </View>
+      </SafeAreaView>
 
       <ScrollView style={styles.content}>
         {/* Address Section */}
@@ -239,12 +260,58 @@ export default function CheckoutScreen({ onNavigate }: { onNavigate: (screen: st
                 </View>
             </View>
 
-            <TouchableOpacity style={styles.shippingOption}>
-                <Text style={styles.shippingLabel}>Kurir Toko</Text>
-                <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                    <Text style={styles.shippingPrice}>{formatPrice(shippingFeeBySeller[group.seller.name] ?? 0)}</Text>
-                    <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+            <TouchableOpacity 
+              style={styles.shippingOption}
+              onPress={() => setShowCourierModal({ visible: true, sellerId: group.seller.name })}
+              activeOpacity={0.7}
+            >
+              <View style={{flexDirection: 'row', alignItems: 'center', flex: 1}}>
+                {/* Dynamic Icon based on selection */}
+                {(() => {
+                  const courierData = getSelectedCourierData(group.seller.name);
+                  return (
+                    <View style={[
+                      styles.courierIconBox,
+                      { backgroundColor: `${courierData.color}20` } // 20% opacity
+                    ]}>
+                      {courierData.icon === 'motorcycle' && (
+                        <Ionicons name="bicycle" size={20} color={courierData.color} />
+                      )}
+                      {courierData.icon === 'car' && (
+                        <Ionicons name="car" size={20} color={courierData.color} />
+                      )}
+                      {courierData.icon === 'storefront' && (
+                        <MaterialCommunityIcons name="store" size={20} color={courierData.color} />
+                      )}
+                    </View>
+                  );
+                })()}
+                
+                <View style={{flex: 1, marginLeft: 12}}>
+                  <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                    <Text style={styles.shippingLabel}>Kurir Toko</Text>
+                    <Ionicons name="chevron-down" size={16} color={colors.textSecondary} style={{marginLeft: 4}} />
+                  </View>
+                  {(() => {
+                    const courierData = getSelectedCourierData(group.seller.name);
+                    return (
+                      <>
+                        <Text style={styles.courierType} numberOfLines={1}>
+                          {courierData.label}
+                        </Text>
+                        <Text style={styles.courierEstimate}>
+                          🕐 {courierData.estimate}
+                        </Text>
+                      </>
+                    );
+                  })()}
                 </View>
+              </View>
+              
+              <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                <Text style={styles.shippingPrice}>{formatPrice(shippingFeeBySeller[group.seller.name] ?? 0)}</Text>
+                <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+              </View>
             </TouchableOpacity>
 
             <View style={styles.noteContainer}>
@@ -343,6 +410,74 @@ export default function CheckoutScreen({ onNavigate }: { onNavigate: (screen: st
             </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Courier Selection Modal */}
+      {showCourierModal.visible && (
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity 
+            style={styles.modalOverlay}
+            onPress={() => setShowCourierModal({ visible: false, sellerId: null })}
+          />
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Pilih Kurir</Text>
+              <TouchableOpacity onPress={() => setShowCourierModal({ visible: false, sellerId: null })}>
+                <Ionicons name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            
+            <Text style={styles.modalSubtitle}>Pilih metode pengiriman:</Text>
+            
+            {courierOptions.map((option) => {
+              const isSelected = selectedCourier[showCourierModal.sellerId || ''] === option.id;
+              return (
+                <TouchableOpacity
+                  key={option.id}
+                  style={[
+                    styles.courierOptionItem,
+                    isSelected && { borderColor: option.color, borderWidth: 2 }
+                  ]}
+                  onPress={() => showCourierModal.sellerId && handleCourierSelect(showCourierModal.sellerId, option.id)}
+                  activeOpacity={0.7}
+                >
+                  <View style={{flexDirection: 'row', alignItems: 'center', flex: 1}}>
+                    <View style={[
+                      styles.courierOptionIconBox,
+                      { backgroundColor: `${option.color}20` }
+                    ]}>
+                      {option.icon === 'motorcycle' && (
+                        <Ionicons name="bicycle" size={22} color={option.color} />
+                      )}
+                      {option.icon === 'car' && (
+                        <Ionicons name="car" size={22} color={option.color} />
+                      )}
+                      {option.icon === 'storefront' && (
+                        <MaterialCommunityIcons name="store" size={22} color={option.color} />
+                      )}
+                    </View>
+                    
+                    <View style={{flex: 1, marginLeft: 12}}>
+                      <Text style={[
+                        styles.courierOptionLabel,
+                        isSelected && { fontWeight: 'bold', color: option.color }
+                      ]}>
+                        {option.label}
+                      </Text>
+                      <Text style={styles.courierOptionEstimate}>
+                        🕐 {option.estimate}
+                      </Text>
+                    </View>
+                  </View>
+                  
+                  {isSelected && (
+                    <Ionicons name="checkmark-circle" size={24} color={option.color} />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      )}
 
       {/* Bottom Bar */}
       <View style={styles.footer}>
@@ -510,6 +645,24 @@ const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
     fontWeight: 'bold',
     color: colors.text,
   },
+  courierIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  courierType: {
+    fontSize: 13,
+    color: colors.text,
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  courierEstimate: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
   shippingPrice: {
     fontSize: 14,
     fontWeight: 'bold',
@@ -608,5 +761,65 @@ const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  modalOverlay: {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+    zIndex: 9999,
+  },
+  modalContent: {
+    backgroundColor: colors.card,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 24,
+    paddingBottom: 40,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 16,
+  },
+  courierOptionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    backgroundColor: isDarkMode ? '#374151' : '#f9fafb',
+  },
+  courierOptionIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  courierOptionLabel: {
+    fontSize: 15,
+    color: colors.text,
+    fontWeight: '500',
+  },
+  courierOptionEstimate: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
 });
