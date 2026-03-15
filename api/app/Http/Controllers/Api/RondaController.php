@@ -189,30 +189,110 @@ class RondaController extends Controller
             ], 404);
         }
 
-        // 4. Validate Time Window (Strict)
+        // 4. Validate Time Window with Tolerance
         $now = Carbon::now();
         $currentTime = $now->format('H:i');
         $startTime = $schedule->start_time; // e.g., "22:00"
         $endTime = $schedule->end_time;     // e.g., "04:00"
+        
+        // Get tolerance from RondaFineSetting for TELAT type
+        // Fallback to 5 minutes if not configured
+        $toleranceMinutes = 5;
+        $telatSetting = \App\Models\RondaFineSetting::where('rt_id', $user->rt_id)
+            ->where('fine_type', 'TELAT')
+            ->where('is_active', true)
+            ->first();
+        
+        if ($telatSetting && $telatSetting->tolerance_minutes !== null) {
+            $toleranceMinutes = $telatSetting->tolerance_minutes;
+        }
 
         $isValidTime = false;
+        $timeDifference = null;
 
         if ($startTime <= $endTime) {
             // Same day shift (e.g., 08:00 to 16:00)
             if ($currentTime >= $startTime && $currentTime <= $endTime) {
                 $isValidTime = true;
+            } else {
+                // Calculate how early/late
+                if ($currentTime < $startTime) {
+                    // Too early - calculate minutes until start
+                    $startDateTime = Carbon::parse($now->toDateString() . ' ' . $startTime);
+                    $timeDifference = $now->diffInMinutes($startDateTime, false); // negative if in past
+                } else {
+                    // Too late - calculate minutes after end
+                    $endDateTime = Carbon::parse($now->toDateString() . ' ' . $endTime);
+                    $timeDifference = $now->diffInMinutes($endDateTime, false);
+                }
             }
         } else {
             // Cross day shift (e.g., 22:00 to 04:00)
+            // Valid time is: currentTime >= startTime OR currentTime <= endTime
+            
+            // First check if it's clearly within the shift
             if ($currentTime >= $startTime || $currentTime <= $endTime) {
+                $isValidTime = true;
+            } else {
+                // Outside shift time - check if within tolerance from either boundary
+                
+                // Option 1: Check if it's just after the end time (within tolerance)
+                // For cross-day: 04:03 with end at 04:00 should be valid (3 min after end)
+                // We compare time only (not date), so 04:03 > 04:00 = 3 minutes difference
+                $timeOnlyNow = Carbon::parse($now->format('H:i:s'));
+                $endTimeOnly = Carbon::parse($endTime);
+                
+                // For cross-day, end time is "after" start time in wall-clock terms
+                // So if current time is between 00:00 and 04:05, we want to check if it's within 5 min after 04:00
+                if ($currentTime > $endTime && $currentTime < '12:00') {
+                    // Early morning, check if within tolerance after end time
+                    $minutesAfterEnd = $timeOnlyNow->diffInMinutes($endTimeOnly, false);
+                    if ($minutesAfterEnd < 0 && abs($minutesAfterEnd) <= $toleranceMinutes) {
+                        $isValidTime = true;
+                    } elseif ($minutesAfterEnd >= 0) {
+                        // This shouldn't happen, but just in case
+                        $timeDifference = $minutesAfterEnd;
+                    } else {
+                        $timeDifference = $minutesAfterEnd;
+                    }
+                } else {
+                    // Not near end time, leave timeDifference as null
+                }
+            }
+        }
+        
+        // Apply tolerance - allow if within tolerance range
+        if (!$isValidTime && $timeDifference !== null) {
+            if (abs($timeDifference) <= $toleranceMinutes) {
                 $isValidTime = true;
             }
         }
 
         if (!$isValidTime) {
+            // Build detailed error message with server time info
+            $serverTime = $now->format('H:i:s');
+            $serverDate = $now->format('Y-m-d');
+            
+            $message = "Absensi hanya dapat dilakukan pada jam operasional ronda ($startTime - $endTime). ";
+            $message .= "Jam server saat ini: {$serverTime} ({$serverDate})";
+            
+            if ($timeDifference !== null) {
+                $minutes = abs($timeDifference);
+                if ($timeDifference < 0) {
+                    $message .= " - Terlalu cepat {$minutes} menit sebelum jadwal dimulai.";
+                } else {
+                    $message .= " - Sudah terlambat {$minutes} menit dari jadwal berakhir.";
+                }
+            }
+            
             return response()->json([
                 'success' => false,
-                'message' => "Absensi hanya dapat dilakukan pada jam operasional ronda ($startTime - $endTime)"
+                'message' => $message,
+                'server_time' => $serverTime,
+                'server_date' => $serverDate,
+                'operational_start' => $startTime,
+                'operational_end' => $endTime,
+                'tolerance_minutes' => $toleranceMinutes
             ], 400);
         }
 
