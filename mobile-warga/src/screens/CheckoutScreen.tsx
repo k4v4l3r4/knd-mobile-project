@@ -8,6 +8,7 @@ import {
   Image,
   Alert,
   ActivityIndicator,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -32,6 +33,7 @@ export default function CheckoutScreen({ onNavigate }: { onNavigate: (screen: st
   const [protection, setProtection] = useState(false);
   const [selectedCourier, setSelectedCourier] = useState<Record<string, string>>({}); // sellerId -> courier type
   const [showCourierModal, setShowCourierModal] = useState<{visible: boolean, sellerId: string | null}>({visible: false, sellerId: null});
+  const [noteBySeller, setNoteBySeller] = useState<Record<string, string>>({}); // sellerId -> note
   
   const selectedItems = cart.filter(item => item.selected);
   
@@ -102,13 +104,16 @@ export default function CheckoutScreen({ onNavigate }: { onNavigate: (screen: st
   ];
 
   const handleCourierSelect = (sellerId: string, courierType: string) => {
+    console.log('Selecting courier:', courierType, 'for seller:', sellerId);
     setSelectedCourier(prev => ({ ...prev, [sellerId]: courierType }));
     setShowCourierModal({ visible: false, sellerId: null });
   };
 
   const getSelectedCourierData = (sellerId: string) => {
     const selected = selectedCourier[sellerId] || 'REGULAR'; // Default to regular
-    return courierOptions.find(c => c.id === selected) || courierOptions[1];
+    const result = courierOptions.find(c => c.id === selected) || courierOptions[1];
+    console.log('Getting courier for', sellerId, '- Selected:', selected, '- Result:', result.label);
+    return result;
   };
 
   const shippingFeeBySeller = Object.entries(itemsBySeller).reduce((acc, [sellerId, group]) => {
@@ -262,7 +267,10 @@ export default function CheckoutScreen({ onNavigate }: { onNavigate: (screen: st
 
             <TouchableOpacity 
               style={styles.shippingOption}
-              onPress={() => setShowCourierModal({ visible: true, sellerId: group.seller.name })}
+              onPress={() => {
+                console.log('Opening courier modal for seller:', group.seller.name);
+                setShowCourierModal({ visible: true, sellerId: group.seller.name });
+              }}
               activeOpacity={0.7}
             >
               <View style={{flexDirection: 'row', alignItems: 'center', flex: 1}}>
@@ -314,9 +322,19 @@ export default function CheckoutScreen({ onNavigate }: { onNavigate: (screen: st
               </View>
             </TouchableOpacity>
 
+            {/* Note Input Field - Now Editable */}
             <View style={styles.noteContainer}>
-                <Ionicons name="document-text-outline" size={20} color={colors.textSecondary} style={{marginRight: 8}} />
-                <Text style={styles.notePlaceholder}>Kasih Catatan</Text>
+              <Ionicons name="document-text-outline" size={20} color={colors.textSecondary} style={{marginRight: 8}} />
+              <TextInput
+                style={styles.noteInput}
+                placeholder="Kasih Catatan"
+                placeholderTextColor={colors.textSecondary}
+                value={noteBySeller[group.seller.name] || ''}
+                onChangeText={(text) => setNoteBySeller(prev => ({ ...prev, [group.seller.name]: text }))}
+                multiline
+                numberOfLines={2}
+                textAlignVertical="top"
+              />
             </View>
           </View>
         ))}
@@ -671,7 +689,20 @@ const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
   },
   noteContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    backgroundColor: isDarkMode ? '#374151' : '#f9fafb',
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  noteInput: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.text,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    minHeight: 40,
   },
   notePlaceholder: {
     fontSize: 14,

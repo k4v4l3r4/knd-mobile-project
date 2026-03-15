@@ -41,10 +41,18 @@ export default function CartScreen({ onNavigate }: { onNavigate: (screen: string
         { 
           text: 'Hapus', 
           style: 'destructive', 
-          onPress: () => removeFromCart(item.id, item.selectedVariants)
+          onPress: () => {
+            console.log('Removing item:', item.id, item.name);
+            removeFromCart(item.id, item.selectedVariants);
+          }
         }
       ]
     );
+  };
+
+  const handleQuantityChange = (item: any, newQuantity: number) => {
+    console.log('Updating quantity for item:', item.id, 'from', item.quantity, 'to', newQuantity);
+    updateQuantity(item.id, newQuantity, item.selectedVariants);
   };
 
   const formatPrice = (price: number | string) => {
@@ -77,7 +85,10 @@ export default function CartScreen({ onNavigate }: { onNavigate: (screen: string
         <View style={{flexDirection: 'row', alignItems: 'center'}}>
             <TouchableOpacity 
               style={styles.checkboxContainer}
-              onPress={() => toggleSelection(item.id)}
+              onPress={() => {
+                console.log('Toggling selection for item:', item.id, item.name);
+                toggleSelection(item.id, item.selectedVariants);
+              }}
               activeOpacity={0.7}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
@@ -115,7 +126,7 @@ export default function CartScreen({ onNavigate }: { onNavigate: (screen: string
         
         <View style={styles.quantityControl}>
           <TouchableOpacity 
-            onPress={() => updateQuantity(item.id, item.quantity - 1)}
+            onPress={() => handleQuantityChange(item, item.quantity - 1)}
             style={styles.quantityButton}
             activeOpacity={0.7}
             disabled={item.quantity <= 1}
@@ -125,7 +136,7 @@ export default function CartScreen({ onNavigate }: { onNavigate: (screen: string
           </TouchableOpacity>
           <Text style={styles.quantityText}>{item.quantity}</Text>
           <TouchableOpacity 
-            onPress={() => updateQuantity(item.id, item.quantity + 1)}
+            onPress={() => handleQuantityChange(item, item.quantity + 1)}
             style={styles.quantityButton}
             activeOpacity={0.7}
             hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
