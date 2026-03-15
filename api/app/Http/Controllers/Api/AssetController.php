@@ -243,49 +243,70 @@ class AssetController extends Controller
      */
     public function approveLoan(Request $request, $id)
     {
-        $user = $request->user();
-        if (!in_array($user->role, ['admin_rt', 'ADMIN_RT', 'super_admin', 'SUPER_ADMIN', 'RT', 'rt'])) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        return DB::transaction(function () use ($id, $user, $request) {
-            $loan = AssetLoan::with('asset')->lockForUpdate()->findOrFail($id);
-
-            if ($loan->status !== 'PENDING') {
-                return response()->json(['message' => 'Status peminjaman tidak valid'], 400);
+        try {
+            $user = $request->user();
+            if (!$user || !in_array($user->role, ['admin_rt', 'ADMIN_RT', 'super_admin', 'SUPER_ADMIN', 'RT', 'rt'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized. Silakan login ulang.'
+                ], 401);
             }
 
-            $asset = Asset::lockForUpdate()->find($loan->asset_id);
-            if ($asset->available_quantity < $loan->quantity) {
-                return response()->json(['message' => 'Stok aset tidak mencukupi saat ini'], 400);
-            }
+            return DB::transaction(function () use ($id, $user, $request) {
+                $loan = AssetLoan::with('asset')->lockForUpdate()->findOrFail($id);
 
-            // Decrease stock
-            $asset->decrement('available_quantity', $loan->quantity);
+                if ($loan->status !== 'PENDING') {
+                    return response()->json(['message' => 'Status peminjaman tidak valid'], 400);
+                }
 
-            // Update status
-            $loan->update([
-                'status' => 'APPROVED',
-                'admin_note' => $request->admin_note
+                $asset = Asset::lockForUpdate()->find($loan->asset_id);
+                if (!$asset) {
+                    return response()->json(['message' => 'Aset tidak ditemukan'], 400);
+                }
+                
+                if ($asset->available_quantity < $loan->quantity) {
+                    return response()->json(['message' => 'Stok aset tidak mencukupi saat ini'], 400);
+                }
+
+                // Decrease stock
+                $asset->decrement('available_quantity', $loan->quantity);
+
+                // Update status
+                $loan->update([
+                    'status' => 'APPROVED',
+                    'admin_note' => $request->admin_note
+                ]);
+
+                // Notify User
+                Notification::create([
+                    'user_id' => $loan->user_id,
+                    'title' => 'Peminjaman Disetujui',
+                    'message' => 'Peminjaman ' . $asset->name . ' Anda telah disetujui.',
+                    'type' => 'ASSET_LOAN',
+                    'related_id' => $loan->id,
+                    'url' => '/mobile/loans',
+                    'is_read' => false,
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Peminjaman disetujui',
+                    'data' => new AssetLoanResource($loan)
+                ]);
+            });
+        } catch (\Exception $e) {
+            Log::error('Asset loan approve error: ' . $e->getMessage(), [
+                'exception' => get_class($e),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
             ]);
-
-            // Notify User
-            Notification::create([
-                'user_id' => $loan->user_id,
-                'title' => 'Peminjaman Disetujui',
-                'message' => 'Peminjaman ' . $asset->name . ' Anda telah disetujui.',
-                'type' => 'ASSET_LOAN',
-                'related_id' => $loan->id,
-                'url' => '/mobile/loans', // Adjust if needed
-                'is_read' => false,
-            ]);
-
+            
             return response()->json([
-                'success' => true,
-                'message' => 'Peminjaman disetujui',
-                'data' => new AssetLoanResource($loan)
-            ]);
-        });
+                'success' => false,
+                'message' => 'Terjadi kesalahan pada server. Silakan coba lagi atau hubungi administrator.'
+            ], 500);
+        }
     }
 
     /**
@@ -293,71 +314,30 @@ class AssetController extends Controller
      */
     public function rejectLoan(Request $request, $id)
     {
-        $user = $request->user();
-        if (!in_array($user->role, ['admin_rt', 'ADMIN_RT', 'super_admin', 'SUPER_ADMIN', 'RT', 'rt'])) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        $loan = AssetLoan::findOrFail($id);
-        if ($loan->status !== 'PENDING') {
-            return response()->json(['message' => 'Status peminjaman tidak valid'], 400);
-        }
-
-        $loan->update([
-            'status' => 'REJECTED',
-            'admin_note' => $request->admin_note
-        ]);
-
-        // Notify User
-        Notification::create([
-            'user_id' => $loan->user_id,
-            'title' => 'Peminjaman Ditolak',
-            'message' => 'Peminjaman ' . $loan->asset->name . ' Anda ditolak. Alasan: ' . ($request->admin_note ?? '-'),
-            'type' => 'ASSET_LOAN',
-            'related_id' => $loan->id,
-            'url' => '/mobile/loans',
-            'is_read' => false,
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Peminjaman ditolak',
-            'data' => new AssetLoanResource($loan)
-        ]);
-    }
-
-    /**
-     * Admin marks asset as returned.
-     */
-    public function returnAsset(Request $request, $id)
-    {
-        $user = $request->user();
-        if (!in_array($user->role, ['admin_rt', 'ADMIN_RT', 'super_admin', 'SUPER_ADMIN', 'RT', 'rt'])) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        return DB::transaction(function () use ($id, $request) {
-            $loan = AssetLoan::with('asset')->lockForUpdate()->findOrFail($id);
-
-            if ($loan->status !== 'APPROVED') {
-                return response()->json(['message' => 'Hanya peminjaman aktif yang bisa dikembalikan'], 400);
+        try {
+            $user = $request->user();
+            if (!$user || !in_array($user->role, ['admin_rt', 'ADMIN_RT', 'super_admin', 'SUPER_ADMIN', 'RT', 'rt'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized. Silakan login ulang.'
+                ], 401);
             }
 
-            // Restore stock
-            $loan->asset->increment('available_quantity', $loan->quantity);
+            $loan = AssetLoan::findOrFail($id);
+            if ($loan->status !== 'PENDING') {
+                return response()->json(['message' => 'Status peminjaman tidak valid'], 400);
+            }
 
-            // Update loan
             $loan->update([
-                'status' => 'RETURNED',
-                'return_date' => now(),
+                'status' => 'REJECTED',
                 'admin_note' => $request->admin_note
             ]);
 
             // Notify User
             Notification::create([
                 'user_id' => $loan->user_id,
-                'title' => 'Pengembalian Aset',
-                'message' => 'Terima kasih, pengembalian ' . $loan->asset->name . ' telah dikonfirmasi.',
+                'title' => 'Peminjaman Ditolak',
+                'message' => 'Peminjaman ' . $loan->asset->name . ' Anda ditolak. Alasan: ' . ($request->admin_note ?? '-'),
                 'type' => 'ASSET_LOAN',
                 'related_id' => $loan->id,
                 'url' => '/mobile/loans',
@@ -366,10 +346,85 @@ class AssetController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Aset berhasil dikembalikan',
+                'message' => 'Peminjaman ditolak',
                 'data' => new AssetLoanResource($loan)
             ]);
-        });
+        } catch (\Exception $e) {
+            Log::error('Asset loan reject error: ' . $e->getMessage(), [
+                'exception' => get_class($e),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan pada server. Silakan coba lagi atau hubungi administrator.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Admin marks asset as returned.
+     */
+    public function returnAsset(Request $request, $id)
+    {
+        try {
+            $user = $request->user();
+            if (!$user || !in_array($user->role, ['admin_rt', 'ADMIN_RT', 'super_admin', 'SUPER_ADMIN', 'RT', 'rt'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized. Silakan login ulang.'
+                ], 401);
+            }
+
+            return DB::transaction(function () use ($id, $request) {
+                $loan = AssetLoan::with('asset')->lockForUpdate()->findOrFail($id);
+
+                if ($loan->status !== 'APPROVED') {
+                    return response()->json(['message' => 'Hanya peminjaman aktif yang bisa dikembalikan'], 400);
+                }
+
+                // Restore stock
+                $loan->asset->increment('available_quantity', $loan->quantity);
+
+                // Update loan
+                $loan->update([
+                    'status' => 'RETURNED',
+                    'return_date' => now(),
+                    'admin_note' => $request->admin_note
+                ]);
+
+                // Notify User
+                Notification::create([
+                    'user_id' => $loan->user_id,
+                    'title' => 'Pengembalian Aset',
+                    'message' => 'Terima kasih, pengembalian ' . $loan->asset->name . ' telah dikonfirmasi.',
+                    'type' => 'ASSET_LOAN',
+                    'related_id' => $loan->id,
+                    'url' => '/mobile/loans',
+                    'is_read' => false,
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Aset berhasil dikembalikan',
+                    'data' => new AssetLoanResource($loan)
+                ]);
+            });
+        } catch (\Exception $e) {
+            Log::error('Asset loan return error: ' . $e->getMessage(), [
+                'exception' => get_class($e),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan pada server. Silakan coba lagi atau hubungi administrator.'
+            ], 500);
+        }
     }
 
     /**

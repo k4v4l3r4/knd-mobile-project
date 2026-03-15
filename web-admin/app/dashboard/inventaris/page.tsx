@@ -252,17 +252,44 @@ export default function InventarisPage() {
 
     let note = '';
     if (action === 'reject') {
-        note = prompt('Alasan penolakan (opsional):') || '';
+        const result = prompt('Alasan penolakan (opsional):');
+        if (result === null) return; // User cancelled
+        note = result || '';
     } else if (action === 'approve') {
-        note = prompt('Catatan persetujuan (opsional):') || '';
+        const result = prompt('Catatan persetujuan (opsional):');
+        if (result === null) return; // User cancelled
+        note = result || '';
     }
 
     try {
-      await api.post(`/assets/loans/${id}/${action}`, { admin_note: note });
-      toast.success(`Berhasil memproses peminjaman`);
+      console.log(`Processing ${action} for loan ${id}`);
+      const response = await api.post(`/assets/loans/${id}/${action}`, { admin_note: note });
+      console.log(`${action} response:`, response.data);
+      
+      let successMessage = 'Berhasil memproses peminjaman';
+      if (action === 'approve') successMessage = 'Peminjaman berhasil disetujui';
+      else if (action === 'reject') successMessage = 'Peminjaman berhasil ditolak';
+      else if (action === 'return') successMessage = 'Aset berhasil dikembalikan';
+      
+      toast.success(successMessage);
       fetchLoans();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Gagal memproses');
+      console.error(`${action} error:`, error);
+      console.error(`${action} response:`, error.response);
+      
+      let errorMessage = 'Gagal memproses';
+      
+      if (error.response?.status === 401) {
+        errorMessage = 'Sesi Anda telah berakhir. Silakan login ulang.';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'Anda tidak memiliki izin untuk melakukan tindakan ini.';
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Terjadi kesalahan pada server. Silakan coba lagi atau hubungi administrator.';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      toast.error(errorMessage);
     }
   };
 
