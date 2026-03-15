@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class AssetController extends Controller
 {
@@ -169,50 +170,72 @@ class AssetController extends Controller
      */
     public function borrow(Request $request)
     {
-        $request->validate([
-            'asset_id' => 'required|exists:assets,id',
-            'quantity' => 'required|integer|min:1',
-            'loan_date' => 'required|date',
-        ]);
+        try {
+            // Check authentication
+            if (!$request->user()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized. Silakan login ulang.'
+                ], 401);
+            }
 
-        $asset = Asset::findOrFail($request->asset_id);
-
-        if ($asset->available_quantity < $request->quantity) {
-            return response()->json(['message' => 'Stok tidak mencukupi'], 400);
-        }
-
-        // Create PENDING loan
-        $loan = AssetLoan::create([
-            'user_id' => $request->user()->id,
-            'asset_id' => $asset->id,
-            'quantity' => $request->quantity,
-            'loan_date' => $request->loan_date,
-            'status' => 'PENDING',
-        ]);
-
-        // Notify Admins
-        $adminRoles = ['ADMIN_RT', 'RT', 'SECRETARY', 'TREASURER', 'ADMIN_RW'];
-        $admins = User::where('rt_id', $asset->rt_id)
-            ->whereIn('role', $adminRoles)
-            ->get(['id']);
-
-        foreach ($admins as $admin) {
-            Notification::create([
-                'user_id' => $admin->id,
-                'title' => 'Peminjaman Aset Baru',
-                'message' => ($request->user()->name ?: 'Warga') . ' mengajukan pinjaman: ' . $asset->name,
-                'type' => 'ASSET_LOAN',
-                'related_id' => $loan->id,
-                'url' => '/dashboard/inventaris',
-                'is_read' => false,
+            $request->validate([
+                'asset_id' => 'required|exists:assets,id',
+                'quantity' => 'required|integer|min:1',
+                'loan_date' => 'required|date',
             ]);
-        }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Pengajuan peminjaman berhasil dikirim',
-            'data' => new AssetLoanResource($loan)
-        ], 201);
+            $asset = Asset::findOrFail($request->asset_id);
+
+            if ($asset->available_quantity < $request->quantity) {
+                return response()->json(['message' => 'Stok tidak mencukupi'], 400);
+            }
+
+            // Create PENDING loan
+            $loan = AssetLoan::create([
+                'user_id' => $request->user()->id,
+                'asset_id' => $asset->id,
+                'quantity' => $request->quantity,
+                'loan_date' => $request->loan_date,
+                'status' => 'PENDING',
+            ]);
+
+            // Notify Admins
+            $adminRoles = ['ADMIN_RT', 'RT', 'SECRETARY', 'TREASURER', 'ADMIN_RW'];
+            $admins = User::where('rt_id', $asset->rt_id)
+                ->whereIn('role', $adminRoles)
+                ->get(['id']);
+
+            foreach ($admins as $admin) {
+                Notification::create([
+                    'user_id' => $admin->id,
+                    'title' => 'Peminjaman Aset Baru',
+                    'message' => ($request->user()->name ?: 'Warga') . ' mengajukan pinjaman: ' . $asset->name,
+                    'type' => 'ASSET_LOAN',
+                    'related_id' => $loan->id,
+                    'url' => '/dashboard/inventaris',
+                    'is_read' => false,
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pengajuan peminjaman berhasil dikirim',
+                'data' => new AssetLoanResource($loan)
+            ], 201);
+        } catch (\Exception $e) {
+            Log::error('Asset borrow error: ' . $e->getMessage(), [
+                'exception' => get_class($e),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan pada server. Silakan coba lagi atau hubungi administrator.'
+            ], 500);
+        }
     }
 
     /**

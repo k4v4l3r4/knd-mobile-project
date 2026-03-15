@@ -196,7 +196,7 @@ export default function InventoryScreen() {
       return;
     }
     if (isDemo) {
-      Alert.alert(t('common.demoMode'), t('market.demoModeCreate')); // Using generic demo message or similar
+      Alert.alert(t('common.demoMode'), 'Fitur peminjaman tidak tersedia dalam mode demo');
       return;
     }
 
@@ -214,18 +214,38 @@ export default function InventoryScreen() {
 
     setSubmitting(true);
     try {
-      await api.post('/assets/loan', {
+      const response = await api.post('/assets/loan', {
         asset_id: selectedAsset.id,
         quantity: qty,
         loan_date: loanDate.toISOString().split('T')[0]
       });
       
+      console.log('Loan submission response:', response.data);
       Alert.alert(t('common.success'), t('inventory.success.loanSubmitted'));
       setModalVisible(false);
       setLoanQuantity('1');
       fetchData();
     } catch (error: any) {
-      Alert.alert(t('common.error'), error.response?.data?.message || t('inventory.error.submitFailed'));
+      console.error('Loan submission error:', error);
+      console.error('Error response:', error.response);
+      console.error('Error status:', error.response?.status);
+      console.error('Error data:', error.response?.data);
+      
+      let errorMessage = t('inventory.error.submitFailed');
+      
+      if (error.response?.status === 401) {
+        errorMessage = 'Sesi Anda telah berakhir. Silakan login ulang.';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'Anda tidak memiliki izin untuk melakukan peminjaman.';
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Terjadi kesalahan pada server. Silakan coba lagi atau hubungi administrator.';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      Alert.alert(t('common.error'), errorMessage);
     } finally {
       setSubmitting(false);
     }
