@@ -14,7 +14,8 @@ import {
   ScrollView,
   Platform,
   KeyboardAvoidingView,
-  StatusBar
+  StatusBar,
+  Dimensions
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -26,6 +27,8 @@ import { useTenant } from '../context/TenantContext';
 import api, { getStorageUrl } from '../services/api';
 import { BackButton } from '../components/BackButton';
 import { authService } from '../services/auth';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface BansosRecipient {
   id: number;
@@ -425,13 +428,7 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
           <View style={styles.headerRow}>
             <BackButton onPress={() => onNavigate ? onNavigate('HOME') : navigation?.goBack()} color="#fff" />
             <Text style={styles.headerTitle}>Bantuan Sosial</Text>
-            {isAdminRT && activeTab === 'recipients' ? (
-              <TouchableOpacity onPress={openAddModal} style={styles.headerAddButton}>
-                <Ionicons name="add" size={28} color="#fff" />
-              </TouchableOpacity>
-            ) : (
-               <View style={{ width: 40 }} />
-            )}
+            <View style={{ width: 40 }} />
           </View>
         </SafeAreaView>
       </LinearGradient>
@@ -517,31 +514,45 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
               </TouchableOpacity>
             </View>
             
-            <ScrollView style={styles.formContainer}>
+            <ScrollView 
+              style={styles.formContainer}
+              contentContainerStyle={{ paddingBottom: 40 }}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
               <Text style={styles.label}>Pilih Warga</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Cari nama warga..."
-                placeholderTextColor={colors.textSecondary}
-                value={wargaSearch}
-                onChangeText={setWargaSearch}
-              />
-              {wargaSearch.length > 0 && !recipientForm.user_id && (
-                <View style={styles.suggestions}>
-                  {filteredWarga.slice(0, 3).map(w => (
-                    <TouchableOpacity 
-                      key={w.id} 
-                      style={styles.suggestionItem}
-                      onPress={() => {
-                        setRecipientForm({...recipientForm, user_id: w.id.toString()});
-                        setWargaSearch(w.name);
-                      }}
-                    >
-                      <Text style={styles.suggestionText}>{w.name} ({w.phone})</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
+              <View style={{ position: 'relative', zIndex: 100 }}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Cari nama warga..."
+                  placeholderTextColor={colors.textSecondary}
+                  value={wargaSearch}
+                  onChangeText={setWargaSearch}
+                  autoFocus
+                />
+                {/* Suggestions Dropdown with Absolute Positioning */}
+                {wargaSearch.length > 0 && !recipientForm.user_id && filteredWarga.length > 0 && (
+                  <View style={styles.suggestionsContainer}>
+                    {filteredWarga.slice(0, 5).map((w, index) => (
+                      <TouchableOpacity 
+                        key={w.id} 
+                        style={[
+                          styles.suggestionItem,
+                          index === filteredWarga.slice(0, 5).length - 1 && { borderBottomWidth: 0 }
+                        ]}
+                        onPress={() => {
+                          setRecipientForm({...recipientForm, user_id: w.id.toString()});
+                          setWargaSearch(w.name);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.suggestionText}>{w.name}</Text>
+                        <Text style={styles.suggestionSubtext}>{w.phone}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </View>
 
               <Text style={styles.label}>Nomor KK</Text>
               <TextInput
@@ -977,19 +988,41 @@ const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
     fontSize: 12,
     color: colors.text,
   },
-  suggestions: {
+  suggestionsContainer: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 8,
+    borderRadius: 12,
     marginTop: 4,
+    zIndex: 1000,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    maxHeight: 200,
   },
   suggestionItem: {
     padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   suggestionText: {
     color: colors.text,
+    fontSize: 14,
+    fontWeight: '500',
+    flex: 1,
+  },
+  suggestionSubtext: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    marginLeft: 8,
   }
 });

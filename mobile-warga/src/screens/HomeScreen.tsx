@@ -848,6 +848,12 @@ function HomeScreen({ onLogout, onNavigate }: HomeScreenProps) {
 
     const userRole = data?.user?.role?.toUpperCase() || '';
 
+    // CCTV Menu - Only for RT/Admin roles
+    const isRTAdmin = userRole === 'ADMIN_RT' || userRole === 'RT' || userRole === 'admin_rt' || userRole === 'super_admin';
+    if (!isRTAdmin) {
+      items = items.filter(item => item.id !== 'cctv');
+    }
+
     // Filter announcement and voting for WARGA/WARGA_TETAP
           if (userRole === 'WARGA' || userRole === 'WARGA_TETAP' || userRole === 'WARGA TETAP') {
             items = items.filter(item => item.id !== 'announcement' && item.id !== 'voting' && item.id !== 'system_settings' && item.id !== 'bansos' && item.id !== 'contribution_report');

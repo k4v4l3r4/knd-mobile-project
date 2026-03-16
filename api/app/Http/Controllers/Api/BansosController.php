@@ -79,6 +79,21 @@ class BansosController extends Controller
             'score' => $request->score ?? 0,
         ]);
 
+        // Get recipient's name for notification
+        $recipientUser = User::find($request->user_id);
+        
+        // Create database notification with Firebase push notification
+        Notification::create([
+            'notifiable_id' => $request->user_id,
+            'notifiable_type' => User::class,
+            'title' => 'Selamat! Anda Terdaftar Sebagai Penerima Bansos',
+            'message' => "Halo {$recipientUser->name}, Anda terdaftar sebagai penerima bantuan sosial. Cek detailnya di aplikasi!",
+            'type' => 'BANSOS',
+            'related_id' => $recipient->id,
+            'url' => '/mobile/bansos/detail/' . $recipient->id,
+            'is_read' => false,
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Penerima berhasil ditambahkan',

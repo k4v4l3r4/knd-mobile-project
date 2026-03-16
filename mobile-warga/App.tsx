@@ -107,9 +107,46 @@ const AppContent = () => {
     });
 
     const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
-      const data = response.notification.request.content.data;
+      const data = response.notification.request.content.data as any;
       console.log('Notification tapped:', data);
-      setCurrentScreen('NOTIFICATIONS');
+      
+      // Handle deep linking from push notification
+      if (data && data.type) {
+        const type = String(data.type).toUpperCase();
+        switch (type) {
+          case 'BANSOS':
+          case 'AID':
+            setCurrentScreen('BANSOS');
+            return;
+          case 'LETTER':
+          case 'SURAT':
+            setCurrentScreen('LETTER');
+            return;
+          case 'REPORT':
+          case 'LAPORAN':
+            setCurrentScreen('REPORT');
+            return;
+          case 'ANNOUNCEMENT':
+          case 'PENGUMUMAN':
+            setCurrentScreen('HOME');
+            return;
+          case 'BILL':
+            setCurrentScreen('BILLS');
+            return;
+          case 'PAYMENT':
+            setCurrentScreen('PAYMENT');
+            return;
+          case 'ORDER':
+          case 'SHOP':
+          case 'MARKET':
+            setCurrentScreen('MARKET');
+            return;
+          default:
+            setCurrentScreen('NOTIFICATIONS');
+        }
+      } else {
+        setCurrentScreen('NOTIFICATIONS');
+      }
     });
 
     return () => {

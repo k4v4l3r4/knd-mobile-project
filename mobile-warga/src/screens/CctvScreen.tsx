@@ -1,11 +1,13 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, Image, ActivityIndicator, RefreshControl, StatusBar, Platform, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, RefreshControl, StatusBar, Platform, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import api from '../services/api';
+import { Video, ResizeMode } from 'expo-av';
+import api, { BASE_URL, getStorageUrl } from '../services/api';
 import { useTheme, ThemeColors } from '../context/ThemeContext';
 import { useTenant } from '../context/TenantContext';
 import { DemoLabel } from '../components/TenantStatusComponents';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface CctvData {
   id: number;
@@ -25,6 +27,26 @@ export default function CctvScreen() {
   const [cctvs, setCctvs] = useState<CctvData[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [hasAccess, setHasAccess] = useState(false);
+
+  useEffect(() => {
+    checkRoleAccess();
+  }, []);
+
+  const checkRoleAccess = async () => {
+    try {
+      const userData = await AsyncStorage.getItem('user_data');
+      if (userData) {
+        const user = JSON.parse(userData);
+        // Only allow RT Admin, RT, or Super Admin roles
+        const allowedRoles = ['ADMIN_RT', 'RT', 'admin_rt', 'super_admin', 'SUPER_ADMIN'];
+        setHasAccess(allowedRoles.includes(user.role));
+      }
+    } catch (e) {
+      console.error('Failed to check role access:', e);
+      setHasAccess(false);
+    }
+  };
 
   const fetchCctvs = async () => {
     try {
@@ -49,37 +71,48 @@ export default function CctvScreen() {
     fetchCctvs();
   };
 
-  const renderItem = ({ item }: { item: CctvData }) => (
-    <View style={styles.card}>
-      <View style={styles.videoContainer}>
-        <Image 
-            source={{ uri: item.stream_url }} 
-            style={styles.video} 
-            resizeMode="cover"
-        />
-        
-        {/* Overlay */}
-        <View style={styles.overlay}>
-            <View style={styles.headerRow}>
-                <View style={styles.liveBadge}>
-                    <View style={styles.dot} />
-                    <Text style={styles.liveText}>LIVE</Text>
-                </View>
-                <Text style={styles.timeText}>
-                    {new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                </Text>
-            </View>
-            
-            <View style={styles.footerRow}>
-                <View style={styles.labelContainer}>
-                    <Text style={styles.labelText}>{item.label}</Text>
-                    {item.location && <Text style={styles.locationText}>{item.location}</Text>}
-                </View>
-            </View>
+  const renderItem = ({ item }: { item: CctvData }) => {
+    const videoRef = useRef<Video>(null);
+    
+    return (
+      <View style={styles.card}>
+        <View style={styles.videoContainer}>
+          <Video
+            ref={videoRef}
+            style={styles.video}
+            source={{ uri: item.stream_url }}
+            useNativeControls
+            isLooping
+            shouldPlay
+            resizeMode={ResizeMode.COVER}
+            onError={(error) => {
+              console.log(`Video error for ${item.label}:`, error);
+            }}
+          />
+          
+          {/* Overlay */}
+          <View style={styles.overlay}>
+              <View style={styles.headerRow}>
+                  <View style={styles.liveBadge}>
+                      <View style={styles.dot} />
+                      <Text style={styles.liveText}>LIVE</Text>
+                  </View>
+                  <Text style={styles.timeText}>
+                      {new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                  </Text>
+              </View>
+              
+              <View style={styles.footerRow}>
+                  <View style={styles.labelContainer}>
+                      <Text style={styles.labelText}>{item.label}</Text>
+                      {item.location && <Text style={styles.locationText}>{item.location}</Text>}
+                  </View>
+              </View>
+          </View>
         </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -104,6 +137,21 @@ export default function CctvScreen() {
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color={isDarkMode ? '#059669' : '#059669'} />
+        </View>
+      ) : !hasAccess ? (
+        <View style={styles.accessDeniedContainer}>
+            <Ionicons name="lock-closed-outline" size={64} color={colors.primary} />
+            <Text style={styles.accessDeniedTitle}>Akses Ditolak</Text>
+            <Text style={styles.accessDeniedText}>
+                Maaf, fitur Monitoring CCTV hanya tersedia untuk Pengurus RT/Admin.
+            </Text>
+            <TouchableOpacity 
+                style={[styles.backButton, { backgroundColor: colors.primary }]}
+                onPress={() => {}}
+            >
+                <Ionicons name="arrow-back" size={20} color="#fff" />
+                <Text style={styles.backButtonText}>Kembali ke Dashboard</Text>
+            </TouchableOpacity>
         </View>
       ) : isExpired ? (
         <View style={styles.emptyContainer}>
@@ -290,5 +338,39 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     marginTop: 16,
     fontSize: 16,
     fontWeight: '500',
+  },
+  accessDeniedContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+    backgroundColor: colors.card,
+  },
+  accessDeniedTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.text,
+    marginTop: 24,
+    marginBottom: 12,
+  },
+  accessDeniedText: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 32,
+    lineHeight: 24,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 16,
+    gap: 8,
+  },
+  backButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });
