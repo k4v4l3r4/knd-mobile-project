@@ -338,8 +338,9 @@ class AssetController extends Controller
                 ]);
                 Log::info('Loan status updated to APPROVED', ['loan_id' => $id]);
 
-                // Notify User - Use the model's mutator which sets notifiable_type automatically
+                // Notify User - Database notification + Firebase push notification
                 try {
+                    // 1. Create database notification
                     \App\Models\Notification::create([
                         'user_id' => $loan->user_id,  // This triggers the mutator to set notifiable_type
                         'title' => 'Peminjaman Disetujui',
@@ -349,15 +350,36 @@ class AssetController extends Controller
                         'url' => '/mobile/loans',
                         'is_read' => false,
                     ]);
-                    Log::info('Notification created successfully', ['user_id' => $loan->user_id]);
+                    Log::info('Database notification created successfully', ['user_id' => $loan->user_id]);
+
+                    // 2. Send Firebase push notification
+                    $borrower = User::find($loan->user_id);
+                    if ($borrower && $borrower->device_token) {
+                        $firebaseService = new \App\Services\FirebaseNotificationService();
+                        $firebaseService->sendToDevice(
+                            $borrower->device_token,
+                            '✓ Peminjaman Disetujui',
+                            'Peminjaman ' . $asset->name . ' Anda telah disetujui oleh RT.',
+                            [
+                                'type' => 'ASSET_LOAN_APPROVED',
+                                'loan_id' => (string) $loan->id,
+                                'asset_name' => $asset->name,
+                                'url' => '/mobile/loans',
+                            ]
+                        );
+                        Log::info('Firebase push notification sent', ['user_id' => $loan->user_id]);
+                    } else {
+                        Log::warning('Borrower device token not found, skipping push notification', [
+                            'user_id' => $loan->user_id
+                        ]);
+                    }
                 } catch (\Exception $notifException) {
                     // Log notification error but don't fail the entire transaction
-                    Log::warning('Failed to create notification: ' . $notifException->getMessage(), [
+                    Log::warning('Failed to create notifications: ' . $notifException->getMessage(), [
                         'loan_id' => $id,
                         'user_id' => $loan->user_id
                     ]);
                 }
-                Log::info('Notification created for user', ['user_id' => $loan->user_id]);
 
                 Log::info('Loan approval completed successfully', ['loan_id' => $id]);
 
@@ -410,8 +432,9 @@ class AssetController extends Controller
                 'admin_note' => $request->admin_note
             ]);
 
-            // Notify User - Use the model's mutator which sets notifiable_type automatically
+            // Notify User - Database notification + Firebase push notification
             try {
+                // 1. Create database notification
                 \App\Models\Notification::create([
                     'user_id' => $loan->user_id,  // This triggers the mutator to set notifiable_type
                     'title' => 'Peminjaman Ditolak',
@@ -421,9 +444,31 @@ class AssetController extends Controller
                     'url' => '/mobile/loans',
                     'is_read' => false,
                 ]);
-                Log::info('Reject notification created successfully', ['user_id' => $loan->user_id]);
+                Log::info('Database rejection notification created', ['user_id' => $loan->user_id]);
+
+                // 2. Send Firebase push notification
+                $borrower = User::find($loan->user_id);
+                if ($borrower && $borrower->device_token) {
+                    $firebaseService = new \App\Services\FirebaseNotificationService();
+                    $firebaseService->sendToDevice(
+                        $borrower->device_token,
+                        '✗ Peminjaman Ditolak',
+                        'Peminjaman ' . $loan->asset->name . ' Anda ditolak. Alasan: ' . ($request->admin_note ?? '-'),
+                        [
+                            'type' => 'ASSET_LOAN_REJECTED',
+                            'loan_id' => (string) $loan->id,
+                            'asset_name' => $loan->asset->name,
+                            'url' => '/mobile/loans',
+                        ]
+                    );
+                    Log::info('Firebase rejection notification sent', ['user_id' => $loan->user_id]);
+                } else {
+                    Log::warning('Borrower device token not found for rejection', [
+                        'user_id' => $loan->user_id
+                    ]);
+                }
             } catch (\Exception $notifException) {
-                Log::warning('Failed to create reject notification: ' . $notifException->getMessage(), [
+                Log::warning('Failed to create rejection notifications: ' . $notifException->getMessage(), [
                     'loan_id' => $id,
                     'user_id' => $loan->user_id
                 ]);
@@ -480,8 +525,9 @@ class AssetController extends Controller
                     'admin_note' => $request->admin_note
                 ]);
 
-                // Notify User - Use the model's mutator which sets notifiable_type automatically
+                // Notify User - Database notification + Firebase push notification
                 try {
+                    // 1. Create database notification
                     \App\Models\Notification::create([
                         'user_id' => $loan->user_id,  // This triggers the mutator to set notifiable_type
                         'title' => 'Pengembalian Aset',
@@ -491,9 +537,31 @@ class AssetController extends Controller
                         'url' => '/mobile/loans',
                         'is_read' => false,
                     ]);
-                    Log::info('Return notification created successfully', ['user_id' => $loan->user_id]);
+                    Log::info('Database return notification created', ['user_id' => $loan->user_id]);
+
+                    // 2. Send Firebase push notification
+                    $borrower = User::find($loan->user_id);
+                    if ($borrower && $borrower->device_token) {
+                        $firebaseService = new \App\Services\FirebaseNotificationService();
+                        $firebaseService->sendToDevice(
+                            $borrower->device_token,
+                            '✓ Pengembalian Dikonfirmasi',
+                            'Terima kasih, pengembalian ' . $loan->asset->name . ' telah dikonfirmasi.',
+                            [
+                                'type' => 'ASSET_LOAN_RETURNED',
+                                'loan_id' => (string) $loan->id,
+                                'asset_name' => $loan->asset->name,
+                                'url' => '/mobile/loans',
+                            ]
+                        );
+                        Log::info('Firebase return notification sent', ['user_id' => $loan->user_id]);
+                    } else {
+                        Log::warning('Borrower device token not found for return', [
+                            'user_id' => $loan->user_id
+                        ]);
+                    }
                 } catch (\Exception $notifException) {
-                    Log::warning('Failed to create return notification: ' . $notifException->getMessage(), [
+                    Log::warning('Failed to create return notifications: ' . $notifException->getMessage(), [
                         'loan_id' => $id,
                         'user_id' => $loan->user_id
                     ]);

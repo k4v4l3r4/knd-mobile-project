@@ -158,11 +158,18 @@ export default function InventarisPage() {
         setLoans(demoLoans);
         return;
       }
+      console.log('[INVENTARIS] Fetching loans from API...');
       const res = await api.get('/assets/loans/requests');
-      if (res.data.data) setLoans(res.data.data);
+      console.log('[INVENTARIS] Loans API response:', res.data);
+      console.log('[INVENTARIS] Loans count:', res.data.data?.length || 0);
+      
+      if (res.data.data) {
+        setLoans(res.data.data);
+        console.log('[INVENTARIS] Loans state updated. First loan status:', res.data.data[0]?.status);
+      }
     } catch (error) {
       if (!isDemo) {
-        console.error(error);
+        console.error('[INVENTARIS] Error fetching loans:', error);
         toast.error('Gagal memuat data peminjaman');
       }
     } finally {
@@ -281,15 +288,27 @@ export default function InventarisPage() {
         admin_note: note 
       });
       
-      console.log(`[INVENTARIS] ${action} response:`, response.data);
+      console.log(`[INVENTARIS] ${action} response status:`, response.status);
+      console.log(`[INVENTARIS] ${action} response data:`, response.data);
+      console.log(`[INVENTARIS] ${action} - Success:`, response.data.success);
+      console.log(`[INVENTARIS] ${action} - Updated loan status:`, response.data.data?.status);
+      
+      // Verify the response is successful before proceeding
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Gagal memproses peminjaman');
+      }
       
       let successMessage = 'Berhasil memproses peminjaman';
       if (action === 'approve') successMessage = 'Peminjaman berhasil disetujui';
       else if (action === 'reject') successMessage = 'Peminjaman berhasil ditolak';
       
+      console.log(`[INVENTARIS] ${action} - Refreshing loans list...`);
       toast.success(successMessage);
       closeLoanActionModal();
-      fetchLoans();
+      
+      // Force refresh the loans list
+      await fetchLoans();
+      console.log(`[INVENTARIS] ${action} - Loans list refreshed`);
     } catch (error: any) {
       console.error(`[INVENTARIS] ${action} error:`, error);
       console.error(`[INVENTARIS] ${action} response status:`, error.response?.status);
