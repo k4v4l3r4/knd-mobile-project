@@ -672,65 +672,66 @@ export default function InformationScreen() {
   const keyExtractor = useCallback((item: Announcement) => item.id.toString(), []);
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={[styles.headerBackground, { backgroundColor: colors.primary }]}>
-          <SafeAreaView edges={['top']} style={styles.headerContent}>
-            <View style={styles.headerRow}>
-                <View style={{ width: 40 }} />
-                <View style={{ alignItems: 'center' }}>
-                    <Text style={styles.headerTitle}>{t('information.title')}</Text>
-                    <Text style={styles.headerSubtitle}>
-                        {t('information.subtitle')}
-                    </Text>
-                    <DemoLabel />
-                </View>
-                <View style={{ width: 40 }} />
-            </View>
-          </SafeAreaView>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['bottom']}>
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={[styles.headerBackground, { backgroundColor: colors.primary }]}>
+            <SafeAreaView edges={['top']} style={styles.headerContent}>
+              <View style={styles.headerRow}>
+                  <View style={{ width: 40 }} />
+                  <View style={{ alignItems: 'center' }}>
+                      <Text style={styles.headerTitle}>{t('information.title')}</Text>
+                      <Text style={styles.headerSubtitle}>
+                          {t('information.subtitle')}
+                      </Text>
+                      <DemoLabel />
+                  </View>
+                  <View style={{ width: 40 }} />
+              </View>
+            </SafeAreaView>
+          </View>
         </View>
-      </View>
 
-      {/* Content */}
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      ) : (
-        <FlatList
-          data={announcements}
-          renderItem={renderItem}
-          keyExtractor={keyExtractor}
-          contentContainerStyle={styles.listContent}
-          ListHeaderComponent={
-            isAdminRT ? (
-              <TouchableOpacity
-                style={[styles.createButtonHeader, { backgroundColor: colors.primary }]}
-                onPress={openCreateModal}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="add-circle-outline" size={24} color="#fff" />
-                <Text style={styles.createButtonHeaderText}>{t('information.createTitle')}</Text>
-              </TouchableOpacity>
-            ) : null
-          }
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Ionicons name="newspaper-outline" size={64} color={colors.textSecondary} />
-              <Text style={styles.emptyText}>{t('information.noData')}</Text>
-            </View>
-          }
-          initialNumToRender={5}
-          maxToRenderPerBatch={5}
-          windowSize={5}
-          removeClippedSubviews={Platform.OS === 'android'}
-          updateCellsBatchingPeriod={50}
-        />
-      )}
+        {/* Content */}
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        ) : (
+          <FlatList
+            data={announcements}
+            renderItem={renderItem}
+            keyExtractor={keyExtractor}
+            contentContainerStyle={[styles.listContent, { paddingBottom: 100 }]}
+            ListHeaderComponent={
+              isAdminRT ? (
+                <TouchableOpacity
+                  style={[styles.createButtonHeader, { backgroundColor: colors.primary }]}
+                  onPress={openCreateModal}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="add-circle-outline" size={24} color="#fff" />
+                  <Text style={styles.createButtonHeaderText}>{t('information.createTitle')}</Text>
+                </TouchableOpacity>
+              ) : null
+            }
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Ionicons name="newspaper-outline" size={64} color={colors.textSecondary} />
+                <Text style={styles.emptyText}>{t('information.noData')}</Text>
+              </View>
+            }
+            initialNumToRender={5}
+            maxToRenderPerBatch={5}
+            windowSize={5}
+            removeClippedSubviews={Platform.OS === 'android'}
+            updateCellsBatchingPeriod={50}
+          />
+        )}
 
       {/* Detail Modal */}
       <Modal
@@ -1044,7 +1045,8 @@ export default function InformationScreen() {
           <Ionicons name="add" size={24} color="#fff" />
         </TouchableOpacity>
       )}
-    </View>
+      </View>
+    </SafeAreaView>
   );
 }
 

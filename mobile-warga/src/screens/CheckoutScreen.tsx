@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
   TextInput,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -431,13 +432,18 @@ export default function CheckoutScreen({ onNavigate }: { onNavigate: (screen: st
       </ScrollView>
 
       {/* Courier Selection Modal */}
-      {showCourierModal.visible && (
-        <View style={styles.modalOverlay}>
-          <TouchableOpacity 
-            style={styles.modalOverlay}
-            onPress={() => setShowCourierModal({ visible: false, sellerId: null })}
-          />
-          <View style={styles.modalContent}>
+      <Modal
+        visible={showCourierModal.visible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowCourierModal({ visible: false, sellerId: null })}
+      >
+        <TouchableOpacity 
+          style={[styles.modalOverlay, { zIndex: 9999 }]}
+          activeOpacity={1}
+          onPress={() => setShowCourierModal({ visible: false, sellerId: null })}
+        >
+          <View style={[styles.modalContent, { elevation: 10, zIndex: 10000 }]}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Pilih Kurir</Text>
               <TouchableOpacity onPress={() => setShowCourierModal({ visible: false, sellerId: null })}>
@@ -508,8 +514,8 @@ export default function CheckoutScreen({ onNavigate }: { onNavigate: (screen: st
               );
             })}
           </View>
-        </View>
-      )}
+        </TouchableOpacity>
+      </Modal>
 
       {/* Bottom Bar */}
       <View style={styles.footer}>
@@ -808,14 +814,9 @@ const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
     fontWeight: 'bold',
   },
   modalOverlay: {
-    position: 'absolute' as const,
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
-    zIndex: 9999,
   },
   modalContent: {
     backgroundColor: colors.card,
@@ -823,6 +824,11 @@ const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
     borderTopRightRadius: 20,
     padding: 24,
     paddingBottom: 40,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
   },
   modalHeader: {
     flexDirection: 'row',

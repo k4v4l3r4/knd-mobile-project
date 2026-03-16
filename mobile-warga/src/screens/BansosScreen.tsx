@@ -605,9 +605,9 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
       >
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalOverlay}
+          style={[styles.modalOverlay, { zIndex: 9999 }]}
         >
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { maxHeight: '85%' }]}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Salurkan Bantuan</Text>
               <TouchableOpacity onPress={() => setDistributeModalVisible(false)}>
@@ -615,7 +615,11 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
               </TouchableOpacity>
             </View>
             
-            <View style={styles.formContainer}>
+            <ScrollView 
+              style={styles.formContainer}
+              contentContainerStyle={{ paddingBottom: 40 }}
+              showsVerticalScrollIndicator={false}
+            >
               <Text style={styles.label}>Nama Program</Text>
               <TextInput
                 style={styles.input}
@@ -656,7 +660,7 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
               >
                 <Text style={styles.saveButtonText}>Konfirmasi Penyaluran</Text>
               </TouchableOpacity>
-            </View>
+            </ScrollView>
           </View>
         </KeyboardAvoidingView>
       </Modal>
@@ -894,19 +898,28 @@ const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-end',
     backgroundColor: 'rgba(0,0,0,0.5)',
+    zIndex: 9999,
   },
   modalContent: {
     backgroundColor: colors.card,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
-    maxHeight: '80%',
+    maxHeight: '85%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   modalTitle: {
     fontSize: 18,
@@ -914,7 +927,7 @@ const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
     color: colors.text,
   },
   formContainer: {
-    maxHeight: 500,
+    flexGrow: 1,
   },
   label: {
     fontSize: 14,
