@@ -267,6 +267,11 @@ export default function CheckoutScreen({ onNavigate }: { onNavigate: (screen: st
                 </View>
             </View>
 
+            {/* Shipping Method Label */}
+            <View style={styles.shippingMethodLabelContainer}>
+              <Text style={styles.shippingMethodLabel}>Metode Pengiriman</Text>
+            </View>
+
             <TouchableOpacity 
               style={styles.shippingOption}
               onPress={() => {
@@ -278,20 +283,20 @@ export default function CheckoutScreen({ onNavigate }: { onNavigate: (screen: st
               <View style={{flexDirection: 'row', alignItems: 'center', flex: 1}}>
                 {/* Dynamic Icon based on selection */}
                 {(() => {
-                  const courierData = getSelectedCourierData(group.seller.name);
+                  const selectedCourierData = getSelectedCourierData(group.seller.name);
                   return (
                     <View style={[
                       styles.courierIconBox,
-                      { backgroundColor: `${courierData.color}20` } // 20% opacity
+                      { backgroundColor: `${selectedCourierData.color}20` } // 20% opacity
                     ]}>
-                      {courierData.icon === 'motorcycle' && (
-                        <Ionicons name="bicycle" size={20} color={courierData.color} />
+                      {selectedCourierData.icon === 'motorcycle' && (
+                        <Ionicons name="bicycle" size={20} color={selectedCourierData.color} />
                       )}
-                      {courierData.icon === 'car' && (
-                        <Ionicons name="car" size={20} color={courierData.color} />
+                      {selectedCourierData.icon === 'car' && (
+                        <Ionicons name="car" size={20} color={selectedCourierData.color} />
                       )}
-                      {courierData.icon === 'storefront' && (
-                        <MaterialCommunityIcons name="store" size={20} color={courierData.color} />
+                      {selectedCourierData.icon === 'storefront' && (
+                        <MaterialCommunityIcons name="store" size={20} color={selectedCourierData.color} />
                       )}
                     </View>
                   );
@@ -299,22 +304,14 @@ export default function CheckoutScreen({ onNavigate }: { onNavigate: (screen: st
                 
                 <View style={{flex: 1, marginLeft: 12}}>
                   <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                    <Text style={styles.shippingLabel}>Kurir Toko</Text>
-                    <Ionicons name="chevron-down" size={16} color={colors.textSecondary} style={{marginLeft: 4}} />
+                    <Text style={styles.courierType}>
+                      {getSelectedCourierData(group.seller.name).label}
+                    </Text>
                   </View>
-                  {(() => {
-                    const courierData = getSelectedCourierData(group.seller.name);
-                    return (
-                      <>
-                        <Text style={styles.courierType} numberOfLines={1}>
-                          {courierData.label}
-                        </Text>
-                        <Text style={styles.courierEstimate}>
-                          🕐 {courierData.estimate}
-                        </Text>
-                      </>
-                    );
-                  })()}
+                  <Text style={styles.courierEstimate}>
+                    🕐 {getSelectedCourierData(group.seller.name).estimate}
+                    {getSelectedCourierData(group.seller.name).isPickup && ' • Ambil di Sekretariat RT 004'}
+                  </Text>
                 </View>
               </View>
               
@@ -668,11 +665,19 @@ const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
   },
+  shippingMethodLabelContainer: {
+    marginBottom: 12,
+  },
+  shippingMethodLabel: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
   shippingOption: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 16,
     backgroundColor: isDarkMode ? '#374151' : '#f9fafb',
     paddingHorizontal: 12,
     borderRadius: 8,
@@ -691,15 +696,14 @@ const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
     justifyContent: 'center',
   },
   courierType: {
-    fontSize: 13,
+    fontSize: 15,
     color: colors.text,
-    marginTop: 2,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   courierEstimate: {
-    fontSize: 11,
+    fontSize: 12,
     color: colors.textSecondary,
-    marginTop: 2,
+    marginTop: 4,
   },
   shippingPrice: {
     fontSize: 14,
