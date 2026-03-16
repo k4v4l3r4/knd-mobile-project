@@ -24,7 +24,7 @@ import { toast } from 'react-hot-toast';
 import { useTenant } from '@/context/TenantContext';
 import { DemoLabel } from '@/components/TenantStatusComponents';
 import { getImageUrl } from '@/lib/utils';
-import Cookies from 'js-cookie';
+import Modal from '@/components/ui/Modal';
 
 export default function InventarisPage() {
   const { isDemo, isExpired, status } = useTenant();
@@ -36,8 +36,8 @@ export default function InventarisPage() {
 
   // Form State
   const [showForm, setShowForm] = useState(false);
-  const [showDetail, setShowDetail] = useState(false); // Added detail modal state
-  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null); // Added selected asset
+  const [showDetail, setShowDetail] = useState(false);
+  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     id: 0,
@@ -47,6 +47,13 @@ export default function InventarisPage() {
     condition: 'BAIK',
     image: null as File | null
   });
+
+  // Loan Action Modal State
+  const [showLoanActionModal, setShowLoanActionModal] = useState(false);
+  const [loanActionType, setLoanActionType] = useState<'approve' | 'reject' | null>(null);
+  const [selectedLoanId, setSelectedLoanId] = useState<number | null>(null);
+  const [actionNote, setActionNote] = useState('');
+  const [isProcessingAction, setIsProcessingAction] = useState(false);
 
   useEffect(() => {
     if (!status) return;
@@ -240,26 +247,27 @@ export default function InventarisPage() {
     }
   };
 
-  const handleLoanAction = async (id: number, action: 'approve' | 'reject' | 'return') => {
-    if (isDemo) {
-        toast.error('Mode Demo: Proses peminjaman tidak diizinkan');
-        return;
-    }
-    if (isExpired) {
-        toast.error('Akses Terbatas: Silakan perpanjang langganan');
-        return;
-    }
+  const openLoanActionModal = (id: number, action: 'approve' | 'reject') => {
+    setSelectedLoanId(id);
+    setLoanActionType(action);
+    setActionNote('');
+    setShowLoanActionModal(true);
+  };
 
-    let note = '';
-    if (action === 'reject') {
-        const result = prompt('Alasan penolakan (opsional):');
-        if (result === null) return; // User cancelled
-        note = result || '';
-    } else if (action === 'approve') {
-        const result = prompt('Catatan persetujuan (opsional):');
-        if (result === null) return; // User cancelled
-        note = result || '';
-    }
+  const closeLoanActionModal = () => {
+    setShowLoanActionModal(false);
+    setLoanActionType(null);
+    setSelectedLoanId(null);
+    setActionNote('');
+  };
+
+  const handleLoanActionSubmit = async () => {
+    if (!selectedLoanId || !loanActionType) return;
+
+    setIsProcessingAction(true);
+    const action = loanActionType;
+    const id = selectedLoanId;
+    const note = actionNote;
 
     try {
       console.log(`Processing ${action} for loan ${id}`);
@@ -269,13 +277,53 @@ export default function InventarisPage() {
       let successMessage = 'Berhasil memproses peminjaman';
       if (action === 'approve') successMessage = 'Peminjaman berhasil disetujui';
       else if (action === 'reject') successMessage = 'Peminjaman berhasil ditolak';
-      else if (action === 'return') successMessage = 'Aset berhasil dikembalikan';
       
       toast.success(successMessage);
+      closeLoanActionModal();
       fetchLoans();
     } catch (error: any) {
       console.error(`${action} error:`, error);
       console.error(`${action} response:`, error.response);
+      
+      let errorMessage = 'Gagal memproses';
+      
+      if (error.response?.status === 401) {
+        errorMessage = 'Sesi Anda telah berakhir. Silakan login ulang.';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'Anda tidak memiliki izin untuk melakukan tindakan ini.';
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Terjadi kesalahan pada server. Silakan coba lagi atau hubungi administrator.';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      toast.error(errorMessage);
+      closeLoanActionModal();
+    } finally {
+      setIsProcessingAction(false);
+    }
+  };
+
+  const handleReturnAction = async (id: number) => {
+    if (isDemo) {
+        toast.error('Mode Demo: Proses pengembalian tidak diizinkan');
+        return;
+    }
+    if (isExpired) {
+        toast.error('Akses Terbatas: Silakan perpanjang langganan');
+        return;
+    }
+
+    try {
+      console.log(`Processing return for loan ${id}`);
+      const response = await api.post(`/assets/loans/${id}/return`, { admin_note: '' });
+      console.log(`return response:`, response.data);
+      
+      toast.success('Aset berhasil dikembalikan');
+      fetchLoans();
+    } catch (error: any) {
+      console.error(`return error:`, error);
+      console.error(`return response:`, error.response);
       
       let errorMessage = 'Gagal memproses';
       
@@ -583,14 +631,14 @@ export default function InventarisPage() {
                                             {loan.status === 'PENDING' && (
                                                 <>
                                                     <button
-                                                        onClick={() => handleLoanAction(loan.id, 'approve')}
+                                                        onClick={() => openLoanActionModal(loan.id, 'approve')}
                                                         className="p-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-lg hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors tooltip border border-transparent hover:border-emerald-200 dark:hover:border-emerald-800"
                                                         title="Setujui"
                                                     >
                                                         <Check size={16} strokeWidth={3} />
                                                     </button>
                                                     <button
-                                                        onClick={() => handleLoanAction(loan.id, 'reject')}
+                                                        onClick={() => openLoanActionModal(loan.id, 'reject')}
                                                         className="p-2 bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 rounded-lg hover:bg-rose-200 dark:hover:bg-rose-900/50 transition-colors tooltip border border-transparent hover:border-rose-200 dark:hover:border-rose-800"
                                                         title="Tolak"
                                                     >
@@ -600,7 +648,7 @@ export default function InventarisPage() {
                                             )}
                                             {loan.status === 'APPROVED' && (
                                                 <button
-                                                    onClick={() => handleLoanAction(loan.id, 'return')}
+                                                    onClick={() => handleReturnAction(loan.id)}
                                                     className="flex items-center gap-2 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors font-bold text-xs border border-transparent hover:border-blue-200 dark:hover:border-blue-800"
                                                 >
                                                     <RotateCcw size={14} /> Terima Kembali
@@ -796,6 +844,82 @@ export default function InventarisPage() {
           </div>
         </div>
       )}
+
+      {/* --- LOAN ACTION MODAL --- */}
+      <Modal
+        isOpen={showLoanActionModal}
+        onClose={closeLoanActionModal}
+        title={loanActionType === 'approve' ? 'Setujui Peminjaman' : 'Tolak Peminjaman'}
+        headerColor={loanActionType === 'approve' ? 'emerald' : 'rose'}
+      >
+        <div className="space-y-6">
+          {/* Info Box */}
+          <div className={`p-4 rounded-xl border ${
+            loanActionType === 'approve'
+                ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800'
+                : 'bg-rose-50 dark:bg-rose-900/20 border-rose-100 dark:border-rose-800'
+          }`}>
+            <p className={`text-sm font-medium ${
+                loanActionType === 'approve'
+                    ? 'text-emerald-800 dark:text-emerald-300'
+                    : 'text-rose-800 dark:text-rose-300'
+            }`}>
+                {loanActionType === 'approve' 
+                    ? 'Anda akan menyetujui peminjaman ini. Stok aset akan berkurang.' 
+                    : 'Anda akan menolak peminjaman ini. Stok aset tidak akan berubah.'}
+            </p>
+          </div>
+
+          {/* Note Input */}
+          <div className="space-y-1.5">
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">
+                {loanActionType === 'approve' ? 'Catatan Persetujuan (Opsional)' : 'Alasan Penolakan (Opsional)'}
+            </label>
+            <textarea
+                className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600 min-h-[100px] resize-none text-slate-800 dark:text-white font-medium"
+                value={actionNote}
+                onChange={(e) => setActionNote(e.target.value)}
+                placeholder={loanActionType === 'approve' 
+                    ? 'Contoh: Disetujui, silakan ambil barang besok.' 
+                    : 'Contoh: Ditolak karena stok tidak mencukupi.'}
+            />
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-4 pt-2">
+            <button
+                type="button"
+                onClick={closeLoanActionModal}
+                disabled={isProcessingAction}
+                className="flex-1 px-6 py-3.5 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors border border-transparent dark:border-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+                Batal
+            </button>
+            <button
+                type="button"
+                onClick={handleLoanActionSubmit}
+                disabled={isProcessingAction}
+                className={`flex-1 px-6 py-3.5 rounded-xl font-bold text-white shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
+                    loanActionType === 'approve'
+                        ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
+                        : 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/20'
+                }`}
+            >
+                {isProcessingAction ? (
+                    <span className="flex items-center justify-center gap-2">
+                        <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        Memproses...
+                    </span>
+                ) : (
+                    loanActionType === 'approve' ? 'Ya, Setujui' : 'Ya, Tolak'
+                )}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
