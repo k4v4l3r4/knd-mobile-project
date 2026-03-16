@@ -263,7 +263,10 @@ export default function InventarisPage() {
   };
 
   const handleLoanActionSubmit = async () => {
-    if (!selectedLoanId || !loanActionType) return;
+    if (!selectedLoanId || !loanActionType) {
+      console.error('Invalid loan action parameters');
+      return;
+    }
 
     setIsProcessingAction(true);
     const action = loanActionType;
@@ -271,9 +274,14 @@ export default function InventarisPage() {
     const note = actionNote;
 
     try {
-      console.log(`Processing ${action} for loan ${id}`);
-      const response = await api.post(`/assets/loans/${id}/${action}`, { admin_note: note });
-      console.log(`${action} response:`, response.data);
+      console.log(`[INVENTARIS] Processing ${action} for loan ${id}`);
+      console.log(`[INVENTARIS] Payload:`, { admin_note: note });
+      
+      const response = await api.post(`/assets/loans/${id}/${action}`, { 
+        admin_note: note 
+      });
+      
+      console.log(`[INVENTARIS] ${action} response:`, response.data);
       
       let successMessage = 'Berhasil memproses peminjaman';
       if (action === 'approve') successMessage = 'Peminjaman berhasil disetujui';
@@ -283,8 +291,9 @@ export default function InventarisPage() {
       closeLoanActionModal();
       fetchLoans();
     } catch (error: any) {
-      console.error(`${action} error:`, error);
-      console.error(`${action} response:`, error.response);
+      console.error(`[INVENTARIS] ${action} error:`, error);
+      console.error(`[INVENTARIS] ${action} response status:`, error.response?.status);
+      console.error(`[INVENTARIS] ${action} response data:`, error.response?.data);
       
       let errorMessage = 'Gagal memproses';
       
@@ -292,6 +301,9 @@ export default function InventarisPage() {
         errorMessage = 'Sesi Anda telah berakhir. Silakan login ulang.';
       } else if (error.response?.status === 403) {
         errorMessage = 'Anda tidak memiliki izin untuk melakukan tindakan ini.';
+      } else if (error.response?.status === 400) {
+        // Bad request - show specific message
+        errorMessage = error.response?.data?.message || 'Data tidak valid';
       } else if (error.response?.status === 500) {
         errorMessage = 'Terjadi kesalahan pada server. Silakan coba lagi atau hubungi administrator.';
       } else if (error.response?.data?.message) {

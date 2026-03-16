@@ -260,49 +260,106 @@ class AssetController extends Controller
     public function approveLoan(Request $request, $id)
     {
         try {
+            Log::info('Approve loan request received', [
+                'loan_id' => $id,
+                'user_id' => $request->user()?->id,
+                'user_role' => $request->user()?->role,
+                'admin_note' => $request->admin_note
+            ]);
+
             $user = $request->user();
-            if (!$user || !in_array($user->role, ['admin_rt', 'ADMIN_RT', 'super_admin', 'SUPER_ADMIN', 'RT', 'rt'])) {
+            if (!$user) {
+                Log::error('Approve loan failed: No authenticated user');
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthorized. Silakan login ulang.'
                 ], 401);
             }
 
+            if (!in_array($user->role, ['admin_rt', 'ADMIN_RT', 'super_admin', 'SUPER_ADMIN', 'RT', 'rt'])) {
+                Log::error('Approve loan failed: Unauthorized role', ['role' => $user->role]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki izin untuk melakukan tindakan ini.'
+                ], 403);
+            }
+
             return DB::transaction(function () use ($id, $user, $request) {
+                Log::info('Processing loan approval in transaction', ['loan_id' => $id]);
+
                 $loan = AssetLoan::with('asset')->lockForUpdate()->findOrFail($id);
+                Log::info('Loan found', [
+                    'loan_id' => $id,
+                    'status' => $loan->status,
+                    'asset_id' => $loan->asset_id,
+                    'quantity' => $loan->quantity
+                ]);
 
                 if ($loan->status !== 'PENDING') {
+                    Log::warning('Approve loan failed: Invalid status', [
+                        'loan_id' => $id,
+                        'current_status' => $loan->status
+                    ]);
                     return response()->json(['message' => 'Status peminjaman tidak valid'], 400);
                 }
 
                 $asset = Asset::lockForUpdate()->find($loan->asset_id);
                 if (!$asset) {
+                    Log::error('Approve loan failed: Asset not found', ['asset_id' => $loan->asset_id]);
                     return response()->json(['message' => 'Aset tidak ditemukan'], 400);
                 }
                 
+                Log::info('Asset found', [
+                    'asset_id' => $asset->id,
+                    'available_quantity' => $asset->available_quantity,
+                    'required_quantity' => $loan->quantity
+                ]);
+                
                 if ($asset->available_quantity < $loan->quantity) {
+                    Log::warning('Approve loan failed: Insufficient stock', [
+                        'asset_id' => $asset->id,
+                        'available' => $asset->available_quantity,
+                        'required' => $loan->quantity
+                    ]);
                     return response()->json(['message' => 'Stok aset tidak mencukupi saat ini'], 400);
                 }
 
                 // Decrease stock
                 $asset->decrement('available_quantity', $loan->quantity);
+                Log::info('Stock decremented', [
+                    'asset_id' => $asset->id,
+                    'new_quantity' => $asset->available_quantity
+                ]);
 
                 // Update status
                 $loan->update([
                     'status' => 'APPROVED',
                     'admin_note' => $request->admin_note
                 ]);
+                Log::info('Loan status updated to APPROVED', ['loan_id' => $id]);
 
-                // Notify User
-                Notification::create([
-                    'user_id' => $loan->user_id,
-                    'title' => 'Peminjaman Disetujui',
-                    'message' => 'Peminjaman ' . $asset->name . ' Anda telah disetujui.',
-                    'type' => 'ASSET_LOAN',
-                    'related_id' => $loan->id,
-                    'url' => '/mobile/loans',
-                    'is_read' => false,
-                ]);
+                // Notify User - Use the model's mutator which sets notifiable_type automatically
+                try {
+                    \App\Models\Notification::create([
+                        'user_id' => $loan->user_id,  // This triggers the mutator to set notifiable_type
+                        'title' => 'Peminjaman Disetujui',
+                        'message' => 'Peminjaman ' . $asset->name . ' Anda telah disetujui.',
+                        'type' => 'ASSET_LOAN',
+                        'related_id' => $loan->id,
+                        'url' => '/mobile/loans',
+                        'is_read' => false,
+                    ]);
+                    Log::info('Notification created successfully', ['user_id' => $loan->user_id]);
+                } catch (\Exception $notifException) {
+                    // Log notification error but don't fail the entire transaction
+                    Log::warning('Failed to create notification: ' . $notifException->getMessage(), [
+                        'loan_id' => $id,
+                        'user_id' => $loan->user_id
+                    ]);
+                }
+                Log::info('Notification created for user', ['user_id' => $loan->user_id]);
+
+                Log::info('Loan approval completed successfully', ['loan_id' => $id]);
 
                 return response()->json([
                     'success' => true,
@@ -353,16 +410,24 @@ class AssetController extends Controller
                 'admin_note' => $request->admin_note
             ]);
 
-            // Notify User
-            Notification::create([
-                'user_id' => $loan->user_id,
-                'title' => 'Peminjaman Ditolak',
-                'message' => 'Peminjaman ' . $loan->asset->name . ' Anda ditolak. Alasan: ' . ($request->admin_note ?? '-'),
-                'type' => 'ASSET_LOAN',
-                'related_id' => $loan->id,
-                'url' => '/mobile/loans',
-                'is_read' => false,
-            ]);
+            // Notify User - Use the model's mutator which sets notifiable_type automatically
+            try {
+                \App\Models\Notification::create([
+                    'user_id' => $loan->user_id,  // This triggers the mutator to set notifiable_type
+                    'title' => 'Peminjaman Ditolak',
+                    'message' => 'Peminjaman ' . $loan->asset->name . ' Anda ditolak. Alasan: ' . ($request->admin_note ?? '-'),
+                    'type' => 'ASSET_LOAN',
+                    'related_id' => $loan->id,
+                    'url' => '/mobile/loans',
+                    'is_read' => false,
+                ]);
+                Log::info('Reject notification created successfully', ['user_id' => $loan->user_id]);
+            } catch (\Exception $notifException) {
+                Log::warning('Failed to create reject notification: ' . $notifException->getMessage(), [
+                    'loan_id' => $id,
+                    'user_id' => $loan->user_id
+                ]);
+            }
 
             return response()->json([
                 'success' => true,
@@ -415,16 +480,24 @@ class AssetController extends Controller
                     'admin_note' => $request->admin_note
                 ]);
 
-                // Notify User
-                Notification::create([
-                    'user_id' => $loan->user_id,
-                    'title' => 'Pengembalian Aset',
-                    'message' => 'Terima kasih, pengembalian ' . $loan->asset->name . ' telah dikonfirmasi.',
-                    'type' => 'ASSET_LOAN',
-                    'related_id' => $loan->id,
-                    'url' => '/mobile/loans',
-                    'is_read' => false,
-                ]);
+                // Notify User - Use the model's mutator which sets notifiable_type automatically
+                try {
+                    \App\Models\Notification::create([
+                        'user_id' => $loan->user_id,  // This triggers the mutator to set notifiable_type
+                        'title' => 'Pengembalian Aset',
+                        'message' => 'Terima kasih, pengembalian ' . $loan->asset->name . ' telah dikonfirmasi.',
+                        'type' => 'ASSET_LOAN',
+                        'related_id' => $loan->id,
+                        'url' => '/mobile/loans',
+                        'is_read' => false,
+                    ]);
+                    Log::info('Return notification created successfully', ['user_id' => $loan->user_id]);
+                } catch (\Exception $notifException) {
+                    Log::warning('Failed to create return notification: ' . $notifException->getMessage(), [
+                        'loan_id' => $id,
+                        'user_id' => $loan->user_id
+                    ]);
+                }
 
                 return response()->json([
                     'success' => true,
