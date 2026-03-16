@@ -8,6 +8,7 @@ use App\Models\Notification;
 use App\Models\WilayahRt;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -284,21 +285,37 @@ class LetterController extends Controller
 
         $letter->update($updateData);
 
-        // 3. Notification
+        // 3. Notification - Explicitly set all required fields
         $title = $request->status === 'APPROVED' ? 'Surat Disetujui' : 'Surat Ditolak';
         $message = $request->status === 'APPROVED' 
             ? 'Pengajuan surat Anda telah disetujui. Silakan unduh dokumen.'
             : 'Pengajuan surat Anda ditolak. Alasan: ' . ($request->admin_note ?? '-');
 
-        Notification::create([
-            'user_id' => $letter->user_id,
-            'title' => $title,
-            'message' => $message,
-            'type' => 'LETTER',
-            'related_id' => $letter->id,
-            'url' => '/layanan-surat', // Frontend route
-            'is_read' => false
-        ]);
+        try {
+            $notificationData = [
+                'notifiable_id' => $letter->user_id,
+                'notifiable_type' => 'App\\Models\\User',
+                'tenant_id' => $user->tenant_id ?? null,
+                'title' => $title,
+                'message' => $message,
+                'type' => 'LETTER',
+                'related_id' => $letter->id,
+                'url' => '/layanan-surat',
+                'is_read' => false,
+            ];
+            
+            \App\Models\Notification::create($notificationData);
+            Log::info('Letter notification created successfully', [
+                'user_id' => $letter->user_id,
+                'notifiable_type' => 'App\\Models\\User'
+            ]);
+        } catch (\Exception $notifException) {
+            Log::warning('Failed to create letter notification: ' . $notifException->getMessage(), [
+                'letter_id' => $letter->id,
+                'user_id' => $letter->user_id,
+                'trace' => $notifException->getTraceAsString()
+            ]);
+        }
 
         return response()->json([
             'success' => true,
