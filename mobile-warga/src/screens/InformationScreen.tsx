@@ -28,6 +28,7 @@ import { useTheme, ThemeColors } from '../context/ThemeContext';
 import { useTenant } from '../context/TenantContext';
 import { DemoLabel } from '../components/TenantStatusComponents';
 import { useLanguage } from '../context/LanguageContext';
+import { formatDateTimeFlexible } from '../utils/dateFormatter';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { ImagePickerModal } from '../components/ImagePickerModal';
@@ -62,29 +63,6 @@ interface Announcement {
 }
 
 // Helper functions moved outside component
-const formatDate = (dateString: string) => {
-  if (!dateString) return '';
-  const safeDate = dateString.replace(' ', 'T');
-  const date = new Date(safeDate);
-  if (isNaN(date.getTime())) return '';
-  return date.toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric'
-  });
-};
-
-const formatTime = (dateString: string) => {
-  if (!dateString) return '';
-  const safeDate = dateString.replace(' ', 'T');
-  const date = new Date(safeDate);
-  if (isNaN(date.getTime())) return '';
-  return date.toLocaleTimeString('id-ID', {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-};
-
 const getImageUrl = (path: string | null) => {
   if (!path) return null;
   return getStorageUrl(path);
@@ -128,14 +106,14 @@ const AnnouncementItem = React.memo(({ item, onPress, onLike, onComment, onShare
             )}
           </View>
           
-          <Text style={styles.cardDate}>{formatDate(item.created_at)}</Text>
+          <Text style={styles.cardDate}>{formatDateTimeFlexible(item.created_at, { showRelative: true })}</Text>
           <Text style={styles.cardPreview} numberOfLines={3}>
             {item.content}
           </Text>
           
           {item.end_date && (
             <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 8, fontStyle: 'italic' }}>
-                Berakhir pada: {formatDate(item.end_date)}
+                Berakhir pada: {formatDateTimeFlexible(item.end_date, { showTime: false })}
             </Text>
           )}
 
@@ -766,7 +744,7 @@ export default function InformationScreen() {
               <View style={styles.detailBody}>
                 <Text style={styles.detailTitle}>{selectedNews?.title}</Text>
                 <Text style={styles.detailDate}>
-                  {selectedNews && formatDate(selectedNews.created_at)}
+                  {selectedNews && formatDateTimeFlexible(selectedNews.created_at, { showTime: false })}
                 </Text>
                 <Text style={styles.detailText}>
                   {selectedNews?.content}
@@ -824,7 +802,7 @@ export default function InformationScreen() {
                     <View style={styles.commentBubble}>
                         <View style={styles.commentUserRow}>
                             <Text style={styles.commentUser}>{item.user.name}</Text>
-                            <Text style={styles.commentTime}>{formatTime(item.created_at)}</Text>
+                            <Text style={styles.commentTime}>{formatDateTimeFlexible(item.created_at, { showRelative: true })}</Text>
                         </View>
                         <Text style={styles.commentText}>{item.content}</Text>
                     </View>

@@ -25,6 +25,7 @@ import SwipeableAnnouncementModal from '../components/SwipeableAnnouncementModal
 import { useTenant } from '../context/TenantContext';
 import { useLanguage } from '../context/LanguageContext';
 import { DemoLabel, TrialBanner } from '../components/TenantStatusComponents';
+import { formatDateTimeFlexible } from '../utils/dateFormatter';
 
 const { width } = Dimensions.get('window');
 
@@ -247,7 +248,7 @@ const AnnouncementItem = React.memo(({ item, index, onNavigate, onLongPress, onL
           </TouchableOpacity>
         )}
 
-        <Text style={styles.instaDate}>{item.created_at}</Text>
+        <Text style={styles.instaDate}>{formatDateTimeFlexible(item.created_at, { showRelative: true })}</Text>
       </View>
     </View>
   );

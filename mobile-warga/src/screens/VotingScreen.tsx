@@ -22,6 +22,7 @@ import { useTheme, ThemeColors } from '../context/ThemeContext';
 import { useTenant } from '../context/TenantContext';
 import { DemoLabel } from '../components/TenantStatusComponents';
 import api, { getStorageUrl } from '../services/api';
+import { formatDateTimeFlexible } from '../utils/dateFormatter';
 
 interface PollOption {
   id: number;
@@ -220,14 +221,7 @@ const VotingScreen = () => {
     setNewPollOptions(['', '']);
   };
 
-  const formatDate = (dateString: string) => {
-    const options: Intl.DateTimeFormatOptions = { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    };
-    return new Date(dateString).toLocaleDateString('id-ID', options);
-  };
+
 
   const renderPollItem = ({ item }: { item: Poll }) => {
     const isExpired = new Date(item.end_date) < new Date();
@@ -242,7 +236,7 @@ const VotingScreen = () => {
             <View style={styles.dateContainer}>
               <Ionicons name="calendar-outline" size={12} color={colors.textSecondary} style={{ marginRight: 4 }} />
               <Text style={styles.pollDate}>
-                Berakhir: {formatDate(item.end_date)}
+                Berakhir: {formatDateTimeFlexible(item.end_date, { showTime: false })}
               </Text>
             </View>
           </View>

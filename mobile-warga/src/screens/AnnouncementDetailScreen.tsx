@@ -12,15 +12,18 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
+  Share as NativeShare
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialIcons, Feather } from '@expo/vector-icons';
-import api, { getStorageUrl } from '../services/api';
+import api, { getStorageUrl, BASE_URL } from '../services/api';
 import { useTheme, ThemeColors } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useTenant } from '../context/TenantContext';
 import { DemoLabel } from '../components/TenantStatusComponents';
+import { formatDateTimeFlexible } from '../utils/dateFormatter';
+import Share from 'react-native-share';
 
 const { width } = Dimensions.get('window');
 
@@ -79,6 +82,35 @@ export default function AnnouncementDetailScreen({ announcement }: AnnouncementD
       console.log('Error fetching comments:', error);
     } finally {
       setLoadingComments(false);
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      // Construct share message
+      const shareMessage = `${announcement.title}\n\n${announcement.content.substring(0, 150)}${announcement.content.length > 150 ? '...' : ''}\n\nCek selengkapnya di Aplikasi KND!`;
+      
+      // Try using react-native-share first (more reliable)
+      const shareOptions = {
+        title: announcement.title,
+        message: shareMessage,
+        url: undefined, // No deep link yet
+        subject: announcement.title,
+      };
+
+      await Share.open(shareOptions);
+    } catch (error) {
+      console.log('Error sharing:', error);
+      // Fallback to native Share API if react-native-share fails
+      try {
+        const shareMessage = `${announcement.title}\n\n${announcement.content.substring(0, 150)}${announcement.content.length > 150 ? '...' : ''}\n\nCek selengkapnya di Aplikasi KND!`;
+        await NativeShare.share({
+          message: shareMessage,
+        });
+      } catch (fallbackError) {
+        console.log('Fallback share error:', fallbackError);
+        Alert.alert(t('common.error'), 'Gagal membagikan pengumuman');
+      }
     }
   };
 
@@ -148,9 +180,7 @@ export default function AnnouncementDetailScreen({ announcement }: AnnouncementD
           <View style={styles.body}>
             <Text style={styles.title}>{announcement.title}</Text>
             <Text style={styles.date}>
-                {new Date(announcement.created_at).toLocaleDateString('id-ID', {
-                    day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
-                })}
+                {formatDateTimeFlexible(announcement.created_at)}
             </Text>
             
             <View style={styles.divider} />
@@ -187,9 +217,7 @@ export default function AnnouncementDetailScreen({ announcement }: AnnouncementD
                         <Text style={styles.commentUser}>{comment.user?.name || 'Warga'}</Text>
                         <Text style={styles.commentText}>{comment.content}</Text>
                         <Text style={styles.commentDate}>
-                            {new Date(comment.created_at).toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US', {
-                                day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
-                            })}
+                            {formatDateTimeFlexible(comment.created_at, { showRelative: true })}
                         </Text>
                       </View>
                     </View>
@@ -200,8 +228,16 @@ export default function AnnouncementDetailScreen({ announcement }: AnnouncementD
           </View>
         </ScrollView>
 
-        {/* Comment Input */}
+        {/* Comment Input with Share Button */}
         <View style={[styles.inputContainer, { paddingBottom: 16 + insets.bottom }]}>
+          <TouchableOpacity 
+            style={[styles.shareButton, styles.shareButtonActive]}
+            onPress={handleShare}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="share-social" size={20} color="#fff" />
+          </TouchableOpacity>
+          
           <TextInput
             ref={inputRef}
             style={styles.input}
@@ -215,6 +251,7 @@ export default function AnnouncementDetailScreen({ announcement }: AnnouncementD
             style={[styles.sendButton, { backgroundColor: newComment.trim() ? colors.primary : colors.border }]}
             onPress={handlePostComment}
             disabled={!newComment.trim() || submitting}
+            activeOpacity={0.7}
           >
             {submitting ? (
               <ActivityIndicator size="small" color="#fff" />
@@ -371,6 +408,17 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     borderTopWidth: 1,
     borderTopColor: colors.border,
     gap: 12,
+  },
+  shareButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  shareButtonActive: {
+    backgroundColor: colors.primary,
   },
   input: {
     flex: 1,

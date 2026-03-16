@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
+import { formatDateTimeFlexible } from '../utils/dateFormatter';
 
 const { width } = Dimensions.get('window');
 const SWIPE_THRESHOLD = 120;
@@ -110,17 +111,7 @@ export default function SwipeableAnnouncementModal({
 
   if (!item) return null;
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return 'Tanggal tidak valid';
-    try {
-      const isoString = dateString.replace(' ', 'T');
-      const date = new Date(isoString);
-      if (isNaN(date.getTime())) return 'Tanggal tidak valid';
-      return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) + ', ' + date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
-    } catch (e) {
-      return 'Tanggal tidak valid';
-    }
-  };
+
 
   return (
     <Modal
@@ -167,7 +158,7 @@ export default function SwipeableAnnouncementModal({
             <View style={styles.content}>
               <Text style={[styles.title, { color: colors.text }]}>{item.title}</Text>
               <Text style={styles.date}>
-                <Feather name="clock" size={12} /> {formatDate(item.created_at)}
+                <Feather name="clock" size={12} /> {formatDateTimeFlexible(item.created_at, { showRelative: true })}
               </Text>
               <Text style={[styles.body, { color: colors.textSecondary }]}>
                 {item.content.replace(/<[^>]+>/g, '')}
