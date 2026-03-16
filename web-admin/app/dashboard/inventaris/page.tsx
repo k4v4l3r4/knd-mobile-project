@@ -25,6 +25,7 @@ import { useTenant } from '@/context/TenantContext';
 import { DemoLabel } from '@/components/TenantStatusComponents';
 import { getImageUrl } from '@/lib/utils';
 import Modal from '@/components/ui/Modal';
+import Cookies from 'js-cookie';
 
 export default function InventarisPage() {
   const { isDemo, isExpired, status } = useTenant();
