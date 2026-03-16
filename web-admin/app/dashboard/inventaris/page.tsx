@@ -159,13 +159,24 @@ export default function InventarisPage() {
         return;
       }
       console.log('[INVENTARIS] Fetching loans from API...');
-      const res = await api.get('/assets/loans/requests');
+      
+      // Add timestamp to prevent caching
+      const timestamp = new Date().getTime();
+      const res = await api.get(`/assets/loans/requests?t=${timestamp}`);
+      
       console.log('[INVENTARIS] Loans API response:', res.data);
       console.log('[INVENTARIS] Loans count:', res.data.data?.length || 0);
       
-      if (res.data.data) {
+      if (res.data.data && Array.isArray(res.data.data)) {
+        // Log all loan statuses for debugging
+        res.data.data.forEach((loan: any, index: number) => {
+          console.log(`[INVENTARIS] Loan[${index}]: id=${loan.id}, status=${loan.status}, asset=${loan.asset?.name}`);
+        });
+        
         setLoans(res.data.data);
-        console.log('[INVENTARIS] Loans state updated. First loan status:', res.data.data[0]?.status);
+        console.log('[INVENTARIS] Loans state updated successfully');
+      } else {
+        console.warn('[INVENTARIS] No loans data in response or not an array');
       }
     } catch (error) {
       if (!isDemo) {
@@ -298,17 +309,27 @@ export default function InventarisPage() {
         throw new Error(response.data.message || 'Gagal memproses peminjaman');
       }
       
+      // Verify the status actually changed in the response
+      const expectedStatus = action === 'approve' ? 'APPROVED' : action === 'reject' ? 'REJECTED' : null;
+      if (response.data.data?.status !== expectedStatus) {
+        console.warn(`[INVENTARIS] ${action} - Status mismatch! Expected: ${expectedStatus}, Got: ${response.data.data?.status}`);
+      }
+      
       let successMessage = 'Berhasil memproses peminjaman';
       if (action === 'approve') successMessage = 'Peminjaman berhasil disetujui';
       else if (action === 'reject') successMessage = 'Peminjaman berhasil ditolak';
       
-      console.log(`[INVENTARIS] ${action} - Refreshing loans list...`);
+      console.log(`[INVENTARIS] ${action} - Closing modal and refreshing...`);
       toast.success(successMessage);
       closeLoanActionModal();
       
-      // Force refresh the loans list
+      // Add a small delay to ensure transaction is committed
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Force refresh the loans list with cache busting
+      console.log(`[INVENTARIS] ${action} - Fetching fresh loans data...`);
       await fetchLoans();
-      console.log(`[INVENTARIS] ${action} - Loans list refreshed`);
+      console.log(`[INVENTARIS] ${action} - Loans list refreshed successfully`);
     } catch (error: any) {
       console.error(`[INVENTARIS] ${action} error:`, error);
       console.error(`[INVENTARIS] ${action} response status:`, error.response?.status);

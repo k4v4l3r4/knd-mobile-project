@@ -336,7 +336,16 @@ class AssetController extends Controller
                     'status' => 'APPROVED',
                     'admin_note' => $request->admin_note
                 ]);
-                Log::info('Loan status updated to APPROVED', ['loan_id' => $id]);
+                
+                // Refresh the loan model to ensure status is actually saved
+                $loan->refresh();
+                
+                Log::info('Loan status updated to APPROVED', [
+                    'loan_id' => $id,
+                    'previous_status' => 'PENDING',
+                    'current_status' => $loan->status,
+                    'admin_note' => $loan->admin_note
+                ]);
 
                 // Notify User - Database notification + Firebase push notification
                 try {
@@ -381,12 +390,25 @@ class AssetController extends Controller
                     ]);
                 }
 
-                Log::info('Loan approval completed successfully', ['loan_id' => $id]);
+                Log::info('Loan approval completed successfully', [
+                    'loan_id' => $id,
+                    'final_status' => $loan->status,
+                    'asset_id' => $loan->asset_id,
+                    'user_id' => $loan->user_id
+                ]);
+
+                // Build response data with explicit status
+                $responseData = new AssetLoanResource($loan);
+                
+                Log::info('Returning loan approval response', [
+                    'loan_id' => $id,
+                    'response_status' => $responseData->status
+                ]);
 
                 return response()->json([
                     'success' => true,
                     'message' => 'Peminjaman disetujui',
-                    'data' => new AssetLoanResource($loan)
+                    'data' => $responseData
                 ]);
             });
         } catch (\Exception $e) {
