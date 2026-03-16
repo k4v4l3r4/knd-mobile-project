@@ -275,7 +275,7 @@ export default function ReportScreen() {
   const handleDeleteReport = async (id: number) => {
     Alert.alert(
       t('common.confirm'),
-      t('report.confirmDelete') || 'Apakah Anda yakin ingin menghapus laporan ini?',
+      t('report.confirmDelete'),
       [
         { text: t('common.cancel'), style: 'cancel' },
         {
@@ -285,11 +285,11 @@ export default function ReportScreen() {
             setLoading(true);
             try {
               await api.delete(`/reports/${id}`);
-              Alert.alert(t('common.success'), t('report.deletedSuccess') || 'Laporan berhasil dihapus');
+              Alert.alert(t('common.success'), t('report.deletedSuccess'));
               fetchReports();
             } catch (error: any) {
               console.error('Error deleting report:', error);
-              Alert.alert(t('common.error'), error.response?.data?.message || t('report.deleteFailed'));
+              Alert.alert(t('common.error'), t('report.deleteFailed') || 'Gagal menghapus laporan');
             } finally {
               setLoading(false);
             }

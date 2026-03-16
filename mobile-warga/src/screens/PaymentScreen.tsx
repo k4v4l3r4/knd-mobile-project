@@ -131,8 +131,7 @@ export default function PaymentScreen({
         return;
     }
     const formattedPhone = formatPhoneNumber(phoneNumber);
-    const contactName = paymentConfig?.cash_contact_name || 'Bendahara';
-    const message = `Halo ${contactName}, saya ingin menyerahkan uang tunai untuk iuran warga.`;
+    const message = `Halo PENGURUS RT, saya ingin menyerahkan uang tunai untuk iuran warga.`;
     const url = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
     Linking.openURL(url)
       .catch(() => Alert.alert('Error', 'Tidak dapat membuka WhatsApp'));
@@ -390,8 +389,7 @@ export default function PaymentScreen({
               </View>
               <Text style={styles.cashTitle}>Bayar Tunai ke Bendahara</Text>
               <Text style={styles.cashDesc}>
-                Silakan serahkan uang tunai ke {paymentConfig?.cash_contact_name || 'Bendahara'}{paymentConfig?.cash_contact_address ? ` di ${paymentConfig.cash_contact_address}` : ''}. 
-                Pastikan meminta foto dokumentasi serah terima.
+                Silakan serahkan uang tunai ke PENGURUS RT. Pastikan meminta foto dokumentasi serah terima.
               </Text>
               <TouchableOpacity
                 onPress={handleContactBendahara}
