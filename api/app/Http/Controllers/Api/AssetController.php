@@ -324,11 +324,19 @@ class AssetController extends Controller
                     return response()->json(['message' => 'Stok aset tidak mencukupi saat ini'], 400);
                 }
 
-                // Decrease stock
+                // Decrease stock with explicit refresh
+                $originalQuantity = $asset->available_quantity;
                 $asset->decrement('available_quantity', $loan->quantity);
+                
+                // Refresh to ensure we have the latest value from database
+                $asset->refresh();
+                
                 Log::info('Stock decremented', [
                     'asset_id' => $asset->id,
-                    'new_quantity' => $asset->available_quantity
+                    'original_quantity' => $originalQuantity,
+                    'decremented_by' => $loan->quantity,
+                    'new_quantity' => $asset->available_quantity,
+                    'expected_quantity' => ($originalQuantity - $loan->quantity)
                 ]);
 
                 // Update status
@@ -349,17 +357,24 @@ class AssetController extends Controller
 
                 // Notify User - Database notification + Firebase push notification
                 try {
-                    // 1. Create database notification
-                    \App\Models\Notification::create([
-                        'user_id' => $loan->user_id,  // This triggers the mutator to set notifiable_type
+                    // 1. Create database notification - Explicitly set all required fields
+                    $notificationData = [
+                        'notifiable_id' => $loan->user_id,
+                        'notifiable_type' => 'App\\Models\\User',
+                        'tenant_id' => $user->tenant_id ?? null,
                         'title' => 'Peminjaman Disetujui',
                         'message' => 'Peminjaman ' . $asset->name . ' Anda telah disetujui.',
                         'type' => 'ASSET_LOAN',
                         'related_id' => $loan->id,
                         'url' => '/mobile/loans',
                         'is_read' => false,
+                    ];
+                    
+                    \App\Models\Notification::create($notificationData);
+                    Log::info('Database notification created successfully', [
+                        'user_id' => $loan->user_id,
+                        'notifiable_type' => 'App\\Models\\User'
                     ]);
-                    Log::info('Database notification created successfully', ['user_id' => $loan->user_id]);
 
                     // 2. Send Firebase push notification
                     $borrower = User::find($loan->user_id);
@@ -386,7 +401,8 @@ class AssetController extends Controller
                     // Log notification error but don't fail the entire transaction
                     Log::warning('Failed to create notifications: ' . $notifException->getMessage(), [
                         'loan_id' => $id,
-                        'user_id' => $loan->user_id
+                        'user_id' => $loan->user_id,
+                        'trace' => $notifException->getTraceAsString()
                     ]);
                 }
 
@@ -456,17 +472,24 @@ class AssetController extends Controller
 
             // Notify User - Database notification + Firebase push notification
             try {
-                // 1. Create database notification
-                \App\Models\Notification::create([
-                    'user_id' => $loan->user_id,  // This triggers the mutator to set notifiable_type
+                // 1. Create database notification - Explicitly set all required fields
+                $notificationData = [
+                    'notifiable_id' => $loan->user_id,
+                    'notifiable_type' => 'App\\Models\\User',
+                    'tenant_id' => $user->tenant_id ?? null,
                     'title' => 'Peminjaman Ditolak',
                     'message' => 'Peminjaman ' . $loan->asset->name . ' Anda ditolak. Alasan: ' . ($request->admin_note ?? '-'),
                     'type' => 'ASSET_LOAN',
                     'related_id' => $loan->id,
                     'url' => '/mobile/loans',
                     'is_read' => false,
+                ];
+                
+                \App\Models\Notification::create($notificationData);
+                Log::info('Database rejection notification created', [
+                    'user_id' => $loan->user_id,
+                    'notifiable_type' => 'App\\Models\\User'
                 ]);
-                Log::info('Database rejection notification created', ['user_id' => $loan->user_id]);
 
                 // 2. Send Firebase push notification
                 $borrower = User::find($loan->user_id);
@@ -492,7 +515,8 @@ class AssetController extends Controller
             } catch (\Exception $notifException) {
                 Log::warning('Failed to create rejection notifications: ' . $notifException->getMessage(), [
                     'loan_id' => $id,
-                    'user_id' => $loan->user_id
+                    'user_id' => $loan->user_id,
+                    'trace' => $notifException->getTraceAsString()
                 ]);
             }
 
@@ -549,17 +573,24 @@ class AssetController extends Controller
 
                 // Notify User - Database notification + Firebase push notification
                 try {
-                    // 1. Create database notification
-                    \App\Models\Notification::create([
-                        'user_id' => $loan->user_id,  // This triggers the mutator to set notifiable_type
+                    // 1. Create database notification - Explicitly set all required fields
+                    $notificationData = [
+                        'notifiable_id' => $loan->user_id,
+                        'notifiable_type' => 'App\\Models\\User',
+                        'tenant_id' => $user->tenant_id ?? null,
                         'title' => 'Pengembalian Aset',
                         'message' => 'Terima kasih, pengembalian ' . $loan->asset->name . ' telah dikonfirmasi.',
                         'type' => 'ASSET_LOAN',
                         'related_id' => $loan->id,
                         'url' => '/mobile/loans',
                         'is_read' => false,
+                    ];
+                    
+                    \App\Models\Notification::create($notificationData);
+                    Log::info('Database return notification created', [
+                        'user_id' => $loan->user_id,
+                        'notifiable_type' => 'App\\Models\\User'
                     ]);
-                    Log::info('Database return notification created', ['user_id' => $loan->user_id]);
 
                     // 2. Send Firebase push notification
                     $borrower = User::find($loan->user_id);
@@ -585,7 +616,8 @@ class AssetController extends Controller
                 } catch (\Exception $notifException) {
                     Log::warning('Failed to create return notifications: ' . $notifException->getMessage(), [
                         'loan_id' => $id,
-                        'user_id' => $loan->user_id
+                        'user_id' => $loan->user_id,
+                        'trace' => $notifException->getTraceAsString()
                     ]);
                 }
 
