@@ -172,7 +172,8 @@ class AssetController extends Controller
     {
         try {
             // Check authentication
-            if (!$request->user()) {
+            $user = $request->user();
+            if (!$user) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthorized. Silakan login ulang.'
@@ -193,28 +194,43 @@ class AssetController extends Controller
 
             // Create PENDING loan
             $loan = AssetLoan::create([
-                'user_id' => $request->user()->id,
+                'user_id' => $user->id,
                 'asset_id' => $asset->id,
                 'quantity' => $request->quantity,
                 'loan_date' => $request->loan_date,
                 'status' => 'PENDING',
             ]);
 
-            // Notify Admins
+            // Notify Admins - Handle case where no admins exist
             $adminRoles = ['ADMIN_RT', 'RT', 'SECRETARY', 'TREASURER', 'ADMIN_RW'];
             $admins = User::where('rt_id', $asset->rt_id)
                 ->whereIn('role', $adminRoles)
                 ->get(['id']);
 
-            foreach ($admins as $admin) {
-                Notification::create([
-                    'user_id' => $admin->id,
-                    'title' => 'Peminjaman Aset Baru',
-                    'message' => ($request->user()->name ?: 'Warga') . ' mengajukan pinjaman: ' . $asset->name,
-                    'type' => 'ASSET_LOAN',
-                    'related_id' => $loan->id,
-                    'url' => '/dashboard/inventaris',
-                    'is_read' => false,
+            if ($admins->count() > 0) {
+                foreach ($admins as $admin) {
+                    try {
+                        Notification::create([
+                            'user_id' => $admin->id,
+                            'title' => 'Peminjaman Aset Baru',
+                            'message' => ($user->name ?: 'Warga') . ' mengajukan pinjaman: ' . $asset->name,
+                            'type' => 'ASSET_LOAN',
+                            'related_id' => $loan->id,
+                            'url' => '/dashboard/inventaris',
+                            'is_read' => false,
+                        ]);
+                    } catch (\Exception $notifException) {
+                        // Log notification error but don't fail the entire request
+                        Log::warning('Failed to create notification for admin: ' . $admin->id, [
+                            'error' => $notifException->getMessage(),
+                            'loan_id' => $loan->id
+                        ]);
+                    }
+                }
+            } else {
+                Log::warning('No admins found for RT: ' . $asset->rt_id, [
+                    'asset_id' => $asset->id,
+                    'loan_id' => $loan->id
                 ]);
             }
 
