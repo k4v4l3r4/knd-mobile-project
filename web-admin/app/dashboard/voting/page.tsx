@@ -82,9 +82,9 @@ export default function VotingPage() {
     end_date: '',
   });
 
-  const [options, setOptions] = useState<{name: string, description: string, image_url: string}[]>([
-    { name: '', description: '', image_url: '' },
-    { name: '', description: '', image_url: '' }
+  const [options, setOptions] = useState<{name: string, description: string, image_url: string, image_file?: File | null}[]>([
+    { name: '', description: '', image_url: '', image_file: null },
+    { name: '', description: '', image_url: '', image_file: null }
   ]);
 
   useEffect(() => {
@@ -187,7 +187,7 @@ export default function VotingPage() {
   };
 
   const handleAddOption = () => {
-    setOptions([...options, { name: '', description: '', image_url: '' }]);
+    setOptions([...options, { name: '', description: '', image_url: '', image_file: null }]);
   };
 
   const handleRemoveOption = (index: number) => {
@@ -202,6 +202,31 @@ export default function VotingPage() {
   const handleOptionChange = (index: number, field: keyof typeof options[0], value: string) => {
     const newOptions = [...options];
     newOptions[index] = { ...newOptions[index], [field]: value };
+    setOptions(newOptions);
+  };
+
+  const handleImageUpload = (index: number, file: File | null) => {
+    if (!file) return;
+    
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('Format file harus .jpg atau .png');
+      return;
+    }
+    
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Ukuran file maksimal 2MB');
+      return;
+    }
+    
+    const newOptions = [...options];
+    newOptions[index] = { 
+      ...newOptions[index], 
+      image_file: file,
+      image_url: URL.createObjectURL(file) // Create preview URL
+    };
     setOptions(newOptions);
   };
 
@@ -224,10 +249,32 @@ export default function VotingPage() {
 
     setIsSubmitting(true);
     try {
-      await api.post('/polls', {
-        ...formData,
-        status: 'OPEN', // Default to OPEN for now
-        options
+      // Create FormData for multipart/form-data upload
+      const submitData = new FormData();
+      submitData.append('title', formData.title);
+      submitData.append('description', formData.description);
+      submitData.append('start_date', formData.start_date);
+      submitData.append('end_date', formData.end_date);
+      submitData.append('status', 'OPEN');
+      
+      // Append each option with file handling
+      options.forEach((opt, index) => {
+        submitData.append(`options[${index}][name]`, opt.name);
+        submitData.append(`options[${index}][description]`, opt.description || '');
+        
+        // Append image file if exists
+        if (opt.image_file) {
+          submitData.append(`options[${index}][image]`, opt.image_file);
+        } else if (opt.image_url && opt.image_url.startsWith('http')) {
+          // Keep existing URL if it's from previous upload
+          submitData.append(`options[${index}][image_url]`, opt.image_url);
+        }
+      });
+      
+      await api.post('/polls', submitData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
       });
       toast.success('Voting berhasil dibuat!');
       setIsCreating(false);
@@ -517,13 +564,47 @@ export default function VotingPage() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">URL Foto (Opsional)</label>
-                          <input 
-                            value={opt.image_url}
-                            onChange={(e) => handleOptionChange(index, 'image_url', e.target.value)}
-                            placeholder="https://..."
-                            className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 dark:text-white rounded-xl focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 outline-none transition-all placeholder-slate-400"
-                          />
+                          <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Foto Kandidat (Opsional)</label>
+                          <div className="flex items-center gap-3">
+                            <label className="flex-1 cursor-pointer">
+                              <div className="px-4 py-2.5 bg-emerald-50 dark:bg-emerald-900/20 border-2 border-dashed border-emerald-200 dark:border-emerald-800 rounded-xl text-center hover:border-emerald-400 transition-colors">
+                                <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400">📁 Pilih Foto</span>
+                                <span className="ml-2 text-xs text-slate-500 dark:text-slate-400">(Max 2MB - JPG/PNG)</span>
+                              </div>
+                              <input 
+                                type="file" 
+                                accept="image/jpeg,image/jpg,image/png"
+                                onChange={(e) => handleImageUpload(index, e.target.files?.[0] || null)}
+                                className="hidden"
+                              />
+                            </label>
+                            {opt.image_url && (
+                              <div className="relative group">
+                                <img 
+                                  src={opt.image_url} 
+                                  alt={`Preview ${opt.name || `Kandidat ${index + 1}`}`}
+                                  className="w-16 h-16 object-cover rounded-lg border-2 border-emerald-200 dark:border-emerald-800 shadow-md"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newOptions = [...options];
+                                    newOptions[index] = { ...newOptions[index], image_file: null, image_url: '' };
+                                    setOptions(newOptions);
+                                  }}
+                                  className="absolute -top-2 -right-2 bg-rose-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-rose-600"
+                                >
+                                  <X size={12} />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                          {opt.image_file && (
+                            <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1">
+                              <CheckCircle2 size={12} />
+                              {opt.image_file.name} ({(opt.image_file.size / 1024).toFixed(0)} KB)
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>

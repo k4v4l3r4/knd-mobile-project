@@ -125,7 +125,7 @@ class PollController extends Controller
             'end_date' => 'required|date|after_or_equal:start_date',
             'options' => 'required|array|min:2',
             'options.*.name' => 'required|string',
-            // Image validation if needed
+            'options.*.image' => 'nullable|image|mimes:jpeg,jpg,png|max:2048', // Max 2MB
         ]);
 
         $user = $request->user();
@@ -159,18 +159,25 @@ class PollController extends Controller
                 'status' => $request->status ?? 'DRAFT'
             ]);
 
-            foreach ($request->options as $opt) {
-                // Handle image upload if present (assuming base64 or file handling in separate endpoint, 
-                // but for simplicity let's assume URL or just store text if no image logic provided yet.
-                // Or if it's a file upload in this request, we need multipart/form-data handling.
-                // Let's assume the frontend sends 'image_url' string or we handle file upload separately.
-                // For now, simple text fields.
+            foreach ($request->options as $index => $opt) {
+                $imageUrl = null;
+                
+                // Handle image upload
+                if ($request->hasFile("options.$index.image")) {
+                    $image = $request->file("options.$index.image");
+                    $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
+                    $imagePath = $image->storeAs('poll_candidates', $imageName, 'public');
+                    $imageUrl = Storage::url($imagePath);
+                } elseif (isset($opt['image_url']) && filter_var($opt['image_url'], FILTER_VALIDATE_URL)) {
+                    // Use existing URL if provided
+                    $imageUrl = $opt['image_url'];
+                }
                 
                 PollOption::create([
                     'poll_id' => $poll->id,
                     'name' => $opt['name'],
                     'description' => $opt['description'] ?? null,
-                    'image_url' => $opt['image_url'] ?? null
+                    'image_url' => $imageUrl
                 ]);
             }
 
