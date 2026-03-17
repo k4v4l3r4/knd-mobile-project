@@ -49,6 +49,7 @@ const VotingScreen = () => {
   const { colors, isDarkMode } = useTheme();
   const { isExpired, isDemo } = useTenant();
   const styles = useMemo(() => getStyles(colors, isDarkMode), [colors, isDarkMode]);
+  const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
   const [polls, setPolls] = useState<Poll[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -100,7 +101,21 @@ const VotingScreen = () => {
   const fetchPolls = async () => {
     try {
       const response = await api.get('/polls');
-      setPolls(response.data.data);
+      
+      // Auto-update status based on dates
+      const updatedPolls = response.data.data.map((poll: Poll) => {
+        const now = new Date();
+        const endDate = new Date(poll.end_date);
+        
+        // Auto-close if end date has passed and status is still OPEN
+        if (poll.status === 'OPEN' && endDate < now) {
+          return { ...poll, computedStatus: 'CLOSED' as const };
+        }
+        
+        return { ...poll, computedStatus: poll.status };
+      });
+      
+      setPolls(updatedPolls);
     } catch (error) {
       console.error(error);
       Alert.alert('Error', 'Gagal memuat data voting');
@@ -221,12 +236,52 @@ const VotingScreen = () => {
     setNewPollOptions(['', '']);
   };
 
+  // Helper function to get poll display status
+  const getPollStatus = (poll: Poll) => {
+    const now = new Date();
+    const startDate = new Date(poll.start_date);
+    const endDate = new Date(poll.end_date);
+    
+    // If end date has passed, it's closed
+    if (endDate < now) {
+      return { status: 'CLOSED', label: 'Selesai', color: '#E11D48' }; // Rose-600
+    }
+    
+    // If start date hasn't arrived, it's upcoming
+    if (startDate > now) {
+      return { status: 'DRAFT', label: 'Akan Datang', color: '#64748B' }; // Slate-500
+    }
+    
+    // Otherwise use the stored status
+    switch (poll.status) {
+      case 'OPEN':
+        return { status: 'OPEN', label: 'Aktif', color: '#059669' }; // Emerald-600
+      case 'CLOSED':
+        return { status: 'CLOSED', label: 'Selesai', color: '#E11D48' }; // Rose-600
+      default:
+        return { status: 'DRAFT', label: 'Draft', color: '#64748B' }; // Slate-500
+    }
+  };
+
+  // Helper function to get winner from poll
+  const getPollWinner = (poll: Poll) => {
+    if (!poll.options || poll.options.length === 0) return null;
+    
+    const winner = poll.options.reduce((max, option) => 
+      option.vote_count > max.vote_count ? option : max
+    );
+    
+    return winner;
+  };
+
 
 
   const renderPollItem = ({ item }: { item: Poll }) => {
-    const isExpired = new Date(item.end_date) < new Date();
-    const isClosed = item.status === 'CLOSED' || isExpired;
-    const canVote = !item.is_voted && !isClosed;
+    const statusInfo = getPollStatus(item);
+    const isHistory = activeTab === 'history';
+    const isClosed = statusInfo.status === 'CLOSED';
+    const canVote = !item.is_voted && !isClosed && !isHistory;
+    const winner = getPollWinner(item);
 
     return (
       <View style={styles.card}>
@@ -242,13 +297,13 @@ const VotingScreen = () => {
           </View>
           <View style={[
             styles.statusBadge, 
-            { backgroundColor: isClosed ? 'rgba(100, 116, 139, 0.1)' : 'rgba(5, 150, 105, 0.1)' }
+            { backgroundColor: `${statusInfo.color}1A` } // 10% opacity
           ]}>
             <Text style={[
               styles.statusText, 
-              { color: isClosed ? '#64748B' : '#059669' }
+              { color: statusInfo.color }
             ]}>
-              {isClosed ? 'Selesai' : 'Aktif'}
+              {statusInfo.label}
             </Text>
           </View>
         </View>
@@ -256,6 +311,47 @@ const VotingScreen = () => {
         <Text style={styles.pollDescription}>
           {item.description}
         </Text>
+
+        {/* Winner Preview Card for History Tab */}
+        {isHistory && winner && (
+          <View style={[
+            styles.winnerCard,
+            { backgroundColor: isDarkMode ? 'rgba(225, 29, 72, 0.1)' : '#FFF1F2' }
+          ]}>
+            <View style={styles.winnerHeader}>
+              <Ionicons name="trophy" size={16} color="#E11D48" style={{ marginRight: 6 }} />
+              <Text style={[styles.winnerTitle, { color: isDarkMode ? colors.text : '#881337' }]}>Hasil Akhir</Text>
+            </View>
+            <View style={styles.winnerContent}>
+              <View style={[
+                styles.winnerIcon,
+                { backgroundColor: isDarkMode ? 'rgba(225, 29, 72, 0.2)' : '#FEE2E2' }
+              ]}>
+                <Text style={styles.winnerEmoji}>🏆</Text>
+              </View>
+              <View style={styles.winnerText}>
+                <Text style={[styles.winnerName, { color: isDarkMode ? colors.text : '#111827' }]}>{winner.name}</Text>
+                <Text style={[styles.winnerSubtext, { color: isDarkMode ? colors.textSecondary : '#6B7280' }]}>Pemenang dengan suara terbanyak</Text>
+              </View>
+              <View style={styles.winnerStats}>
+                <Text style={[styles.winnerVotes, { color: isDarkMode ? '#FB7185' : '#E11D48' }]}>{winner.vote_count}</Text>
+                <Text style={[styles.winnerVotesLabel, { color: isDarkMode ? colors.textSecondary : '#6B7280' }]}>suara</Text>
+              </View>
+            </View>
+            <View style={[
+              styles.winnerProgressBg,
+              { backgroundColor: isDarkMode ? 'rgba(225, 29, 72, 0.2)' : '#FEE2E2' }
+            ]}>
+              <View style={[
+                styles.winnerProgressFill,
+                { width: `${winner.percentage || 0}%`, backgroundColor: '#E11D48' }
+              ]} />
+            </View>
+            <Text style={[styles.winnerPercentage, { color: isDarkMode ? '#FB7185' : '#E11D48' }]}>
+              {winner.percentage || 0}% dari total {item.total_votes} suara
+            </Text>
+          </View>
+        )}
 
         <View style={styles.divider} />
 
@@ -375,13 +471,74 @@ const VotingScreen = () => {
         </SafeAreaView>
       </View>
 
+      {/* --- TABS SECTION --- */}
+      <View style={styles.tabContainer}>
+        <TouchableOpacity
+          style={[
+            styles.tabButton,
+            activeTab === 'active' && [
+              styles.tabButtonActive,
+              { backgroundColor: colors.primary }
+            ]
+          ]}
+          onPress={() => setActiveTab('active')}
+          activeOpacity={0.7}
+        >
+          <Ionicons 
+            name="bar-chart-outline" 
+            size={16} 
+            color={activeTab === 'active' ? '#fff' : colors.textSecondary} 
+            style={{ marginRight: 6 }} 
+          />
+          <Text style={[
+            styles.tabText,
+            activeTab === 'active' && styles.tabTextActive
+          ]}>
+            Voting Aktif
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.tabButton,
+            activeTab === 'history' && [
+              styles.tabButtonActive,
+              { backgroundColor: '#E11D48' }
+            ]
+          ]}
+          onPress={() => setActiveTab('history')}
+          activeOpacity={0.7}
+        >
+          <Ionicons 
+            name="checkmark-circle-outline" 
+            size={16} 
+            color={activeTab === 'history' ? '#fff' : colors.textSecondary} 
+            style={{ marginRight: 6 }} 
+          />
+          <Text style={[
+            styles.tabText,
+            activeTab === 'history' && styles.tabTextActive
+          ]}>
+            Riwayat
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       {loading ? (
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
         <FlatList
-          data={polls}
+          data={polls.filter(poll => {
+            const statusInfo = getPollStatus(poll);
+            if (activeTab === 'active') {
+              // Show only OPEN polls (actively running)
+              return statusInfo.status === 'OPEN';
+            } else {
+              // Show CLOSED polls (history)
+              return statusInfo.status === 'CLOSED';
+            }
+          })}
           renderItem={renderPollItem}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.listContent}
@@ -390,9 +547,15 @@ const VotingScreen = () => {
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Ionicons name="stats-chart-outline" size={64} color={colors.textSecondary} />
+              <Ionicons 
+                name={activeTab === 'active' ? "stats-chart-outline" : "checkmark-circle-outline"} 
+                size={64} 
+                color={colors.textSecondary} 
+              />
               <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                Belum ada voting aktif saat ini
+                {activeTab === 'active'
+                  ? 'Belum ada voting aktif saat ini'
+                  : 'Belum ada riwayat voting'}
               </Text>
             </View>
           }
@@ -908,5 +1071,112 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     color: '#fff',
     fontSize: 16,
     fontWeight: '700',
+  },
+  // Tab Styles
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: colors.card,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    gap: 8,
+  },
+  tabButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#F1F5F9',
+  },
+  tabButtonActive: {
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  tabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  tabTextActive: {
+    color: '#fff',
+    fontWeight: '700',
+  },
+  // Winner Card Styles
+  winnerCard: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderStyle: 'solid',
+  },
+  winnerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  winnerTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  winnerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  winnerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  winnerEmoji: {
+    fontSize: 20,
+  },
+  winnerText: {
+    flex: 1,
+  },
+  winnerName: {
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  winnerSubtext: {
+    fontSize: 12,
+  },
+  winnerStats: {
+    alignItems: 'flex-end',
+  },
+  winnerVotes: {
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  winnerVotesLabel: {
+    fontSize: 11,
+    marginTop: -2,
+  },
+  winnerProgressBg: {
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 6,
+  },
+  winnerProgressFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  winnerPercentage: {
+    fontSize: 11,
+    fontWeight: '600',
+    textAlign: 'right',
   },
 });
