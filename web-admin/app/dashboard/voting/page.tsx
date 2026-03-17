@@ -64,6 +64,7 @@ interface Poll {
 
 export default function VotingPage() {
   const { isDemo, isExpired, status } = useTenant();
+  const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
   const [polls, setPolls] = useState<Poll[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
@@ -175,7 +176,21 @@ export default function VotingPage() {
         return;
       }
       const response = await api.get('/polls');
-      setPolls(response.data.data);
+      
+      // Auto-update status based on dates
+      const updatedPolls = response.data.data.map((poll: Poll) => {
+        const now = new Date();
+        const endDate = new Date(poll.end_date);
+        
+        // Auto-close if end date has passed and status is still OPEN
+        if (poll.status === 'OPEN' && endDate < now) {
+          return { ...poll, computedStatus: 'CLOSED' as const };
+        }
+        
+        return { ...poll, computedStatus: poll.status };
+      });
+      
+      setPolls(updatedPolls);
     } catch (error) {
       if (!isDemo) {
         console.error('Error fetching polls:', error);
@@ -184,6 +199,44 @@ export default function VotingPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper function to get poll display status
+  const getPollStatus = (poll: Poll) => {
+    const now = new Date();
+    const startDate = new Date(poll.start_date);
+    const endDate = new Date(poll.end_date);
+    
+    // If end date has passed, it's closed
+    if (endDate < now) {
+      return { status: 'CLOSED', label: 'Selesai', color: 'rose' };
+    }
+    
+    // If start date hasn't arrived, it's upcoming
+    if (startDate > now) {
+      return { status: 'DRAFT', label: 'Akan Datang', color: 'slate' };
+    }
+    
+    // Otherwise use the stored status
+    switch (poll.status) {
+      case 'OPEN':
+        return { status: 'OPEN', label: 'Sedang Berjalan', color: 'emerald' };
+      case 'CLOSED':
+        return { status: 'CLOSED', label: 'Selesai', color: 'rose' };
+      default:
+        return { status: 'DRAFT', label: 'Draft', color: 'slate' };
+    }
+  };
+
+  // Helper function to get winner from poll
+  const getPollWinner = (poll: Poll) => {
+    if (!poll.options || poll.options.length === 0) return null;
+    
+    const winner = poll.options.reduce((max, option) => 
+      option.vote_count > max.vote_count ? option : max
+    );
+    
+    return winner;
   };
 
   const handleAddOption = () => {
@@ -633,9 +686,53 @@ export default function VotingPage() {
         </div>
       )}
 
+      {/* --- TABS SECTION --- */}
+      <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-2 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm">
+        <button
+          onClick={() => setActiveTab('active')}
+          className={`flex-1 md:flex-none px-6 py-3 rounded-[1.5rem] font-bold text-sm transition-all ${
+            activeTab === 'active'
+              ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20'
+              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+          }`}
+        >
+          <div className="flex items-center justify-center gap-2">
+            <BarChart2 size={16} />
+            Voting Aktif
+          </div>
+        </button>
+        <button
+          onClick={() => setActiveTab('history')}
+          className={`flex-1 md:flex-none px-6 py-3 rounded-[1.5rem] font-bold text-sm transition-all ${
+            activeTab === 'history'
+              ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/20'
+              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+          }`}
+        >
+          <div className="flex items-center justify-center gap-2">
+            <CheckCircle2 size={16} />
+            Riwayat Voting
+          </div>
+        </button>
+      </div>
+
       {/* --- POLL LIST --- */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {polls.map((poll) => (
+        {polls
+          .filter(poll => {
+            const statusInfo = getPollStatus(poll);
+            if (activeTab === 'active') {
+              // Show only OPEN polls (actively running)
+              return statusInfo.status === 'OPEN';
+            } else {
+              // Show CLOSED polls (history)
+              return statusInfo.status === 'CLOSED';
+            }
+          })
+          .map((poll) => {
+            const statusInfo = getPollStatus(poll);
+            
+            return (
           <div key={poll.id} className="group bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 overflow-hidden hover:shadow-xl hover:shadow-emerald-900/5 transition-all duration-300 flex flex-col">
             <div className="px-8 pt-8 pb-4 bg-gradient-to-b from-slate-50/80 dark:from-slate-800/80 to-transparent border-b border-slate-50 dark:border-slate-800">
               <div className="flex justify-between items-start mb-4">
@@ -651,11 +748,13 @@ export default function VotingPage() {
                   </div>
                 </div>
                 <span className={`px-3 py-1.5 rounded-xl text-xs font-bold border ${
-                  poll.status === 'OPEN' 
-                    ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' 
+                  statusInfo.color === 'emerald'
+                    ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
+                    : statusInfo.color === 'rose'
+                    ? 'bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800'
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
                 }`}>
-                  {poll.status === 'OPEN' ? 'Sedang Berjalan' : 'Selesai'}
+                  {statusInfo.label}
                 </span>
               </div>
               <p className="text-slate-600 dark:text-slate-300 text-sm line-clamp-2 leading-relaxed h-10">
@@ -664,6 +763,54 @@ export default function VotingPage() {
             </div>
             
             <div className="p-8">
+              {/* Winner Summary for History Tab */}
+              {activeTab === 'history' && (
+                <div className="mb-6 bg-gradient-to-br from-rose-50 to-pink-50 dark:from-rose-900/20 dark:to-pink-900/20 rounded-3xl p-6 border border-rose-100 dark:border-rose-800">
+                  <div className="flex items-center gap-2 mb-3">
+                    <CheckCircle2 className="w-5 h-5 text-rose-600" />
+                    <h4 className="font-bold text-sm text-rose-700 dark:text-rose-400">Hasil Akhir</h4>
+                  </div>
+                  {(() => {
+                    const winner = getPollWinner(poll);
+                    if (winner) {
+                      return (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center text-rose-600 dark:text-rose-400 font-bold text-lg">
+                              🏆
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-bold text-slate-800 dark:text-white">{winner.name}</p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">Pemenang dengan suara terbanyak</p>
+                            </div>
+                          </div>
+                          <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-rose-100 dark:border-rose-800">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Suara diperoleh</span>
+                              <span className="text-lg font-bold text-rose-600 dark:text-rose-400">{winner.vote_count} suara</span>
+                            </div>
+                            <div className="w-full bg-rose-100 dark:bg-rose-900/30 rounded-full h-3 overflow-hidden">
+                              <div 
+                                className="h-full bg-gradient-to-r from-rose-500 to-pink-500 rounded-full transition-all duration-500"
+                                style={{ width: `${winner.percentage}%` }}
+                              />
+                            </div>
+                            <p className="text-right text-xs font-bold text-rose-600 dark:text-rose-400 mt-2">
+                              {winner.percentage}% dari total {poll.total_votes} suara
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return (
+                      <p className="text-sm text-slate-500 dark:text-slate-400 italic">
+                        Tidak ada data pemenang.
+                      </p>
+                    );
+                  })()}
+                </div>
+              )}
+
               <div className="bg-slate-50 dark:bg-slate-800 rounded-3xl p-6 border border-slate-100 dark:border-slate-700 relative mb-6">
                  {renderChart(poll)}
               </div>
@@ -685,16 +832,23 @@ export default function VotingPage() {
               </div>
             </div>
           </div>
-        ))}
+        );
+          })}
         
         {!loading && polls.length === 0 && !isCreating && (
           <div className="col-span-full py-24 text-center bg-white dark:bg-slate-900 rounded-[2.5rem] border border-dashed border-slate-200 dark:border-slate-800">
             <div className="w-24 h-24 bg-slate-50 dark:bg-slate-800 rounded-[2rem] flex items-center justify-center mx-auto mb-6 text-slate-300 dark:text-slate-600">
-              <PieChart className="w-12 h-12" />
+              {activeTab === 'active' ? <BarChart2 className="w-12 h-12" /> : <CheckCircle2 className="w-12 h-12" />}
             </div>
-            <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200 mb-2">Belum ada voting aktif</h3>
+            <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200 mb-2">
+              {activeTab === 'active' 
+                ? 'Belum ada voting aktif'
+                : 'Belum ada riwayat voting'}
+            </h3>
             <p className="text-slate-500 dark:text-slate-400 max-w-sm mx-auto mb-8">
-              Buat voting baru untuk memulai pemungutan suara warga secara digital dan transparan.
+              {activeTab === 'active'
+                ? 'Buat voting baru untuk memulai pemungutan suara warga secara digital dan transparan.'
+                : 'Voting yang sudah selesai akan muncul di tab riwayat dengan ringkasan hasilnya.'}
             </p>
             <button 
               onClick={() => setIsCreating(true)}

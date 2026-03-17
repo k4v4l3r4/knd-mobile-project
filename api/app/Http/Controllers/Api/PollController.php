@@ -9,6 +9,7 @@ use App\Models\PollVote;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class PollController extends Controller
 {
@@ -246,6 +247,49 @@ class PollController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['message' => 'Failed to record vote', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function destroy($id)
+    {
+        $user = request()->user();
+        $role = strtoupper((string) $user->role);
+
+        // Only RT/Admin roles can delete polls
+        if (!in_array($role, ['RT', 'ADMIN_RT', 'RW', 'ADMIN_RW', 'SUPER_ADMIN', 'SEKRETARIS_RT', 'BENDAHARA_RT'])) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        try {
+            $poll = Poll::findOrFail($id);
+
+            // Check if poll belongs to user's RT (for RT roles)
+            if (in_array($role, ['RT', 'ADMIN_RT', 'SEKRETARIS_RT', 'BENDAHARA_RT']) && $poll->rt_id != $user->rt_id) {
+                return response()->json(['message' => 'Poll does not belong to your RT'], 403);
+            }
+
+            // Check if voting is still in DRAFT status
+            if ($poll->status !== 'DRAFT') {
+                // Check if there are votes
+                $voteCount = $poll->votes()->count();
+                
+                if ($voteCount > 0) {
+                    return response()->json([
+                        'message' => 'Voting tidak bisa dihapus karena sudah ada suara masuk. Silakan tutup voting terlebih dahulu.',
+                        'votes_count' => $voteCount
+                    ], 422);
+                }
+            }
+
+            // Delete poll (cascade will handle options and votes)
+            $poll->delete();
+
+            return response()->json(['message' => 'Voting berhasil dihapus']);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['message' => 'Voting tidak ditemukan'], 404);
+        } catch (\Exception $e) {
+            Log::error('Error deleting poll: ' . $e->getMessage());
+            return response()->json(['message' => 'Gagal menghapus voting', 'error' => $e->getMessage()], 500);
         }
     }
 }
