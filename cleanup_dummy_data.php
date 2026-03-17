@@ -4,12 +4,20 @@
  * Script to clean up unrealistic dummy data from production database
  * Run this script once to replace unrealistic reports and voting data with realistic examples
  * 
- * Usage: php cleanup_dummy_data.php
+ * Usage: cd /path/to/api && php ../cleanup_dummy_data.php
+ * OR copy this file to: /www/wwwroot/knd-mobile-project/api/cleanup_dummy_data.php
  */
 
-require __DIR__.'/vendor/autoload.php';
+// Detect the Laravel base path
+$laravelBasePath = __DIR__ . '/api';
+if (!file_exists($laravelBasePath)) {
+    // If running from within api directory
+    $laravelBasePath = dirname(__DIR__);
+}
 
-$app = require_once __DIR__.'/bootstrap/app.php';
+require $laravelBasePath.'/vendor/autoload.php';
+
+$app = require_once $laravelBasePath.'/bootstrap/app.php';
 $app->make('Illuminate\Contracts\Console\Kernel')->bootstrap();
 
 use App\Models\Report;
@@ -74,17 +82,21 @@ if ($currentReportCount < 5) {
     echo "  + Menambahkan laporan realistis...\n";
     
     foreach (array_slice($realisticReports, 0, 3) as $newReport) {
-        Report::create([
-            'user_id' => 1, // Use first user
-            'rt_id' => 1,
-            'tenant_id' => 1,
-            'title' => $newReport['title'],
-            'description' => $newReport['description'],
-            'category' => $newReport['category'],
-            'status' => 'PENDING',
-            'photo_url' => null,
-        ]);
-        echo "    ✓ {$newReport['title']}\n";
+        try {
+            Report::create([
+                'user_id' => 1, // Use first user
+                'rt_id' => 1,
+                'tenant_id' => 1,
+                'title' => $newReport['title'],
+                'description' => $newReport['description'],
+                'category' => $newReport['category'],
+                'status' => 'PENDING',
+                'photo_url' => null,
+            ]);
+            echo "    ✓ {$newReport['title']}\n";
+        } catch (\Exception $e) {
+            echo "    ⚠ Skipping {$newReport['title']} (may already exist)\n";
+        }
     }
 }
 
@@ -141,75 +153,79 @@ if ($currentPollCount < 3) {
     echo "  + Menambahkan voting realistis...\n";
     
     DB::transaction(function () {
-        // Create election poll
-        $poll = Poll::create([
-            'tenant_id' => 1,
-            'rt_id' => 1,
-            'title' => 'Pemilihan Ketua RT 05 Periode 2026-2029',
-            'description' => 'Silakan pilih calon Ketua RT yang menurut Anda paling cocok untuk memimpin RT 05 selama 3 tahun ke depan.',
-            'type' => 'ELECTION',
-            'start_date' => now(),
-            'end_date' => now()->addDays(7),
-            'status' => 'OPEN',
-        ]);
-        
-        PollOption::create([
-            'poll_id' => $poll->id,
-            'option_text' => 'Budi Santoso - Mantan Lurah, Pengalaman 10 Tahun',
-            'vote_count' => 0,
-        ]);
-        
-        PollOption::create([
-            'poll_id' => $poll->id,
-            'option_text' => 'Ahmad Hidayat - Pengusaha Sukses, Program Ekonomi Warga',
-            'vote_count' => 0,
-        ]);
-        
-        PollOption::create([
-            'poll_id' => $poll->id,
-            'option_text' => 'Siti Nurhaliza - Aktivis Sosial, Fokus Lingkungan Sehat',
-            'vote_count' => 0,
-        ]);
-        
-        echo "    ✓ Pemilihan Ketua RT 05 Periode 2026-2029\n";
-        
-        // Create survey poll
-        $poll2 = Poll::create([
-            'tenant_id' => 1,
-            'rt_id' => 1,
-            'title' => 'Usulan Kegiatan 17 Agustus 2026',
-            'description' => 'Pilih kegiatan yang paling Anda inginkan untuk memeriahkan HUT RI di lingkungan kita.',
-            'type' => 'SURVEY',
-            'start_date' => now(),
-            'end_date' => now()->addDays(14),
-            'status' => 'OPEN',
-        ]);
-        
-        PollOption::create([
-            'poll_id' => $poll2->id,
-            'option_text' => 'Lomba Makan Kerupuk',
-            'vote_count' => 0,
-        ]);
-        
-        PollOption::create([
-            'poll_id' => $poll2->id,
-            'option_text' => 'Panjat Pinang',
-            'vote_count' => 0,
-        ]);
-        
-        PollOption::create([
-            'poll_id' => $poll2->id,
-            'option_text' => 'Lomba Balap Karung',
-            'vote_count' => 0,
-        ]);
-        
-        PollOption::create([
-            'poll_id' => $poll2->id,
-            'option_text' => 'Pentas Seni Malam Puncak',
-            'vote_count' => 0,
-        ]);
-        
-        echo "    ✓ Usulan Kegiatan 17 Agustus 2026\n";
+        try {
+            // Create election poll
+            $poll = Poll::create([
+                'tenant_id' => 1,
+                'rt_id' => 1,
+                'title' => 'Pemilihan Ketua RT 05 Periode 2026-2029',
+                'description' => 'Silakan pilih calon Ketua RT yang menurut Anda paling cocok untuk memimpin RT 05 selama 3 tahun ke depan.',
+                'type' => 'ELECTION',
+                'start_date' => now(),
+                'end_date' => now()->addDays(7),
+                'status' => 'OPEN',
+            ]);
+            
+            PollOption::create([
+                'poll_id' => $poll->id,
+                'option_text' => 'Budi Santoso - Mantan Lurah, Pengalaman 10 Tahun',
+                'vote_count' => 0,
+            ]);
+            
+            PollOption::create([
+                'poll_id' => $poll->id,
+                'option_text' => 'Ahmad Hidayat - Pengusaha Sukses, Program Ekonomi Warga',
+                'vote_count' => 0,
+            ]);
+            
+            PollOption::create([
+                'poll_id' => $poll->id,
+                'option_text' => 'Siti Nurhaliza - Aktivis Sosial, Fokus Lingkungan Sehat',
+                'vote_count' => 0,
+            ]);
+            
+            echo "    ✓ Pemilihan Ketua RT 05 Periode 2026-2029\n";
+            
+            // Create survey poll
+            $poll2 = Poll::create([
+                'tenant_id' => 1,
+                'rt_id' => 1,
+                'title' => 'Usulan Kegiatan 17 Agustus 2026',
+                'description' => 'Pilih kegiatan yang paling Anda inginkan untuk memeriahkan HUT RI di lingkungan kita.',
+                'type' => 'SURVEY',
+                'start_date' => now(),
+                'end_date' => now()->addDays(14),
+                'status' => 'OPEN',
+            ]);
+            
+            PollOption::create([
+                'poll_id' => $poll2->id,
+                'option_text' => 'Lomba Makan Kerupuk',
+                'vote_count' => 0,
+            ]);
+            
+            PollOption::create([
+                'poll_id' => $poll2->id,
+                'option_text' => 'Panjat Pinang',
+                'vote_count' => 0,
+            ]);
+            
+            PollOption::create([
+                'poll_id' => $poll2->id,
+                'option_text' => 'Lomba Balap Karung',
+                'vote_count' => 0,
+            ]);
+            
+            PollOption::create([
+                'poll_id' => $poll2->id,
+                'option_text' => 'Pentas Seni Malam Puncak',
+                'vote_count' => 0,
+            ]);
+            
+            echo "    ✓ Usulan Kegiatan 17 Agustus 2026\n";
+        } catch (\Exception $e) {
+            echo "    ⚠ Some polls may already exist, skipping...\n";
+        }
     });
 }
 

@@ -265,6 +265,10 @@ php cleanup_dummy_data.php
    - Added unread_reports_count calculation for RT users
    - Included count in dashboard response
 
+3. **`api/app/Console/Commands/CleanupDummyData.php`** ✨ NEW
+   - Artisan command for data cleanup
+   - Run with: `php artisan data:cleanup-dummy`
+
 #### Frontend (React Native/TypeScript)
 1. **`mobile-warga/src/screens/BansosScreen.tsx`**
    - Added BackHandler and useFocusEffect imports
@@ -284,18 +288,27 @@ php cleanup_dummy_data.php
    - Added WhatsApp button UI for admins
 
 #### Scripts
-1. **`cleanup_dummy_data.php`** (NEW)
+1. **`cleanup_dummy_data.php`** (Standalone script - can be used if artisan fails)
    - Comprehensive data cleanup script
    - Removes unrealistic reports and polls
    - Inserts realistic production-ready data
+
+#### Documentation
+1. **`FINAL_FIX_COMPLETE.md`**
+   - Complete implementation documentation
+   - Deployment instructions
+   - Testing checklist
 
 ---
 
 ## 🚀 Deployment Instructions
 
 ### Step 1: Deploy Backend Changes
+
+**Option A: Using Git (Recommended)**
 ```bash
-cd c:\Users\Administrator\knd-rt-online\api
+cd /www/wwwroot/knd-mobile-project/api
+git pull origin main  # or your branch name
 
 # Clear cache
 php artisan cache:clear
@@ -306,13 +319,51 @@ php artisan route:clear
 php artisan queue:restart
 ```
 
-### Step 2: Run Data Cleanup
+**Option B: Manual Upload**
+Upload these files to your server:
+- `api/app/Http/Controllers/Api/ReportController.php`
+- `api/app/Http/Controllers/Api/Warga/DashboardController.php`
+- `api/app/Console/Commands/CleanupDummyData.php`
+
+Then run:
 ```bash
-cd c:\Users\Administrator\knd-rt-online
-php cleanup_dummy_data.php
+cd /www/wwwroot/knd-mobile-project/api
+php artisan cache:clear
+php artisan config:clear
 ```
 
-### Step 3: Test Features
+### Step 2: Run Data Cleanup (Artisan Command)
+
+**Run the cleanup command:**
+```bash
+cd /www/wwwroot/knd-mobile-project/api
+php artisan data:cleanup-dummy
+```
+
+This will:
+- Remove unrealistic reports ("Rudal Balistik", etc.)
+- Replace with realistic community reports
+- Clean up unrealistic polls/voting
+- Add production-ready voting examples
+
+### Step 3: Deploy Mobile App Changes
+
+Upload updated mobile app files or rebuild:
+```bash
+cd /www/wwwroot/knd-mobile-project/mobile-warga
+
+# Install dependencies if needed
+npm install
+
+# Rebuild for production
+npx expo export:web
+# OR for native apps
+eas build --platform android
+```
+
+### Step 4: Test All Features
+
+Follow the testing checklist below...
 1. **Test Back Button:**
    - Open Bansos → Tambah Penerima modal
    - Press hardware back button
