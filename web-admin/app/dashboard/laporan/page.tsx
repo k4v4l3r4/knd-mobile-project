@@ -26,20 +26,20 @@ import { id } from 'date-fns/locale';
 import Image from 'next/image';
 
 interface User {
-  id: number;
-  name: string;
+  id?: number;
+  name?: string;
   photo_url?: string;
 }
 
 interface Report {
   id: number;
-  title: string;
-  description: string;
-  category: string;
+  title?: string;
+  description?: string;
+  category?: string;
   status: 'PENDING' | 'PROCESS' | 'RESOLVED' | 'REJECTED';
   photo_url?: string;
-  created_at: string;
-  user: User;
+  created_at?: string;
+  user?: User;
 }
 
 export default function LaporanWargaPage() {
@@ -415,7 +415,7 @@ export default function LaporanWargaPage() {
                 </div>
                 <div className="text-right">
                     <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Tanggal Laporan</span>
-                    <span className="text-sm font-bold text-slate-700 dark:text-white">{format(new Date(selectedReport.created_at), 'dd MMMM yyyy, HH:mm', { locale: id })}</span>
+                    <span className="text-sm font-bold text-slate-700 dark:text-white">{selectedReport.created_at ? format(new Date(selectedReport.created_at), 'dd MMMM yyyy, HH:mm', { locale: id }) : '-'}</span>
                 </div>
               </div>
 
