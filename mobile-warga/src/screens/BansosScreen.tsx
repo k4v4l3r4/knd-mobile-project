@@ -373,7 +373,9 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
     }
   };
 
-  const renderRecipientItem = ({ item }: { item: BansosRecipient }) => (
+  const renderRecipientItem = ({ item }: { item: BansosRecipient }) => {
+    if (!item) return null;
+    return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <View style={styles.userInfo}>
@@ -427,19 +429,22 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
       )}
     </View>
   );
+};
 
-  const renderHistoryItem = ({ item }: { item: BansosHistory }) => (
+  const renderHistoryItem = ({ item }: { item: BansosHistory }) => {
+    if (!item) return null;
+    return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <View>
-          <Text style={styles.programName}>{item.program_name}</Text>
-          <Text style={styles.date}>{item.date_received}</Text>
+          <Text style={styles.programName}>{item.program_name || 'Tidak ada nama program'}</Text>
+          <Text style={styles.date}>{item.date_received || '-'}</Text>
         </View>
         <Text style={styles.amount}>
            {item.amount ? `Rp ${item.amount.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : 'Barang'}
         </Text>
       </View>
-      <Text style={styles.recipientName}>Penerima: {item.recipient?.user?.name}</Text>
+      <Text style={styles.recipientName}>Penerima: {item.recipient?.user?.name || 'Tidak diketahui'}</Text>
       {item.evidence_photo && (
           <Image 
             source={{ uri: getStorageUrl(item.evidence_photo) || '' }} 
@@ -448,10 +453,14 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
       )}
     </View>
   );
+};
 
-  const filteredWarga = wargaList.filter(w => 
-    w.name.toLowerCase().includes(wargaSearch.toLowerCase())
-  );
+  const filteredWarga = useMemo(() => {
+    if (!wargaList || wargaList.length === 0) return [];
+    return wargaList.filter(w => 
+      w.name && w.name.toLowerCase().includes((wargaSearch || '').toLowerCase())
+    );
+  }, [wargaList, wargaSearch]);
 
   return (
     <View style={styles.container}>
@@ -496,9 +505,9 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
         </View>
       ) : activeTab === 'recipients' ? (
         <FlatList
-          data={recipients}
+          data={recipients || []}
           renderItem={renderRecipientItem}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={(item) => item?.id?.toString() || 'unknown'}
           contentContainerStyle={styles.listContent}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
@@ -516,9 +525,9 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
         />
       ) : (
         <FlatList
-          data={histories}
+          data={histories || []}
           renderItem={renderHistoryItem}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={(item) => item?.id?.toString() || 'unknown'}
           contentContainerStyle={styles.listContent}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
@@ -559,16 +568,22 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
               keyboardShouldPersistTaps="handled"
             >
               <Text style={styles.label}>Pilih Warga</Text>
-              <View style={{ position: 'relative', zIndex: 100 }}>
+              <View style={{ position: 'relative' }}>
                 <TextInput
                   style={styles.input}
                   placeholder="Cari nama warga..."
                   placeholderTextColor={colors.textSecondary}
                   value={wargaSearch}
-                  onChangeText={setWargaSearch}
+                  onChangeText={(text) => {
+                    setWargaSearch(text);
+                    // Clear selection when user types
+                    if (text !== wargaSearch) {
+                      setRecipientForm({...recipientForm, user_id: ''});
+                    }
+                  }}
                   autoFocus
                 />
-                {/* Suggestions Dropdown with Absolute Positioning */}
+                {/* Suggestions Dropdown */}
                 {wargaSearch.length > 0 && !recipientForm.user_id && filteredWarga.length > 0 && (
                   <View style={styles.suggestionsContainer}>
                     {filteredWarga.slice(0, 5).map((w, index) => (
