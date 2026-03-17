@@ -281,7 +281,24 @@ export default function BansosPage() {
 
   const getImageUrl = (path: string) => {
     if (!path) return '';
-    return `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}/storage/${path}`;
+    
+    // Handle absolute URLs (already full URL)
+    if (path.startsWith('http')) {
+      return path;
+    }
+    
+    // Use production base URL
+    const baseUrl = 'https://api.afnet.my.id';
+    
+    // Remove leading slash if present
+    const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+    
+    // Remove 'storage/' prefix if present to avoid duplication
+    if (cleanPath.startsWith('storage/')) {
+      return `${baseUrl}/${cleanPath}`;
+    }
+    
+    return `${baseUrl}/storage/${cleanPath}`;
   };
 
   const TABS = [
