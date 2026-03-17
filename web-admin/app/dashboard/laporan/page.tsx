@@ -184,11 +184,13 @@ export default function LaporanWargaPage() {
     }
   };
 
-  const filteredReports = reports.filter(report => 
-    report.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    report.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    report.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredReports = reports.filter(report => {
+    const searchLower = searchQuery.toLowerCase();
+    const titleMatch = report.title?.toLowerCase().includes(searchLower) || false;
+    const userMatch = report.user?.name?.toLowerCase().includes(searchLower) || false;
+    const categoryMatch = report.category?.toLowerCase().includes(searchLower) || false;
+    return titleMatch || userMatch || categoryMatch;
+  });
 
   return (
     <div className="space-y-8 pb-12 font-sans">
@@ -312,38 +314,43 @@ export default function LaporanWargaPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredReports.map((report) => (
+                {filteredReports.map((report) => {
+                  const userName = report.user?.name || 'Warga';
+                  const userPhoto = report.user?.photo_url;
+                  const userInitial = userName.charAt(0) || 'W';
+                  
+                  return (
                   <tr key={report.id} className="hover:bg-slate-50/80 transition-colors group">
                     <td className="px-8 py-5 text-slate-600">
                       <div className="font-bold text-slate-800">
-                        {format(new Date(report.created_at), 'dd MMM yyyy', { locale: id })}
+                        {report.created_at ? format(new Date(report.created_at), 'dd MMM yyyy', { locale: id }) : '-'}
                       </div>
                       <div className="text-xs text-slate-500 mt-1 font-medium bg-slate-100 px-2 py-0.5 rounded w-fit">
-                        {format(new Date(report.created_at), 'HH:mm', { locale: id })} WIB
+                        {report.created_at ? format(new Date(report.created_at), 'HH:mm', { locale: id }) : '-'} WIB
                       </div>
                     </td>
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center overflow-hidden border-2 border-slate-100 shadow-sm">
-                          {report.user.photo_url ? (
-                             <img src={report.user.photo_url} alt={report.user.name} className="w-full h-full object-cover" />
+                          {userPhoto ? (
+                             <img src={userPhoto} alt={userName} className="w-full h-full object-cover" />
                           ) : (
-                            <span className="text-sm font-extrabold text-slate-400">{report.user.name.charAt(0)}</span>
+                            <span className="text-sm font-extrabold text-slate-400">{userInitial}</span>
                           )}
                         </div>
                         <div>
-                          <p className="font-bold text-slate-800">{report.user.name}</p>
+                          <p className="font-bold text-slate-800">{userName}</p>
                           <p className="text-xs text-slate-500">Warga</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-5">
                       <span className="inline-block px-3 py-1 bg-white text-slate-600 text-xs font-bold rounded-lg border border-slate-200 shadow-sm">
-                        {report.category}
+                        {report.category || 'Umum'}
                       </span>
                     </td>
                     <td className="px-6 py-5 font-bold text-slate-700 max-w-xs truncate group-hover:text-emerald-600 transition-colors">
-                      {report.title}
+                      {report.title || 'Tanpa Judul'}
                     </td>
                     <td className="px-6 py-5">
                       {getStatusBadge(report.status)}
@@ -370,7 +377,8 @@ export default function LaporanWargaPage() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                );
+                })}
               </tbody>
             </table>
           </div>
@@ -416,10 +424,10 @@ export default function LaporanWargaPage() {
                 <div>
                   <div className="flex items-start gap-4">
                      <div className="flex-1">
-                        <h3 className="text-xl font-bold text-slate-900 dark:text-white leading-snug mb-3">{selectedReport.title}</h3>
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white leading-snug mb-3">{selectedReport.title || 'Tanpa Judul'}</h3>
                         <span className="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-300 text-xs font-bold uppercase tracking-wider">
                             <FileText className="w-3.5 h-3.5" />
-                            {selectedReport.category}
+                            {selectedReport.category || 'Umum'}
                         </span>
                      </div>
                   </div>
@@ -427,7 +435,7 @@ export default function LaporanWargaPage() {
 
                 <div className="prose prose-slate max-w-none bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700">
                   <p className="text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap font-medium">
-                    {selectedReport.description}
+                    {selectedReport.description || 'Tidak ada deskripsi.'}
                   </p>
                 </div>
 

@@ -344,14 +344,19 @@ export default function SuratPage() {
     return type.replace(/_/g, ' ');
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return '-';
+    try {
+      return new Date(dateString).toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return 'Tanggal tidak valid';
+    }
   };
 
   const getFileUrl = (path: string) => {
@@ -437,30 +442,36 @@ export default function SuratPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {letters.map((letter) => (
+                {letters.map((letter) => {
+                  const userName = letter.user?.name || 'Warga';
+                  const userPhone = letter.user?.phone || '-';
+                  const userInitial = userName.charAt(0) || 'W';
+                  const purpose = letter.purpose || 'Tidak ada keperluan';
+                  
+                  return (
                   <tr key={letter.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors group">
                     <td className="px-8 py-5">
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-sm shadow-sm border border-emerald-200/50 dark:border-emerald-800/50">
-                          {letter.user.name.charAt(0)}
+                          {userInitial}
                         </div>
                         <div>
-                          <div className="font-bold text-slate-800 dark:text-white text-sm">{letter.user.name}</div>
+                          <div className="font-bold text-slate-800 dark:text-white text-sm">{userName}</div>
                           <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
                             <User size={10} />
-                            {letter.user.phone}
+                            {userPhone}
                           </div>
                         </div>
                       </div>
                     </td>
                     <td className="px-8 py-5">
                       <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                        {formatType(letter.type)}
+                        {formatType(letter.type || 'UMUM')}
                       </span>
                     </td>
                     <td className="px-8 py-5">
                       <p className="text-sm text-slate-600 dark:text-slate-300 max-w-xs truncate font-medium">
-                        {letter.purpose}
+                        {purpose}
                       </p>
                     </td>
                     <td className="px-8 py-5">
@@ -500,7 +511,8 @@ export default function SuratPage() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                );
+                })}
               </tbody>
             </table>
           </div>
@@ -643,11 +655,11 @@ export default function SuratPage() {
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Pemohon</label>
                   <div className="font-bold text-slate-800 dark:text-white text-sm flex items-center gap-2 bg-slate-50 dark:bg-slate-800 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
                     <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-xs">
-                        {selectedLetter.user.name.charAt(0)}
+                        {selectedLetter.user?.name?.charAt(0) || 'W'}
                     </div>
                     <div>
-                        <p>{selectedLetter.user.name}</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 font-normal">{selectedLetter.user.phone}</p>
+                        <p>{selectedLetter.user?.name || 'Warga'}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-normal">{selectedLetter.user?.phone || '-'}</p>
                     </div>
                   </div>
                 </div>
@@ -666,14 +678,14 @@ export default function SuratPage() {
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Jenis Surat</label>
                 <div className="font-bold text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 p-3 rounded-xl border border-slate-100 dark:border-slate-700 flex items-center gap-2">
                     <FileText size={18} className="text-emerald-500" />
-                    {formatType(selectedLetter.type)}
+                    {formatType(selectedLetter.type || 'UMUM')}
                 </div>
               </div>
 
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Keperluan</label>
                 <div className="text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-100 dark:border-slate-700 text-sm leading-relaxed">
-                  {selectedLetter.purpose}
+                  {selectedLetter.purpose || 'Tidak ada keperluan.'}
                 </div>
               </div>
 
@@ -758,7 +770,7 @@ export default function SuratPage() {
             </div>
             <h3 className="text-2xl font-bold text-center text-slate-800 dark:text-white mb-2">Hapus Surat?</h3>
             <p className="text-center text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
-              Apakah Anda yakin ingin menghapus surat dari <span className="font-bold text-slate-800 dark:text-white">&quot;{letterToDelete.user.name}&quot;</span>? 
+              Apakah Anda yakin ingin menghapus surat dari <span className="font-bold text-slate-800 dark:text-white">&quot;{letterToDelete.user?.name || 'Warga'}&quot;</span>? 
               <br/>Tindakan ini tidak dapat dibatalkan.
             </p>
             <div className="flex gap-4">
