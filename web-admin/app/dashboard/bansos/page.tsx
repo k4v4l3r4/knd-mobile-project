@@ -22,7 +22,9 @@ import {
   ChevronRight,
   Save,
   FileText,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Hash,
+  Printer
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import Image from 'next/image';
@@ -61,6 +63,10 @@ export default function BansosPage() {
 
   // Edit Status Modal State
   const [editingRecipient, setEditingRecipient] = useState<any>(null);
+  
+  // Detail Modal State
+  const [selectedHistory, setSelectedHistory] = useState<any>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   useEffect(() => {
     if (!status) return;
@@ -277,6 +283,88 @@ export default function BansosPage() {
       case 'TIDAK_LAYAK': return <span className="bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 w-fit"><XCircle size={14}/> Tidak Layak</span>;
       default: return <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 w-fit"><Clock size={14}/> Pending</span>;
     }
+  };
+
+  const handleOpenDetail = (history: any) => {
+    setSelectedHistory(history);
+    setShowDetailModal(true);
+  };
+
+  const handleCloseDetail = () => {
+    setShowDetailModal(false);
+    setTimeout(() => setSelectedHistory(null), 300);
+  };
+
+  const handlePrintDetail = () => {
+    if (!selectedHistory) return;
+    
+    const printWindow = window.open('', '_blank');
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Bukti Penyaluran Bansos - ${selectedHistory.program_name}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 40px; }
+            .header { text-align: center; margin-bottom: 30px; border-bottom: 3px solid #10b981; padding-bottom: 20px; }
+            .header h1 { margin: 0; color: #065f46; }
+            .header p { margin: 5px 0; color: #6b7280; }
+            .content { margin-top: 30px; }
+            .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #e5e7eb; }
+            .info-label { font-weight: bold; color: #374151; }
+            .info-value { color: #6b7280; }
+            .photo-section { margin-top: 30px; text-align: center; }
+            .photo-section img { max-width: 100%; border: 2px solid #10b981; border-radius: 8px; }
+            .footer { margin-top: 40px; text-align: right; }
+            .signature { margin-top: 60px; border-top: 2px solid #374151; display: inline-block; padding-top: 10px; min-width: 200px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>BUKTI PENYALURAN BANSOS</h1>
+            <p>Sistem Informasi RT Online</p>
+          </div>
+          <div class="content">
+            <div class="info-row">
+              <span class="info-label">Nomor</span>
+              <span class="info-value">${String(selectedHistory.id).padStart(6, '0')}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Tanggal</span>
+              <span class="info-value">${new Date(selectedHistory.date_received).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Nama Penerima</span>
+              <span class="info-value">${selectedHistory.recipient?.user?.name || '-'}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Program</span>
+              <span class="info-value">${selectedHistory.program_name}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Nominal Bantuan</span>
+              <span class="info-value">${selectedHistory.amount ? `Rp ${parseInt(selectedHistory.amount).toLocaleString('id-ID')}` : 'Barang'}</span>
+            </div>
+            ${selectedHistory.evidence_photo ? `
+            <div class="photo-section">
+              <h3>Bukti Foto</h3>
+              <img src="${getImageUrl(selectedHistory.evidence_photo)}" alt="Bukti Penyaluran" />
+            </div>
+            ` : ''}
+          </div>
+          <div class="footer">
+            <div class="signature">
+              Administrator RT
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+    
+    printWindow?.document.write(printContent);
+    printWindow?.document.close();
+    printWindow?.focus();
+    setTimeout(() => printWindow?.print(), 250);
   };
 
   const getImageUrl = (path: string) => {
@@ -597,7 +685,11 @@ export default function BansosPage() {
                         ))
                     ) : histories.length > 0 ? (
                       histories.map((item) => (
-                        <tr key={item.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
+                        <tr 
+                          key={item.id} 
+                          onClick={() => handleOpenDetail(item)}
+                          className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
+                        >
                           <td className="px-8 py-5">
                              <div className="flex items-center gap-2 font-medium">
                                 <Calendar size={14} className="text-emerald-500" />
@@ -858,6 +950,154 @@ export default function BansosPage() {
                 >
                   <Save size={20} />
                   Simpan
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Detail Modal */}
+      {showDetailModal && selectedHistory && (
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 transition-all"
+          onClick={handleCloseDetail}
+        >
+          <div 
+            className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="relative bg-gradient-to-r from-emerald-600 to-emerald-700 text-white p-8 rounded-t-[2rem]">
+              <button
+                onClick={handleCloseDetail}
+                className="absolute top-6 right-6 bg-white/20 hover:bg-white/30 rounded-full p-2 transition-all backdrop-blur-sm"
+              >
+                <X size={20} className="text-white" />
+              </button>
+              
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                  <Gift size={32} className="text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold">Detail Penyaluran Bansos</h2>
+                  <p className="text-emerald-100 text-sm">{selectedHistory.program_name}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-8 space-y-6">
+              {/* Main Info Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
+                    <div className="flex items-center gap-2 text-slate-400 text-xs uppercase font-bold tracking-wider mb-2">
+                      <Calendar size={14} />
+                      Tanggal
+                    </div>
+                    <p className="text-lg font-bold text-slate-800 dark:text-white">
+                      {new Date(selectedHistory.date_received).toLocaleDateString('id-ID', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </p>
+                  </div>
+
+                  <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
+                    <div className="flex items-center gap-2 text-slate-400 text-xs uppercase font-bold tracking-wider mb-2">
+                      <Users size={14} />
+                      Penerima
+                    </div>
+                    <p className="text-lg font-bold text-slate-800 dark:text-white">
+                      {selectedHistory.recipient?.user?.name || '-'}
+                    </p>
+                  </div>
+
+                  <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
+                    <div className="flex items-center gap-2 text-slate-400 text-xs uppercase font-bold tracking-wider mb-2">
+                      <FileText size={14} />
+                      Program
+                    </div>
+                    <p className="text-lg font-bold text-slate-800 dark:text-white">
+                      {selectedHistory.program_name}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-900/10 p-4 rounded-xl border-2 border-emerald-200 dark:border-emerald-800">
+                    <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-xs uppercase font-bold tracking-wider mb-2">
+                      <span className="text-lg">💰</span>
+                      Nominal Bantuan
+                    </div>
+                    <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">
+                      {selectedHistory.amount ? `Rp ${parseInt(selectedHistory.amount).toLocaleString('id-ID')}` : 'Barang'}
+                    </p>
+                  </div>
+
+                  <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
+                    <div className="flex items-center gap-2 text-slate-400 text-xs uppercase font-bold tracking-wider mb-2">
+                      <Hash size={14} />
+                      ID Transaksi
+                    </div>
+                    <p className="text-lg font-mono font-bold text-slate-800 dark:text-white">
+                      #{String(selectedHistory.id).padStart(6, '0')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Photo Evidence */}
+              {selectedHistory.evidence_photo ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider text-sm">
+                    <ImageIcon size={18} className="text-emerald-600" />
+                    Bukti Foto
+                  </div>
+                  <div className="relative rounded-2xl overflow-hidden border-2 border-slate-200 dark:border-slate-700 shadow-lg group">
+                    <img 
+                      src={getImageUrl(selectedHistory.evidence_photo)} 
+                      alt="Bukti Penyaluran" 
+                      className="w-full h-auto object-cover"
+                    />
+                    <a
+                      href={getImageUrl(selectedHistory.evidence_photo)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-2 text-white font-bold"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <ImageIcon size={20} />
+                      Buka Gambar
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-slate-50 dark:bg-slate-800 p-8 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 text-center">
+                  <ImageIcon size={48} className="mx-auto text-slate-300 dark:text-slate-600 mb-3" />
+                  <p className="text-slate-500 dark:text-slate-400 font-medium">Tidak ada foto bukti</p>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={handlePrintDetail}
+                  className="flex-1 px-6 py-3.5 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 active:scale-95"
+                >
+                  <Printer size={20} />
+                  Cetak Bukti
+                </button>
+                <button
+                  onClick={handleCloseDetail}
+                  className="px-6 py-3.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-all flex items-center justify-center gap-2 active:scale-95"
+                >
+                  <X size={20} />
+                  Tutup
                 </button>
               </div>
             </div>
