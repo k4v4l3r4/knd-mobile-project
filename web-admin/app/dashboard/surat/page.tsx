@@ -28,29 +28,29 @@ import Cookies from 'js-cookie';
 
 // Interfaces
 interface UserData {
-  id: number;
-  name: string;
-  phone: string;
+  id?: number;
+  name?: string;
+  phone?: string;
 }
 
 interface LetterType {
-  id: number;
-  name: string;
-  code: string;
+  id?: number;
+  name?: string;
+  code?: string;
 }
 
 interface Letter {
-  id: number;
-  user_id: number;
-  user: UserData;
-  type: string;
-  purpose: string;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
-  admin_note: string | null;
-  file_url: string | null;
-  letter_number: string | null;
-  created_at: string;
-  updated_at: string;
+  id?: number;
+  user_id?: number;
+  user?: UserData;
+  type?: string;
+  purpose?: string;
+  status?: 'PENDING' | 'APPROVED' | 'REJECTED';
+  admin_note?: string | null;
+  file_url?: string | null;
+  letter_number?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 const STATUS_LABELS = {
@@ -142,7 +142,8 @@ export default function SuratPage() {
         ];
         setLetterTypes(types);
         if (types.length > 0 && !createForm.type) {
-          setCreateForm(prev => ({ ...prev, type: types[0].code }));
+          const firstCode = types[0].code || '';
+          setCreateForm(prev => ({ ...prev, type: firstCode }));
         }
         return;
       }
@@ -151,7 +152,8 @@ export default function SuratPage() {
         const types = response.data.data;
         setLetterTypes(types);
         if (types.length > 0 && !createForm.type) {
-          setCreateForm(prev => ({ ...prev, type: types[0].code }));
+          const firstCode = types[0].code || '';
+          setCreateForm(prev => ({ ...prev, type: firstCode }));
         }
       }
     } catch (error) {
@@ -185,7 +187,7 @@ export default function SuratPage() {
         setIsCreateModalOpen(false);
         setCreateForm({
           user_id: '',
-          type: letterTypes.length > 0 ? letterTypes[0].code : '',
+          type: letterTypes.length > 0 ? (letterTypes[0].code || '') : '',
           purpose: ''
         });
         fetchLetters();
@@ -481,12 +483,15 @@ export default function SuratPage() {
                       </div>
                     </td>
                     <td className="px-8 py-5">
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${STATUS_STYLES[letter.status]}`}>
-                        {letter.status === 'PENDING' && <Clock size={12} />}
-                        {letter.status === 'APPROVED' && <CheckCircle size={12} />}
-                        {letter.status === 'REJECTED' && <XCircle size={12} />}
-                        {STATUS_LABELS[letter.status]}
-                      </span>
+                      {letter.status && (
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${STATUS_STYLES[letter.status as keyof typeof STATUS_STYLES]}`}>
+                          {letter.status === 'PENDING' && <Clock size={12} />}
+                          {letter.status === 'APPROVED' && <CheckCircle size={12} />}
+                          {letter.status === 'REJECTED' && <XCircle size={12} />}
+                          {STATUS_LABELS[letter.status as keyof typeof STATUS_LABELS]}
+                        </span>
+                      )}
+                      {!letter.status && <span className="text-xs text-slate-400">-</span>}
                     </td>
                     <td className="px-8 py-5 text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -633,10 +638,12 @@ export default function SuratPage() {
                   {selectedLetter.status === 'PENDING' ? 'Proses Pengajuan' : 'Detail Surat'}
                 </h3>
                 <div className="flex items-center gap-2 mt-1">
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border ${STATUS_STYLES[selectedLetter.status]}`}>
-                        {STATUS_LABELS[selectedLetter.status]}
-                    </span>
-                    <span className="text-xs text-slate-400">•</span>
+                    {selectedLetter.status && (
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border ${STATUS_STYLES[selectedLetter.status as keyof typeof STATUS_STYLES]}`}>
+                            {STATUS_LABELS[selectedLetter.status as keyof typeof STATUS_LABELS]}
+                        </span>
+                    )}
+                    {selectedLetter.status && <span className="text-xs text-slate-400">•</span>}
                     <span className="text-xs text-slate-500 dark:text-slate-400">{formatDate(selectedLetter.created_at)}</span>
                 </div>
               </div>
