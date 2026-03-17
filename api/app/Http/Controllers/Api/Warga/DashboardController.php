@@ -10,6 +10,7 @@ use App\Models\Fee;
 use App\Models\Notification;
 use App\Models\BoardingHouse;
 use App\Models\BoardingTenant;
+use App\Models\Report;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -108,6 +109,7 @@ class DashboardController extends Controller
 
         $unreadNotificationsCount = 0;
         $hasEmergency = false;
+        $unreadReportsCount = 0;
 
         try {
             $unreadNotificationsCount = Notification::where('notifiable_id', $user->id)
@@ -120,6 +122,13 @@ class DashboardController extends Controller
                 ->where('is_read', false)
                 ->whereIn('type', ['EMERGENCY', 'SOS', 'PANIC', 'WARNING', 'PANIC_BUTTON'])
                 ->exists();
+            
+            // Count unread reports for RT users only
+            if (in_array($user->role, ['ADMIN_RT', 'RT', 'SECRETARY', 'TREASURER'])) {
+                $unreadReportsCount = Report::where('rt_id', $user->rt_id)
+                    ->where('status', 'PENDING')
+                    ->count();
+            }
         } catch (\Exception $e) {
             Log::error('Dashboard Notification Error: ' . $e->getMessage());
             // Fallback default values are already set
@@ -147,6 +156,7 @@ class DashboardController extends Controller
                 'is_anak_kost' => $isAnakKost,
                 'iuran_status' => $iuranStatus,
                 'unread_notifications_count' => $unreadNotificationsCount,
+                'unread_reports_count' => $unreadReportsCount,
                 'has_emergency' => $hasEmergency,
                 'announcements' => $announcements,
             ]

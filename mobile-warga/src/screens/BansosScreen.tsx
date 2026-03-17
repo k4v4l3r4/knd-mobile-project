@@ -15,12 +15,14 @@ import {
   Platform,
   KeyboardAvoidingView,
   StatusBar,
-  Dimensions
+  Dimensions,
+  BackHandler
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useTenant } from '../context/TenantContext';
@@ -150,6 +152,42 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
     checkRole();
     fetchData();
   }, [activeTab]);
+
+  // BackHandler for modals
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        if (recipientModalVisible) {
+          setRecipientModalVisible(false);
+          return true;
+        }
+        if (distributeModalVisible) {
+          setDistributeModalVisible(false);
+          return true;
+        }
+        return false;
+      };
+
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      
+      return () => {
+        subscription.remove();
+      };
+    }, [recipientModalVisible, distributeModalVisible])
+  );
+
+  // Reset modal states when leaving screen
+  useFocusEffect(
+    React.useCallback(() => {
+      return () => {
+        // Cleanup when screen loses focus
+        setRecipientModalVisible(false);
+        setDistributeModalVisible(false);
+        setIsEditing(false);
+        setSelectedRecipientId(null);
+      };
+    }, [])
+  );
 
   const checkRole = async () => {
     try {

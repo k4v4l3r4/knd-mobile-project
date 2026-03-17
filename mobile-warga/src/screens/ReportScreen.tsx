@@ -13,7 +13,8 @@ import {
   TouchableOpacity,
   FlatList,
   RefreshControl,
-  ListRenderItem
+  ListRenderItem,
+  Linking
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -32,6 +33,7 @@ interface User {
   id: number;
   name: string;
   email?: string;
+  phone?: string;
   role?: string;
   avatar_url?: string;
 }
@@ -458,6 +460,21 @@ export default function ReportScreen() {
     }
   };
 
+  const handleContactReporter = (report: Report) => {
+    if (!report.user?.phone) {
+      Alert.alert(t('common.error'), 'Nomor WhatsApp warga tidak tersedia');
+      return;
+    }
+
+    const phoneNumber = report.user.phone.replace(/^0/, '62'); // Convert 08xx to 628xx
+    const message = `Halo ${report.user?.name || 'Warga'}, saya dari pengurus RT terkait laporan Anda: "${report.title}". Mohon informasi lebih lanjut.`;
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+
+    Linking.openURL(whatsappUrl).catch(() => {
+      Alert.alert(t('common.error'), 'Gagal membuka WhatsApp. Pastikan aplikasi WhatsApp sudah terinstall.');
+    });
+  };
+
   // --- Renderers ---
 
   const renderReportItem: ListRenderItem<Report> = ({ item }) => {
@@ -513,6 +530,17 @@ export default function ReportScreen() {
         {/* Admin Actions */}
         {isAdmin && (
           <View style={styles.actionButtons}>
+            {/* Contact Reporter Button */}
+            {item.user?.phone && (
+              <TouchableOpacity 
+                style={[styles.actionButton, { backgroundColor: '#25D366' }]}
+                onPress={() => handleContactReporter(item)}
+              >
+                <Ionicons name="logo-whatsapp" size={16} color="#fff" style={{ marginRight: 4 }} />
+                <Text style={styles.actionButtonText}>Hubungi Warga</Text>
+              </TouchableOpacity>
+            )}
+            
             {item.status === 'PENDING' && (
               <>
                 <TouchableOpacity 

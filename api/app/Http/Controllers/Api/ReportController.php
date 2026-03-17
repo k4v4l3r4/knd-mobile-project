@@ -8,6 +8,7 @@ use App\Models\Transaction;
 use App\Models\Fee;
 use App\Models\ActivityCategory;
 use App\Models\User;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -667,6 +668,24 @@ class ReportController extends Controller
         }
 
         $report->save();
+
+        // Notify all RT Admins about new report
+        $rtAdmins = User::where('rt_id', $request->user()->rt_id)
+            ->whereIn('role', ['ADMIN_RT', 'RT'])
+            ->get();
+
+        foreach ($rtAdmins as $admin) {
+            Notification::create([
+                'notifiable_id' => $admin->id,
+                'notifiable_type' => User::class,
+                'title' => 'Laporan Baru dari Warga',
+                'message' => "Laporan baru: {$report->title} oleh " . ($report->is_anonymous ? 'Warga Anonim' : $report->user->name),
+                'type' => 'REPORT',
+                'related_id' => $report->id,
+                'url' => '/mobile/report/detail/' . $report->id,
+                'is_read' => false,
+            ]);
+        }
 
         return response()->json([
             'success' => true,

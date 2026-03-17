@@ -49,6 +49,7 @@ interface DashboardData {
   is_anak_kost?: boolean;
   iuran_status: 'LUNAS' | 'BELUM_LUNAS';
   unread_notifications_count: number;
+  unread_reports_count?: number;
   has_emergency: boolean;
   announcements: Array<{
     id: number;
@@ -102,6 +103,14 @@ const MenuItem = React.memo(({ item, onPress, styles, isDarkMode, colors }: any)
           <item.library name={item.icon} size={28} color={colors.primary} />
         </View>
         <Text style={styles.menuLabel} numberOfLines={2}>{item.title}</Text>
+        {/* Badge Counter */}
+        {item.badgeCount !== undefined && item.badgeCount > 0 && (
+          <View style={styles.menuBadge}>
+            <Text style={styles.menuBadgeText}>
+              {item.badgeCount > 99 ? '99+' : item.badgeCount}
+            </Text>
+          </View>
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -780,6 +789,7 @@ function HomeScreen({ onLogout, onNavigate }: HomeScreenProps) {
         is_anak_kost: dashboardData.is_anak_kost || false,
         iuran_status: dashboardData.iuran_status || 'LUNAS',
         unread_notifications_count: dashboardData.unread_notifications_count || 0,
+        unread_reports_count: dashboardData.unread_reports_count || 0,
         announcements: dashboardData.announcements || [],
         polls: polls,
         has_emergency: dashboardData.has_emergency || false,
@@ -833,7 +843,7 @@ function HomeScreen({ onLogout, onNavigate }: HomeScreenProps) {
     let items = [
       { id: 'bills', title: t('home.menus.bills'), icon: 'stats-chart-outline', library: Ionicons, action: () => checkRestriction(() => onNavigate('FINANCE_REPORT'), 'billing') },
       { id: 'contribution_report', title: t('home.menus.contributionReport'), icon: 'receipt-outline', library: Ionicons, action: () => checkRestriction(() => onNavigate('CONTRIBUTION_REPORT'), 'billing') },
-      { id: 'report', title: t('home.menus.report'), icon: 'megaphone-outline', library: Ionicons, action: () => checkRestriction(() => onNavigate('REPORT'), 'write') },
+      { id: 'report', title: t('home.menus.report'), icon: 'megaphone-outline', library: Ionicons, badgeCount: data?.unread_reports_count || 0, action: () => checkRestriction(() => onNavigate('REPORT'), 'write') },
       { id: 'letter', title: t('home.menus.letter'), icon: 'document-text-outline', library: Ionicons, action: () => checkRestriction(() => onNavigate('LETTER'), 'write') },
       { id: 'patrol', title: t('home.menus.patrol'), icon: 'shield-outline', library: Ionicons, action: () => onNavigate('PATROL') },
       { id: 'warga', title: t('home.menus.warga'), icon: 'people-outline', library: Ionicons, action: () => onNavigate('WARGA_LIST') },
@@ -1483,6 +1493,24 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     textAlign: 'center',
     fontWeight: '500',
     lineHeight: 14,
+  },
+  menuBadge: {
+    position: 'absolute',
+    top: -8,
+    right: 0,
+    backgroundColor: '#ef4444',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    zIndex: 100,
+  },
+  menuBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   paginationContainer: {
     flexDirection: 'row',
