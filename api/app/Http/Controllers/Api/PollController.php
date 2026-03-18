@@ -250,6 +250,90 @@ class PollController extends Controller
         }
     }
 
+    public function update(Request $request, $id)
+    {
+        $user = $request->user();
+        $role = strtoupper((string) $user->role);
+
+        // Only RT/Admin roles can update polls
+        if (!in_array($role, ['RT', 'ADMIN_RT', 'RW', 'ADMIN_RW', 'SUPER_ADMIN', 'SEKRETARIS_RT', 'BENDAHARA_RT'])) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $poll = Poll::findOrFail($id);
+
+        // Check if poll belongs to user's RT (for RT roles)
+        if (in_array($role, ['RT', 'ADMIN_RT', 'SEKRETARIS_RT', 'BENDAHARA_RT']) && $poll->rt_id != $user->rt_id) {
+            return response()->json(['message' => 'Poll does not belong to your RT'], 403);
+        }
+
+        $request->validate([
+            'title' => 'sometimes|required|string',
+            'start_date' => 'sometimes|required|date',
+            'end_date' => 'sometimes|required|date|after_or_equal:start_date',
+            'status' => 'sometimes|in:DRAFT,OPEN,CLOSED',
+            'options' => 'sometimes|array|min:2',
+            'options.*.name' => 'required|string',
+            'options.*.image' => 'nullable|image|mimes:jpeg,jpg,png|max:2048',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            // Update basic info
+            if ($request->has('title')) {
+                $poll->title = $request->title;
+            }
+            if ($request->has('description')) {
+                $poll->description = $request->description;
+            }
+            if ($request->has('start_date')) {
+                $poll->start_date = $request->start_date;
+            }
+            if ($request->has('end_date')) {
+                $poll->end_date = $request->end_date;
+            }
+            if ($request->has('status')) {
+                $poll->status = $request->status;
+            }
+
+            $poll->save();
+
+            // Update options if provided
+            if ($request->has('options')) {
+                foreach ($poll->options as $index => $option) {
+                    if (isset($request->options[$index])) {
+                        $optData = $request->options[$index];
+                        
+                        $option->name = $optData['name'];
+                        $option->description = $optData['description'] ?? null;
+                        
+                        // Handle image upload
+                        if ($request->hasFile("options.$index.image")) {
+                            // Delete old image
+                            if ($option->image_url) {
+                                Storage::delete(str_replace('/storage/', 'public/', $option->image_url));
+                            }
+                            
+                            $image = $request->file("options.$index.image");
+                            $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
+                            $imagePath = $image->storeAs('poll_candidates', $imageName, 'public');
+                            $option->image_url = Storage::url($imagePath);
+                        }
+                        
+                        $option->save();
+                    }
+                }
+            }
+
+            DB::commit();
+            return response()->json(['message' => 'Poll updated successfully', 'data' => $poll]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Failed to update poll', 'error' => $e->getMessage()], 500);
+        }
+    }
+
     public function destroy($id)
     {
         $user = request()->user();

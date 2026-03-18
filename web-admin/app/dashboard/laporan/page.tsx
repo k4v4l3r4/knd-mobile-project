@@ -57,6 +57,19 @@ export default function LaporanWargaPage() {
   const [reportToDelete, setReportToDelete] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Helper function to safely format dates
+  const safeFormatDate = (dateString: string | null | undefined, formatStr: string = 'dd MMM yyyy') => {
+    if (!dateString) return '-';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '-';
+      return format(date, formatStr, { locale: id });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return '-';
+    }
+  };
+
   const fetchReports = async () => {
     setLoading(true);
     try {
@@ -66,11 +79,12 @@ export default function LaporanWargaPage() {
       }
       
       const response = await axios.get('/reports', { params });
-      const data = response.data.data.data || response.data.data;
-      setReports(data);
-    } catch (error) {
+      const data = response.data?.data?.data || response.data?.data || [];
+      setReports(Array.isArray(data) ? data : []);
+    } catch (error: any) {
       console.error('Error fetching reports:', error);
-      toast.error('Gagal memuat laporan warga');
+      toast.error(error?.response?.data?.message || 'Gagal memuat laporan warga');
+      setReports([]);
     } finally {
       setLoading(false);
     }
@@ -151,6 +165,14 @@ export default function LaporanWargaPage() {
   };
 
   const getStatusBadge = (status: string) => {
+    if (!status) {
+      return (
+        <span className="px-3 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-xs font-bold">
+          Unknown
+        </span>
+      );
+    }
+    
     switch (status) {
       case 'PENDING':
         return (
@@ -191,6 +213,9 @@ export default function LaporanWargaPage() {
     const userMatch = report.user?.name?.toLowerCase().includes(searchLower) || false;
     const categoryMatch = report.category?.toLowerCase().includes(searchLower) || false;
     return titleMatch || userMatch || categoryMatch;
+  }).filter(report => {
+    if (filterStatus === 'ALL') return true;
+    return report.status === filterStatus;
   });
 
   return (
@@ -319,16 +344,16 @@ export default function LaporanWargaPage() {
                 {filteredReports.map((report) => {
                   const userName = report.user?.name || 'Warga';
                   const userPhoto = report.user?.photo_url;
-                  const userInitial = userName.charAt(0) || 'W';
+                  const userInitial = userName?.charAt(0) || 'W';
                   
                   return (
                   <tr key={report.id} className="hover:bg-slate-50/80 transition-colors group">
                     <td className="px-8 py-5 text-slate-600">
                       <div className="font-bold text-slate-800">
-                        {report.created_at ? format(new Date(report.created_at), 'dd MMM yyyy', { locale: id }) : '-'}
+                        {safeFormatDate(report.created_at, 'dd MMM yyyy')}
                       </div>
                       <div className="text-xs text-slate-500 mt-1 font-medium bg-slate-100 px-2 py-0.5 rounded w-fit">
-                        {report.created_at ? format(new Date(report.created_at), 'HH:mm', { locale: id }) : '-'} WIB
+                        {safeFormatDate(report.created_at, 'HH:mm')} WIB
                       </div>
                     </td>
                     <td className="px-6 py-5">
@@ -417,7 +442,7 @@ export default function LaporanWargaPage() {
                 </div>
                 <div className="text-right">
                     <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Tanggal Laporan</span>
-                    <span className="text-sm font-bold text-slate-700 dark:text-white">{format(new Date(selectedReport!.created_at || Date.now()), 'dd MMMM yyyy, HH:mm', { locale: id })}</span>
+                    <span className="text-sm font-bold text-slate-700 dark:text-white">{safeFormatDate(selectedReport!.created_at || undefined, 'dd MMMM yyyy, HH:mm')}</span>
                 </div>
               </div>
 
