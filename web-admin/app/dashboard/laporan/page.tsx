@@ -73,16 +73,22 @@ export default function LaporanWargaPage() {
     }
   };
 
-  // Helper function to ensure HTTPS URLs for images - ULTRA DEFENSIVE + GLOBAL
+  // Helper function to ensure HTTPS URLs for images - SIMPLE & SAFE
   const ensureHttpsUrl = (url: string | null | undefined) => {
-    try {
-      if (!url || typeof url !== 'string') return null;
-      // Replace both http:// and protocol-relative URLs with https://
-      return url.replace(/^(https?:\/\/)?/i, 'https://').replace(/\/\//g, '/');
-    } catch (error) {
-      console.error('Error ensuring HTTPS URL:', error);
-      return null;
+    if (!url || typeof url !== 'string') return null;
+    
+    // If already starts with https://, return as is
+    if (url.startsWith('https://')) {
+      return url;
     }
+    
+    // Replace http:// with https://
+    if (url.startsWith('http://')) {
+      return url.replace('http://', 'https://');
+    }
+    
+    // If no protocol, add https://
+    return `https://${url}`;
   };
 
   // Safe array length checker
