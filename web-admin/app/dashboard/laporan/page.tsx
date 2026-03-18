@@ -29,11 +29,13 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 interface User {
   id?: number;
   name?: string;
+  nama?: string; // Alternative field name
   photo_url?: string;
+  avatar?: string; // Alternative field name
 }
 
 interface Report {
-  id: number;
+  id: number | string; // Allow both types
   title?: string;
   description?: string;
   category?: string;
@@ -41,6 +43,7 @@ interface Report {
   photo_url?: string;
   created_at?: string;
   user?: User;
+  user_id?: number | string; // Alternative location for user ID
 }
 
 export default function LaporanWargaPage() {
@@ -70,11 +73,12 @@ export default function LaporanWargaPage() {
     }
   };
 
-  // Helper function to ensure HTTPS URLs for images - ULTRA DEFENSIVE
+  // Helper function to ensure HTTPS URLs for images - ULTRA DEFENSIVE + GLOBAL
   const ensureHttpsUrl = (url: string | null | undefined) => {
     try {
       if (!url || typeof url !== 'string') return null;
-      return url.replace(/^http:\/\//i, 'https://');
+      // Replace both http:// and protocol-relative URLs with https://
+      return url.replace(/^(https?:\/\/)?/i, 'https://').replace(/\/\//g, '/');
     } catch (error) {
       console.error('Error ensuring HTTPS URL:', error);
       return null;
@@ -104,16 +108,51 @@ export default function LaporanWargaPage() {
       }
       
       const response = await axios.get('/reports', { params });
-      // Ultra-defensive data extraction
-      const rawData = response?.data;
-      const nestedData = rawData?.data?.data || rawData?.data;
-      const data = Array.isArray(nestedData) ? nestedData : [];
-      setReports(data);
+      
+      // ULTRA-DEFENSIVE: Handle ANY payload structure
+      // Could be: { data: [...] } or { data: { data: [...] } } or direct array
+      const responseData = response?.data;
+      
+      // Try multiple extraction patterns
+      let extractedData = null;
+      
+      if (Array.isArray(responseData)) {
+        // Direct array response
+        extractedData = responseData;
+      } else if (responseData?.data && Array.isArray(responseData.data)) {
+        // Nested in data.data
+        extractedData = responseData.data;
+      } else if (responseData?.data?.data && Array.isArray(responseData.data.data)) {
+        // Double nested
+        extractedData = responseData.data.data;
+      } else if (responseData?.attributes && Array.isArray(responseData.attributes)) {
+        // Alternative structure
+        extractedData = responseData.attributes;
+      }
+      
+      // Final fallback - empty array
+      const data = Array.isArray(extractedData) ? extractedData : [];
+      
+      // Validate each report object before setting
+      const validatedData = data.map((item: any, idx: number) => {
+        if (!item || typeof item !== 'object') {
+          console.warn(`Invalid report at index ${idx}, replacing with placeholder`);
+          return { id: idx, title: 'Unknown', status: 'PENDING', user: null };
+        }
+        return item;
+      });
+      
+      setReports(validatedData);
     } catch (error: any) {
       console.error('Error fetching reports:', error);
+      console.error('Error details:', {
+        message: error?.message,
+        response: error?.response?.data,
+        status: error?.response?.status
+      });
       const errorMessage = error?.response?.data?.message || error?.message || 'Gagal memuat laporan warga';
       toast.error(typeof errorMessage === 'string' ? errorMessage : 'Gagal memuat laporan warga');
-      setReports([]);
+      setReports([]); // Always set empty array on error
     } finally {
       setLoading(false);
     }
@@ -383,64 +422,88 @@ export default function LaporanWargaPage() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {(filteredReports || []).map((report, index) => {
-                  if (!report) return null;
+                  // CRITICAL NULL CHECK - Prevent "Cannot read properties of null"
+                  if (!report || typeof report !== 'object') {
+                    console.warn('Invalid report object at index', index);
+                    return null;
+                  }
+                  
                   try {
-                    const userName = report.user?.name ?? 'Warga';
-                    const userPhoto = ensureHttpsUrl(report.user?.photo_url);
-                    const userInitial = (userName && typeof userName === 'string') ? userName.charAt(0) : 'W';
+                    // ULTRA-DEFENSIVE: Protect ALL nested .name property access
+                    const userName = report?.user?.name ?? report?.user?.nama ?? 'Warga';
+                    const userPhoto = ensureHttpsUrl(report?.user?.photo_url ?? report?.user?.avatar);
+                    const userId = report?.user?.id ?? report?.user_id ?? null;
+                    
+                    // Type-safe string operations
+                    const safeUserName = typeof userName === 'string' ? userName : 'Warga';
+                    const userInitial = (safeUserName && safeUserName.length > 0) ? safeUserName.charAt(0) : 'W';
+                    
+                    // Validate report has minimum required fields
+                    const reportId = typeof report.id === 'number' ? report.id : (typeof report.id === 'string' ? parseInt(report.id, 10) : index);
+                    const reportStatus = typeof report.status === 'string' ? report.status : 'PENDING';
+                    const reportTitle = typeof report.title === 'string' ? report.title : 'Tanpa Judul';
+                    const reportCategory = typeof report.category === 'string' ? report.category : 'Umum';
                     
                     return (
-                    <tr key={report.id ?? index} className="hover:bg-slate-50/80 transition-colors group">
+                    <tr key={reportId ?? index} className="hover:bg-slate-50/80 transition-colors group">
                       <td className="px-8 py-5 text-slate-600">
                         <div className="font-bold text-slate-800">
-                          {safeFormatDate(report.created_at, 'dd MMM yyyy')}
+                          {safeFormatDate(report?.created_at, 'dd MMM yyyy')}
                         </div>
                         <div className="text-xs text-slate-500 mt-1 font-medium bg-slate-100 px-2 py-0.5 rounded w-fit">
-                          {safeFormatDate(report.created_at, 'HH:mm')} WIB
+                          {safeFormatDate(report?.created_at, 'HH:mm')} WIB
                         </div>
                       </td>
                       <td className="px-6 py-5">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center overflow-hidden border-2 border-slate-100 shadow-sm">
                             {userPhoto ? (
-                               <img src={userPhoto} alt={userName} className="w-full h-full object-cover" />
+                               <img src={userPhoto} alt={safeUserName} className="w-full h-full object-cover" onError={(e) => {
+                                 const target = e.target as HTMLImageElement;
+                                 target.style.display = 'none';
+                                 target.parentElement!.innerHTML = `<span class="text-sm font-extrabold text-slate-400">${userInitial}</span>`;
+                               }} />
                             ) : (
                               <span className="text-sm font-extrabold text-slate-400">{userInitial}</span>
                             )}
                           </div>
                           <div>
-                            <p className="font-bold text-slate-800">{typeof userName === 'string' ? userName : 'Warga'}</p>
+                            <p className="font-bold text-slate-800">{safeUserName}</p>
                             <p className="text-xs text-slate-500">Warga</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-5">
                         <span className="inline-block px-3 py-1 bg-white text-slate-600 text-xs font-bold rounded-lg border border-slate-200 shadow-sm">
-                          {typeof report.category === 'string' ? report.category : 'Umum'}
+                          {reportCategory}
                         </span>
                       </td>
                       <td className="px-6 py-5 font-bold text-slate-700 max-w-xs truncate group-hover:text-emerald-600 transition-colors">
-                        {typeof report.title === 'string' ? report.title : 'Tanpa Judul'}
+                        {reportTitle}
                       </td>
                       <td className="px-6 py-5">
-                        {getStatusBadge(report.status ?? 'PENDING')}
+                        {getStatusBadge(reportStatus)}
                       </td>
                       <td className="px-8 py-5 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button 
                             onClick={() => {
-                              setSelectedReport(report);
-                              setIsDetailOpen(true);
+                              if (report) {
+                                setSelectedReport(report);
+                                setIsDetailOpen(true);
+                              }
                             }}
                             className="p-2.5 bg-white border border-slate-200 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-600 rounded-xl transition-all shadow-sm text-slate-500"
                             title="Lihat Detail"
+                            type="button"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
                           <button 
-                            onClick={() => confirmDelete(report.id ?? 0)}
+                            onClick={() => confirmDelete(reportId ?? 0)}
                             className="p-2.5 bg-white border border-slate-200 hover:bg-rose-50 hover:border-rose-200 hover:text-rose-600 rounded-xl transition-all shadow-sm text-slate-500"
                             title="Hapus"
+                            type="button"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -449,8 +512,9 @@ export default function LaporanWargaPage() {
                     </tr>
                   );
                   } catch (error) {
-                    console.error('Error rendering report row:', error);
-                    return null;
+                    console.error('CRITICAL ERROR rendering report row:', error);
+                    console.error('Problematic report data:', report);
+                    return null; // Graceful degradation - skip bad row
                   }
                 })}
               </tbody>
@@ -541,7 +605,7 @@ export default function LaporanWargaPage() {
                 <div className="flex flex-wrap gap-3">
                   {(selectedReport.status ?? 'PENDING') !== 'PROCESS' && (
                     <button
-                      onClick={() => handleUpdateStatus(selectedReport.id ?? 0, 'PROCESS')}
+                      onClick={() => handleUpdateStatus(Number(selectedReport.id) || 0, 'PROCESS')}
                       className="flex-1 min-w-[120px] px-6 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 hover:-translate-y-0.5 active:scale-95"
                       type="button"
                     >
@@ -551,7 +615,7 @@ export default function LaporanWargaPage() {
                   )}
                   {(selectedReport.status ?? 'PENDING') !== 'RESOLVED' && (
                     <button
-                      onClick={() => handleUpdateStatus(selectedReport.id ?? 0, 'RESOLVED')}
+                      onClick={() => handleUpdateStatus(Number(selectedReport.id) || 0, 'RESOLVED')}
                       className="flex-1 min-w-[120px] px-6 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 hover:-translate-y-0.5 active:scale-95"
                       type="button"
                     >
@@ -561,7 +625,7 @@ export default function LaporanWargaPage() {
                   )}
                   {(selectedReport.status ?? 'PENDING') !== 'REJECTED' && (
                     <button
-                      onClick={() => handleUpdateStatus(selectedReport.id ?? 0, 'REJECTED')}
+                      onClick={() => handleUpdateStatus(Number(selectedReport.id) || 0, 'REJECTED')}
                       className="flex-1 min-w-[120px] px-6 py-3.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-rose-600/20 flex items-center justify-center gap-2 hover:-translate-y-0.5 active:scale-95"
                       type="button"
                     >
