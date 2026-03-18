@@ -24,6 +24,7 @@ import { DemoLabel } from '@/components/TenantStatusComponents';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import Image from 'next/image';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 interface User {
   id?: number;
@@ -193,8 +194,9 @@ export default function LaporanWargaPage() {
   });
 
   return (
-    <div className="space-y-8 pb-12 font-sans">
-      <Toaster position="top-center" />
+    <ErrorBoundary>
+      <div className="space-y-8 pb-12 font-sans">
+        <Toaster position="top-center" />
       
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900 p-8 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm relative overflow-hidden">
@@ -410,12 +412,12 @@ export default function LaporanWargaPage() {
                 <div>
                    <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Status Saat Ini</span>
                    <div className="scale-100 origin-left">
-                    {getStatusBadge(selectedReport.status)}
+                    {getStatusBadge(selectedReport!.status || 'PENDING')}
                    </div>
                 </div>
                 <div className="text-right">
                     <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Tanggal Laporan</span>
-                    <span className="text-sm font-bold text-slate-700 dark:text-white">{selectedReport.created_at ? format(new Date(selectedReport.created_at), 'dd MMMM yyyy, HH:mm', { locale: id }) : '-'}</span>
+                    <span className="text-sm font-bold text-slate-700 dark:text-white">{format(new Date(selectedReport!.created_at || Date.now()), 'dd MMMM yyyy, HH:mm', { locale: id })}</span>
                 </div>
               </div>
 
@@ -424,10 +426,10 @@ export default function LaporanWargaPage() {
                 <div>
                   <div className="flex items-start gap-4">
                      <div className="flex-1">
-                        <h3 className="text-xl font-bold text-slate-900 dark:text-white leading-snug mb-3">{selectedReport.title || 'Tanpa Judul'}</h3>
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white leading-snug mb-3">{selectedReport!.title || 'Tanpa Judul'}</h3>
                         <span className="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-300 text-xs font-bold uppercase tracking-wider">
                             <FileText className="w-3.5 h-3.5" />
-                            {selectedReport.category || 'Umum'}
+                            {selectedReport!.category || 'Umum'}
                         </span>
                      </div>
                   </div>
@@ -435,16 +437,16 @@ export default function LaporanWargaPage() {
 
                 <div className="prose prose-slate max-w-none bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700">
                   <p className="text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap font-medium">
-                    {selectedReport.description || 'Tidak ada deskripsi.'}
+                    {selectedReport!.description || 'Tidak ada deskripsi.'}
                   </p>
                 </div>
 
-                {selectedReport.photo_url && (
+                {selectedReport!.photo_url && (
                   <div className="space-y-2">
                      <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Bukti Foto</p>
                      <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 shadow-sm">
                         <img 
-                        src={`${process.env.NEXT_PUBLIC_API_URL}/storage/${selectedReport.photo_url}`} 
+                        src={`${process.env.NEXT_PUBLIC_API_URL}/storage/${selectedReport!.photo_url}`} 
                         alt="Bukti Laporan" 
                         className="w-full h-auto object-contain max-h-[500px]"
                         />
@@ -460,27 +462,27 @@ export default function LaporanWargaPage() {
                     Tindakan Penyelesaian
                 </p>
                 <div className="flex flex-wrap gap-3">
-                  {selectedReport.status !== 'PROCESS' && (
+                  {selectedReport!.status !== 'PROCESS' && (
                     <button
-                      onClick={() => handleUpdateStatus(selectedReport.id, 'PROCESS')}
+                      onClick={() => handleUpdateStatus(selectedReport!.id, 'PROCESS')}
                       className="flex-1 min-w-[120px] px-6 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 hover:-translate-y-0.5 active:scale-95"
                     >
                       <Loader2 className="w-4 h-4" />
                       Proses
                     </button>
                   )}
-                  {selectedReport.status !== 'RESOLVED' && (
+                  {selectedReport!.status !== 'RESOLVED' && (
                     <button
-                      onClick={() => handleUpdateStatus(selectedReport.id, 'RESOLVED')}
+                      onClick={() => handleUpdateStatus(selectedReport!.id, 'RESOLVED')}
                       className="flex-1 min-w-[120px] px-6 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 hover:-translate-y-0.5 active:scale-95"
                     >
                       <CheckCircle className="w-4 h-4" />
                       Selesai
                     </button>
                   )}
-                  {selectedReport.status !== 'REJECTED' && (
+                  {selectedReport!.status !== 'REJECTED' && (
                     <button
-                      onClick={() => handleUpdateStatus(selectedReport.id, 'REJECTED')}
+                      onClick={() => handleUpdateStatus(selectedReport!.id, 'REJECTED')}
                       className="flex-1 min-w-[120px] px-6 py-3.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-rose-600/20 flex items-center justify-center gap-2 hover:-translate-y-0.5 active:scale-95"
                     >
                       <XCircle className="w-4 h-4" />
@@ -531,6 +533,7 @@ export default function LaporanWargaPage() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 }
