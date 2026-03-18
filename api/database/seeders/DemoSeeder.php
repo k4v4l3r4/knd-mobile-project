@@ -10,11 +10,10 @@ use Carbon\Carbon;
 use Faker\Factory as Faker;
 
 use App\Models\User;
-use App\Models\Role; // Added Role model
+use App\Models\Role;
 use App\Models\WilayahRt;
-use App\Models\Wallet;
 use App\Models\Transaction;
-use App\Models\KasTransaction; // New Finance
+use App\Models\KasTransaction;
 use App\Models\Fee;
 use App\Models\Announcement;
 use App\Models\Product;
@@ -31,11 +30,8 @@ use App\Models\PollOption;
 use App\Models\PollVote;
 use App\Models\GuestBook;
 use App\Models\IssueReport;
-use App\Models\Report; // Alias for IssueReport in some contexts? No, separate model?
-// Check models list: IssueReport.php and Report.php exist. Report might be the old one or new one. 
-// DemoKyndSeeder used Report. DemoSeeder used IssueReport. 
-// Let's check which one is used in API. IssueReportController uses IssueReport.
-// I'll use IssueReport as primary.
+// CRITICAL: Use FinanceAccount model since that's what transactions.account_id references
+// Wallet model points to 'finance_accounts' table, which is correct
 
 class DemoSeeder extends Seeder
 {
@@ -53,65 +49,51 @@ class DemoSeeder extends Seeder
         $rtId = $rt->id;
         $rwId = $rt->rw_id;
 
-        // Ensure Wallets exist - DEFENSIVE: Explicitly create and verify IDs
-        $walletCash = Wallet::firstOrCreate(
-            ['rt_id' => $rtId, 'type' => 'CASH'],
-            ['name' => 'Kas Tunai RT', 'balance' => 0]
-        );
+        // CRITICAL FIX: Create finance accounts (NOT wallets table)
+        // The transactions.account_id foreign key references finance_accounts table
+        $this->command->info('Creating Finance Accounts...');
         
-        // Force save to ensure ID is generated
-        if (!$walletCash->id) {
-            $walletCash->save();
-        }
+        // Use DB::table to directly insert into finance_accounts and get the ID
+        $cashAccountId = DB::table('finance_accounts')->insertGetId([
+            'rt_id' => $rtId,
+            'name' => 'Kas Tunai RT',
+            'description' => 'Kas tunai untuk transaksi harian',
+            'type' => 'CASH',
+            'balance' => 0,
+            'is_locked' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
         
-        $walletBank = Wallet::firstOrCreate(
-            ['rt_id' => $rtId, 'type' => 'BANK'],
-            [
-                'name' => 'Bank RT (BCA)',
-                'balance' => 0,
-                'bank_name' => 'BCA',
-                'account_number' => '1234567890',
-            ]
-        );
+        $bankAccountId = DB::table('finance_accounts')->insertGetId([
+            'rt_id' => $rtId,
+            'name' => 'Bank RT (BCA)',
+            'description' => 'Rekening bank untuk transaksi besar',
+            'type' => 'BANK',
+            'balance' => 0,
+            'is_locked' => false,
+            'bank_name' => 'BCA',
+            'account_number' => '1234567890',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
         
-        // Force save to ensure ID is generated
-        if (!$walletBank->id) {
-            $walletBank->save();
-        }
-        
-        // CRITICAL: Verify wallet IDs are present before proceeding
-        if (!$walletCash->id || !$walletBank->id) {
-            $this->command->error('Wallet creation failed - no IDs returned!');
+        // Verify accounts were created
+        if (!$cashAccountId || !$bankAccountId) {
+            $this->command->error('Failed to create finance accounts!');
             return;
         }
         
-        // Log wallet IDs for debugging
-        $this->command->info("Created/Found Wallet Cash ID: {$walletCash->id}");
-        $this->command->info("Created/Found Wallet Bank ID: {$walletBank->id}");
-        
-        // Verify wallets actually exist in database
-        $walletCash = Wallet::find($walletCash->id);
-        $walletBank = Wallet::find($walletBank->id);
-        
-        if (!$walletCash) {
-            $this->command->error("Wallet Cash with ID {$walletCash->id} not found in database!");
-            return;
-        }
-        if (!$walletBank) {
-            $this->command->error("Wallet Bank with ID {$walletBank->id} not found in database!");
-            return;
-        }
+        $this->command->info("✓ Created Finance Account Cash ID: {$cashAccountId}");
+        $this->command->info("✓ Created Finance Account Bank ID: {$bankAccountId}");
 
-        // 1. Users & Warga
-        $this->command->info('1. Seeding Users (20 Citizens)...');
-        
         // Fetch Admin - DEFENSIVE: Ensure admin user exists
         $admin = User::where('email', 'admin@rt.com')->first();
         if (!$admin) {
             $this->command->error('Admin user not found! Please run StarterSeeder first.');
             return;
         }
-        
+
         $roleWarga = Role::where('role_code', 'WARGA_TETAP')->first();
         $roleWargaId = $roleWarga ? $roleWarga->id : null;
 
@@ -172,7 +154,7 @@ class DemoSeeder extends Seeder
             Transaction::create([
                 'rt_id' => $rtId,
                 'user_id' => $admin->id,
-                'account_id' => $walletBank->id,
+                'account_id' => $bankAccountId,
                 'type' => 'IN',
                 'amount' => 10000000,
                 'category' => 'HIBAH',
@@ -180,7 +162,7 @@ class DemoSeeder extends Seeder
                 'status' => 'PAID',
                 'date' => now()->subMonths(6),
             ]);
-            $walletBank->increment('balance', 10000000);
+            DB::table('finance_accounts')->where('id', $bankAccountId)->increment('balance', 10000000);
         }
 
         // Iuran Warga (Monthly)
@@ -200,7 +182,7 @@ class DemoSeeder extends Seeder
                     Transaction::create([
                         'rt_id' => $rtId,
                         'user_id' => $c->id,
-                        'account_id' => $walletCash->id, // Pay cash usually
+                        'account_id' => $cashAccountId, // Pay cash usually
                         'type' => 'IN',
                         'amount' => $fee->amount,
                         'category' => 'IURAN',
@@ -209,7 +191,7 @@ class DemoSeeder extends Seeder
                         'date' => $monthDate->copy()->setDay(rand(1, 10)),
                         'items' => [['fee_id' => $fee->id, 'name' => $fee->name, 'amount' => $fee->amount]],
                     ]);
-                    $walletCash->increment('balance', $fee->amount);
+                    DB::table('finance_accounts')->where('id', $cashAccountId)->increment('balance', $fee->amount);
                 }
             }
         }
@@ -221,7 +203,7 @@ class DemoSeeder extends Seeder
             Transaction::create([
                 'rt_id' => $rtId,
                 'user_id' => $admin->id,
-                'account_id' => $walletCash->id,
+                'account_id' => $cashAccountId,
                 'type' => 'OUT',
                 'amount' => 1500000,
                 'category' => 'GAJI',
@@ -229,7 +211,7 @@ class DemoSeeder extends Seeder
                 'status' => 'PAID',
                 'date' => $monthDate->copy()->setDay(28),
             ]);
-            $walletCash->decrement('balance', 1500000);
+            DB::table('finance_accounts')->where('id', $cashAccountId)->decrement('balance', 1500000);
         }
 
         // KasTransaction (New Table - Denda & Manual)
@@ -283,7 +265,7 @@ class DemoSeeder extends Seeder
                     // If we want different people on different days, we might need multiple schedules overlapping or segmented?
                     // Actually, usually "RondaSchedule" represents a specific shift instance or a recurring pattern?
                     // Memory: "Active schedule logic relies on date ranges rather than daily entries."
-                    // Okay, let's create one Weekly schedule for THIS week.
+                    // Okay, let's create one Weekly schedule for this week.
                     'start_date' => now()->startOfWeek()->format('Y-m-d'),
                     'end_date' => now()->endOfWeek()->format('Y-m-d'),
                     'start_time' => '21:00:00',
