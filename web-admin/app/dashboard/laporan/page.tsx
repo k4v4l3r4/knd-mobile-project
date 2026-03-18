@@ -70,6 +70,12 @@ export default function LaporanWargaPage() {
     }
   };
 
+  // Helper function to ensure HTTPS URLs for images
+  const ensureHttpsUrl = (url: string | null | undefined) => {
+    if (!url) return null;
+    return url.replace(/^http:\/\//i, 'https://');
+  };
+
   const fetchReports = async () => {
     setLoading(true);
     try {
@@ -209,9 +215,10 @@ export default function LaporanWargaPage() {
 
   const filteredReports = reports.filter(report => {
     const searchLower = searchQuery.toLowerCase();
-    const titleMatch = report.title?.toLowerCase().includes(searchLower) || false;
-    const userMatch = report.user?.name?.toLowerCase().includes(searchLower) || false;
-    const categoryMatch = report.category?.toLowerCase().includes(searchLower) || false;
+    const titleMatch = report.title?.toLowerCase()?.includes(searchLower) || false;
+    const userName = report.user?.name ?? '';
+    const userMatch = userName.toLowerCase()?.includes(searchLower) || false;
+    const categoryMatch = report.category?.toLowerCase()?.includes(searchLower) || false;
     return titleMatch || userMatch || categoryMatch;
   }).filter(report => {
     if (filterStatus === 'ALL') return true;
@@ -342,8 +349,8 @@ export default function LaporanWargaPage() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredReports.map((report) => {
-                  const userName = report.user?.name || 'Warga';
-                  const userPhoto = report.user?.photo_url;
+                  const userName = report.user?.name ?? 'Warga';
+                  const userPhoto = ensureHttpsUrl(report.user?.photo_url);
                   const userInitial = userName?.charAt(0) || 'W';
                   
                   return (
@@ -471,7 +478,7 @@ export default function LaporanWargaPage() {
                      <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Bukti Foto</p>
                      <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 shadow-sm">
                         <img 
-                        src={`${process.env.NEXT_PUBLIC_API_URL}/storage/${selectedReport!.photo_url}`} 
+                        src={ensureHttpsUrl(`${process.env.NEXT_PUBLIC_API_URL}/storage/${selectedReport!.photo_url}`) || ''} 
                         alt="Bukti Laporan" 
                         className="w-full h-auto object-contain max-h-[500px]"
                         />
