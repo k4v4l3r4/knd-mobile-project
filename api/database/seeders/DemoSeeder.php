@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Faker\Factory as Faker;
 
@@ -30,8 +29,6 @@ use App\Models\PollOption;
 use App\Models\PollVote;
 use App\Models\GuestBook;
 use App\Models\IssueReport;
-// CRITICAL: Use FinanceAccount model since that's what transactions.account_id references
-// Wallet model points to 'finance_accounts' table, which is correct
 
 class DemoSeeder extends Seeder
 {
@@ -49,43 +46,40 @@ class DemoSeeder extends Seeder
         $rtId = $rt->id;
         $rwId = $rt->rw_id;
 
-        // CRITICAL FIX: Create finance accounts (NOT wallets table)
-        // The transactions.account_id foreign key references finance_accounts table
-        $this->command->info('Creating Finance Accounts...');
+        // CRITICAL FIX: Create wallets in the 'wallets' table
+        // The foreign key constraint 'transactions_account_id_foreign' references 'wallets' table
+        // NOT 'finance_accounts'. PostgreSQL enforces this constraint.
+        $this->command->info('Creating Wallet Accounts...');
         
-        // Use DB::table to directly insert into finance_accounts and get the ID
-        $cashAccountId = DB::table('finance_accounts')->insertGetId([
+        // Use DB::table('wallets') to directly insert and get IDs
+        $walletCashId = DB::table('wallets')->insertGetId([
             'rt_id' => $rtId,
             'name' => 'Kas Tunai RT',
-            'description' => 'Kas tunai untuk transaksi harian',
             'type' => 'CASH',
             'balance' => 0,
-            'is_locked' => false,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
         
-        $bankAccountId = DB::table('finance_accounts')->insertGetId([
+        $walletBankId = DB::table('wallets')->insertGetId([
             'rt_id' => $rtId,
             'name' => 'Bank RT (BCA)',
-            'description' => 'Rekening bank untuk transaksi besar',
             'type' => 'BANK',
-            'balance' => 0,
-            'is_locked' => false,
             'bank_name' => 'BCA',
             'account_number' => '1234567890',
+            'balance' => 0,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
         
-        // Verify accounts were created
-        if (!$cashAccountId || !$bankAccountId) {
-            $this->command->error('Failed to create finance accounts!');
+        // Verify wallets were created
+        if (!$walletCashId || !$walletBankId) {
+            $this->command->error('Failed to create wallet accounts!');
             return;
         }
         
-        $this->command->info("✓ Created Finance Account Cash ID: {$cashAccountId}");
-        $this->command->info("✓ Created Finance Account Bank ID: {$bankAccountId}");
+        $this->command->info("✓ Created Wallet Cash ID: {$walletCashId}");
+        $this->command->info("✓ Created Wallet Bank ID: {$walletBankId}");
 
         // Fetch Admin - DEFENSIVE: Ensure admin user exists
         $admin = User::where('email', 'admin@rt.com')->first();
@@ -154,7 +148,7 @@ class DemoSeeder extends Seeder
             Transaction::create([
                 'rt_id' => $rtId,
                 'user_id' => $admin->id,
-                'account_id' => $bankAccountId,
+                'account_id' => $walletBankId,
                 'type' => 'IN',
                 'amount' => 10000000,
                 'category' => 'HIBAH',
@@ -162,7 +156,7 @@ class DemoSeeder extends Seeder
                 'status' => 'PAID',
                 'date' => now()->subMonths(6),
             ]);
-            DB::table('finance_accounts')->where('id', $bankAccountId)->increment('balance', 10000000);
+            DB::table('wallets')->where('id', $walletBankId)->increment('balance', 10000000);
         }
 
         // Iuran Warga (Monthly)
@@ -182,7 +176,7 @@ class DemoSeeder extends Seeder
                     Transaction::create([
                         'rt_id' => $rtId,
                         'user_id' => $c->id,
-                        'account_id' => $cashAccountId, // Pay cash usually
+                        'account_id' => $walletCashId, // Pay cash usually
                         'type' => 'IN',
                         'amount' => $fee->amount,
                         'category' => 'IURAN',
@@ -191,7 +185,7 @@ class DemoSeeder extends Seeder
                         'date' => $monthDate->copy()->setDay(rand(1, 10)),
                         'items' => [['fee_id' => $fee->id, 'name' => $fee->name, 'amount' => $fee->amount]],
                     ]);
-                    DB::table('finance_accounts')->where('id', $cashAccountId)->increment('balance', $fee->amount);
+                    DB::table('wallets')->where('id', $walletCashId)->increment('balance', $fee->amount);
                 }
             }
         }
@@ -203,7 +197,7 @@ class DemoSeeder extends Seeder
             Transaction::create([
                 'rt_id' => $rtId,
                 'user_id' => $admin->id,
-                'account_id' => $cashAccountId,
+                'account_id' => $walletCashId,
                 'type' => 'OUT',
                 'amount' => 1500000,
                 'category' => 'GAJI',
@@ -211,7 +205,7 @@ class DemoSeeder extends Seeder
                 'status' => 'PAID',
                 'date' => $monthDate->copy()->setDay(28),
             ]);
-            DB::table('finance_accounts')->where('id', $cashAccountId)->decrement('balance', 1500000);
+            DB::table('wallets')->where('id', $walletCashId)->decrement('balance', 1500000);
         }
 
         // KasTransaction (New Table - Denda & Manual)
