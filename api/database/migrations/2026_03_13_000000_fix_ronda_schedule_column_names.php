@@ -13,13 +13,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('ronda_schedules', function (Blueprint $table) {
-            // Check if week_start_date exists and rename it to start_date
-            if (Schema::hasColumn('ronda_schedules', 'week_start_date')) {
+            // Defensive: Only rename if old column exists AND new column doesn't exist
+            if (Schema::hasColumn('ronda_schedules', 'week_start_date') && !Schema::hasColumn('ronda_schedules', 'start_date')) {
                 $table->renameColumn('week_start_date', 'start_date');
             }
             
-            // Check if week_end_date exists and rename it to end_date
-            if (Schema::hasColumn('ronda_schedules', 'week_end_date')) {
+            // Defensive: Only rename if old column exists AND new column doesn't exist
+            if (Schema::hasColumn('ronda_schedules', 'week_end_date') && !Schema::hasColumn('ronda_schedules', 'end_date')) {
                 $table->renameColumn('week_end_date', 'end_date');
             }
         });
@@ -31,11 +31,13 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('ronda_schedules', function (Blueprint $table) {
-            if (Schema::hasColumn('ronda_schedules', 'start_date')) {
+            // Defensive: Only rename back if old column exists AND new column doesn't exist
+            if (Schema::hasColumn('ronda_schedules', 'start_date') && !Schema::hasColumn('ronda_schedules', 'week_start_date')) {
                 $table->renameColumn('start_date', 'week_start_date');
             }
             
-            if (Schema::hasColumn('ronda_schedules', 'end_date')) {
+            // Defensive: Only rename back if old column exists AND new column doesn't exist
+            if (Schema::hasColumn('ronda_schedules', 'end_date') && !Schema::hasColumn('ronda_schedules', 'week_end_date')) {
                 $table->renameColumn('end_date', 'week_end_date');
             }
         });
