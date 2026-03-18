@@ -53,7 +53,7 @@ class DemoSeeder extends Seeder
         $rtId = $rt->id;
         $rwId = $rt->rw_id;
 
-        // Ensure Wallets exist
+        // Ensure Wallets exist - DEFENSIVE: Explicitly create and verify IDs
         $walletCash = Wallet::firstOrCreate(
             ['rt_id' => $rtId, 'type' => 'CASH'],
             ['name' => 'Kas Tunai RT', 'balance' => 0]
@@ -68,12 +68,26 @@ class DemoSeeder extends Seeder
                 'account_number' => '1234567890',
             ]
         );
+        
+        // CRITICAL: Reload wallet instances to ensure we have actual DB records with proper IDs
+        $walletCash = Wallet::find($walletCash->id);
+        $walletBank = Wallet::find($walletBank->id);
+        
+        // Verify wallets exist before proceeding
+        if (!$walletCash || !$walletBank) {
+            $this->command->error('Failed to create wallet accounts!');
+            return;
+        }
 
         // 1. Users & Warga
         $this->command->info('1. Seeding Users (20 Citizens)...');
         
-        // Fetch Admin
+        // Fetch Admin - DEFENSIVE: Ensure admin user exists
         $admin = User::where('email', 'admin@rt.com')->first();
+        if (!$admin) {
+            $this->command->error('Admin user not found! Please run StarterSeeder first.');
+            return;
+        }
         
         $roleWarga = Role::where('role_code', 'WARGA_TETAP')->first();
         $roleWargaId = $roleWarga ? $roleWarga->id : null;
