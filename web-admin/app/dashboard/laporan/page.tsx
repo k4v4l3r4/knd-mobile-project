@@ -57,12 +57,12 @@ export default function LaporanWargaPage() {
   const [reportToDelete, setReportToDelete] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Helper function to safely format dates
+  // Helper function to safely format dates - ULTRA DEFENSIVE
   const safeFormatDate = (dateString: string | null | undefined, formatStr: string = 'dd MMM yyyy') => {
-    if (!dateString) return '-';
     try {
+      if (!dateString || typeof dateString !== 'string') return '-';
       const date = new Date(dateString);
-      if (isNaN(date.getTime())) return '-';
+      if (isNaN(date.getTime()) || !isFinite(date.getTime())) return '-';
       return format(date, formatStr, { locale: id });
     } catch (error) {
       console.error('Error formatting date:', error);
@@ -70,10 +70,29 @@ export default function LaporanWargaPage() {
     }
   };
 
-  // Helper function to ensure HTTPS URLs for images
+  // Helper function to ensure HTTPS URLs for images - ULTRA DEFENSIVE
   const ensureHttpsUrl = (url: string | null | undefined) => {
-    if (!url) return null;
-    return url.replace(/^http:\/\//i, 'https://');
+    try {
+      if (!url || typeof url !== 'string') return null;
+      return url.replace(/^http:\/\//i, 'https://');
+    } catch (error) {
+      console.error('Error ensuring HTTPS URL:', error);
+      return null;
+    }
+  };
+
+  // Safe array length checker
+  const safeLength = (arr: any) => Array.isArray(arr) ? arr.length : 0;
+
+  // Safe filter wrapper
+  const safeFilter = <T,>(arr: T[] | null | undefined, predicate: (item: T) => boolean): T[] => {
+    if (!Array.isArray(arr)) return [];
+    try {
+      return arr.filter(predicate);
+    } catch (error) {
+      console.error('Error filtering array:', error);
+      return [];
+    }
   };
 
   const fetchReports = async () => {
@@ -85,11 +104,15 @@ export default function LaporanWargaPage() {
       }
       
       const response = await axios.get('/reports', { params });
-      const data = response.data?.data?.data || response.data?.data || [];
-      setReports(Array.isArray(data) ? data : []);
+      // Ultra-defensive data extraction
+      const rawData = response?.data;
+      const nestedData = rawData?.data?.data || rawData?.data;
+      const data = Array.isArray(nestedData) ? nestedData : [];
+      setReports(data);
     } catch (error: any) {
       console.error('Error fetching reports:', error);
-      toast.error(error?.response?.data?.message || 'Gagal memuat laporan warga');
+      const errorMessage = error?.response?.data?.message || error?.message || 'Gagal memuat laporan warga';
+      toast.error(typeof errorMessage === 'string' ? errorMessage : 'Gagal memuat laporan warga');
       setReports([]);
     } finally {
       setLoading(false);
@@ -213,16 +236,27 @@ export default function LaporanWargaPage() {
     }
   };
 
-  const filteredReports = reports.filter(report => {
-    const searchLower = searchQuery.toLowerCase();
-    const titleMatch = report.title?.toLowerCase()?.includes(searchLower) || false;
-    const userName = report.user?.name ?? '';
-    const userMatch = userName.toLowerCase()?.includes(searchLower) || false;
-    const categoryMatch = report.category?.toLowerCase()?.includes(searchLower) || false;
-    return titleMatch || userMatch || categoryMatch;
-  }).filter(report => {
-    if (filterStatus === 'ALL') return true;
-    return report.status === filterStatus;
+  const filteredReports = safeFilter(reports, (report) => {
+    try {
+      if (!report) return false;
+      const searchLower = (searchQuery || '').toLowerCase();
+      const titleMatch = (report.title ?? '').toLowerCase()?.includes(searchLower) || false;
+      const userName = report.user?.name ?? '';
+      const userMatch = userName.toLowerCase()?.includes(searchLower) || false;
+      const categoryMatch = (report.category ?? '').toLowerCase()?.includes(searchLower) || false;
+      return titleMatch || userMatch || categoryMatch;
+    } catch (error) {
+      console.error('Error in filter:', error);
+      return false;
+    }
+  }).filter((report) => {
+    try {
+      if (filterStatus === 'ALL') return true;
+      return report?.status === filterStatus;
+    } catch (error) {
+      console.error('Error in status filter:', error);
+      return false;
+    }
   });
 
   return (
@@ -252,7 +286,7 @@ export default function LaporanWargaPage() {
           </div>
           <div>
             <p className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Total Laporan</p>
-            <p className="text-3xl font-extrabold text-slate-800 dark:text-white mt-1">{reports.length}</p>
+            <p className="text-3xl font-extrabold text-slate-800 dark:text-white mt-1">{safeLength(reports)}</p>
           </div>
         </div>
         <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-5 group hover:shadow-xl hover:shadow-emerald-900/5 transition-all duration-300 hover:-translate-y-1">
@@ -261,7 +295,7 @@ export default function LaporanWargaPage() {
           </div>
           <div>
             <p className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Menunggu</p>
-            <p className="text-3xl font-extrabold text-slate-800 dark:text-white mt-1">{reports.filter(r => r.status === 'PENDING').length}</p>
+            <p className="text-3xl font-extrabold text-slate-800 dark:text-white mt-1">{safeLength(safeFilter(reports, r => r?.status === 'PENDING'))}</p>
           </div>
         </div>
         <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-5 group hover:shadow-xl hover:shadow-emerald-900/5 transition-all duration-300 hover:-translate-y-1">
@@ -270,7 +304,7 @@ export default function LaporanWargaPage() {
           </div>
           <div>
             <p className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Selesai</p>
-            <p className="text-3xl font-extrabold text-slate-800 dark:text-white mt-1">{reports.filter(r => r.status === 'RESOLVED').length}</p>
+            <p className="text-3xl font-extrabold text-slate-800 dark:text-white mt-1">{safeLength(safeFilter(reports, r => r?.status === 'RESOLVED'))}</p>
           </div>
         </div>
         <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-5 group hover:shadow-xl hover:shadow-emerald-900/5 transition-all duration-300 hover:-translate-y-1">
@@ -279,7 +313,7 @@ export default function LaporanWargaPage() {
           </div>
           <div>
             <p className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Ditolak</p>
-            <p className="text-3xl font-extrabold text-slate-800 dark:text-white mt-1">{reports.filter(r => r.status === 'REJECTED').length}</p>
+            <p className="text-3xl font-extrabold text-slate-800 dark:text-white mt-1">{safeLength(safeFilter(reports, r => r?.status === 'REJECTED'))}</p>
           </div>
         </div>
       </div>
@@ -348,70 +382,76 @@ export default function LaporanWargaPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredReports.map((report) => {
-                  const userName = report.user?.name ?? 'Warga';
-                  const userPhoto = ensureHttpsUrl(report.user?.photo_url);
-                  const userInitial = userName?.charAt(0) || 'W';
-                  
-                  return (
-                  <tr key={report.id} className="hover:bg-slate-50/80 transition-colors group">
-                    <td className="px-8 py-5 text-slate-600">
-                      <div className="font-bold text-slate-800">
-                        {safeFormatDate(report.created_at, 'dd MMM yyyy')}
-                      </div>
-                      <div className="text-xs text-slate-500 mt-1 font-medium bg-slate-100 px-2 py-0.5 rounded w-fit">
-                        {safeFormatDate(report.created_at, 'HH:mm')} WIB
-                      </div>
-                    </td>
-                    <td className="px-6 py-5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center overflow-hidden border-2 border-slate-100 shadow-sm">
-                          {userPhoto ? (
-                             <img src={userPhoto} alt={userName} className="w-full h-full object-cover" />
-                          ) : (
-                            <span className="text-sm font-extrabold text-slate-400">{userInitial}</span>
-                          )}
+                {(filteredReports || []).map((report, index) => {
+                  if (!report) return null;
+                  try {
+                    const userName = report.user?.name ?? 'Warga';
+                    const userPhoto = ensureHttpsUrl(report.user?.photo_url);
+                    const userInitial = (userName && typeof userName === 'string') ? userName.charAt(0) : 'W';
+                    
+                    return (
+                    <tr key={report.id ?? index} className="hover:bg-slate-50/80 transition-colors group">
+                      <td className="px-8 py-5 text-slate-600">
+                        <div className="font-bold text-slate-800">
+                          {safeFormatDate(report.created_at, 'dd MMM yyyy')}
                         </div>
-                        <div>
-                          <p className="font-bold text-slate-800">{userName}</p>
-                          <p className="text-xs text-slate-500">Warga</p>
+                        <div className="text-xs text-slate-500 mt-1 font-medium bg-slate-100 px-2 py-0.5 rounded w-fit">
+                          {safeFormatDate(report.created_at, 'HH:mm')} WIB
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-5">
-                      <span className="inline-block px-3 py-1 bg-white text-slate-600 text-xs font-bold rounded-lg border border-slate-200 shadow-sm">
-                        {report.category || 'Umum'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-5 font-bold text-slate-700 max-w-xs truncate group-hover:text-emerald-600 transition-colors">
-                      {report.title || 'Tanpa Judul'}
-                    </td>
-                    <td className="px-6 py-5">
-                      {getStatusBadge(report.status)}
-                    </td>
-                    <td className="px-8 py-5 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button 
-                          onClick={() => {
-                            setSelectedReport(report);
-                            setIsDetailOpen(true);
-                          }}
-                          className="p-2.5 bg-white border border-slate-200 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-600 rounded-xl transition-all shadow-sm text-slate-500"
-                          title="Lihat Detail"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={() => confirmDelete(report.id)}
-                          className="p-2.5 bg-white border border-slate-200 hover:bg-rose-50 hover:border-rose-200 hover:text-rose-600 rounded-xl transition-all shadow-sm text-slate-500"
-                          title="Hapus"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
+                      </td>
+                      <td className="px-6 py-5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center overflow-hidden border-2 border-slate-100 shadow-sm">
+                            {userPhoto ? (
+                               <img src={userPhoto} alt={userName} className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="text-sm font-extrabold text-slate-400">{userInitial}</span>
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-bold text-slate-800">{typeof userName === 'string' ? userName : 'Warga'}</p>
+                            <p className="text-xs text-slate-500">Warga</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5">
+                        <span className="inline-block px-3 py-1 bg-white text-slate-600 text-xs font-bold rounded-lg border border-slate-200 shadow-sm">
+                          {typeof report.category === 'string' ? report.category : 'Umum'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5 font-bold text-slate-700 max-w-xs truncate group-hover:text-emerald-600 transition-colors">
+                        {typeof report.title === 'string' ? report.title : 'Tanpa Judul'}
+                      </td>
+                      <td className="px-6 py-5">
+                        {getStatusBadge(report.status ?? 'PENDING')}
+                      </td>
+                      <td className="px-8 py-5 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button 
+                            onClick={() => {
+                              setSelectedReport(report);
+                              setIsDetailOpen(true);
+                            }}
+                            className="p-2.5 bg-white border border-slate-200 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-600 rounded-xl transition-all shadow-sm text-slate-500"
+                            title="Lihat Detail"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => confirmDelete(report.id ?? 0)}
+                            className="p-2.5 bg-white border border-slate-200 hover:bg-rose-50 hover:border-rose-200 hover:text-rose-600 rounded-xl transition-all shadow-sm text-slate-500"
+                            title="Hapus"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                  } catch (error) {
+                    console.error('Error rendering report row:', error);
+                    return null;
+                  }
                 })}
               </tbody>
             </table>
@@ -419,8 +459,8 @@ export default function LaporanWargaPage() {
         )}
       </div>
 
-      {/* Detail Modal */}
-      {isDetailOpen && selectedReport && (
+      {/* Detail Modal - Protected with null checks */}
+      {isDetailOpen && selectedReport ? (
         <div className="fixed inset-0 bg-slate-900/40 dark:bg-slate-900/80 z-50 flex items-center justify-center p-4 backdrop-blur-md animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-900 rounded-[2rem] max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl scale-100 animate-in zoom-in-95 duration-200 border border-white/20 dark:border-slate-800">
             <div className="p-6 md:p-8 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur z-10">
@@ -433,6 +473,7 @@ export default function LaporanWargaPage() {
               <button 
                 onClick={() => setIsDetailOpen(false)}
                 className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                type="button"
               >
                 <X className="w-6 h-6" />
               </button>
@@ -444,12 +485,12 @@ export default function LaporanWargaPage() {
                 <div>
                    <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Status Saat Ini</span>
                    <div className="scale-100 origin-left">
-                    {getStatusBadge(selectedReport!.status || 'PENDING')}
+                    {getStatusBadge(selectedReport.status ?? 'PENDING')}
                    </div>
                 </div>
                 <div className="text-right">
                     <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Tanggal Laporan</span>
-                    <span className="text-sm font-bold text-slate-700 dark:text-white">{safeFormatDate(selectedReport!.created_at || undefined, 'dd MMMM yyyy, HH:mm')}</span>
+                    <span className="text-sm font-bold text-slate-700 dark:text-white">{safeFormatDate(selectedReport.created_at, 'dd MMMM yyyy, HH:mm')}</span>
                 </div>
               </div>
 
@@ -458,10 +499,10 @@ export default function LaporanWargaPage() {
                 <div>
                   <div className="flex items-start gap-4">
                      <div className="flex-1">
-                        <h3 className="text-xl font-bold text-slate-900 dark:text-white leading-snug mb-3">{selectedReport!.title || 'Tanpa Judul'}</h3>
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white leading-snug mb-3">{typeof selectedReport.title === 'string' ? selectedReport.title : 'Tanpa Judul'}</h3>
                         <span className="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-300 text-xs font-bold uppercase tracking-wider">
                             <FileText className="w-3.5 h-3.5" />
-                            {selectedReport!.category || 'Umum'}
+                            {typeof selectedReport.category === 'string' ? selectedReport.category : 'Umum'}
                         </span>
                      </div>
                   </div>
@@ -469,53 +510,60 @@ export default function LaporanWargaPage() {
 
                 <div className="prose prose-slate max-w-none bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700">
                   <p className="text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap font-medium">
-                    {selectedReport!.description || 'Tidak ada deskripsi.'}
+                    {typeof selectedReport.description === 'string' ? selectedReport.description : 'Tidak ada deskripsi.'}
                   </p>
                 </div>
 
-                {selectedReport!.photo_url && (
+                {selectedReport.photo_url ? (
                   <div className="space-y-2">
                      <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Bukti Foto</p>
                      <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 shadow-sm">
                         <img 
-                        src={ensureHttpsUrl(`${process.env.NEXT_PUBLIC_API_URL}/storage/${selectedReport!.photo_url}`) || ''} 
+                        src={ensureHttpsUrl(`${process.env.NEXT_PUBLIC_API_URL ?? ''}/storage/${selectedReport.photo_url}`) || ''} 
                         alt="Bukti Laporan" 
                         className="w-full h-auto object-contain max-h-[500px]"
+                        onError={(e) => {
+                          console.error('Image failed to load:', e);
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
                         />
                      </div>
                   </div>
-                )}
+                ) : null}
               </div>
 
-              {/* Actions */}
+              {/* Actions - Protected with null checks */}
               <div className="pt-8 border-t border-slate-100 dark:border-slate-800">
                 <p className="text-sm font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
                     <CheckCircle className="w-4 h-4 text-emerald-500" />
                     Tindakan Penyelesaian
                 </p>
                 <div className="flex flex-wrap gap-3">
-                  {selectedReport!.status !== 'PROCESS' && (
+                  {(selectedReport.status ?? 'PENDING') !== 'PROCESS' && (
                     <button
-                      onClick={() => handleUpdateStatus(selectedReport!.id, 'PROCESS')}
+                      onClick={() => handleUpdateStatus(selectedReport.id ?? 0, 'PROCESS')}
                       className="flex-1 min-w-[120px] px-6 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 hover:-translate-y-0.5 active:scale-95"
+                      type="button"
                     >
                       <Loader2 className="w-4 h-4" />
                       Proses
                     </button>
                   )}
-                  {selectedReport!.status !== 'RESOLVED' && (
+                  {(selectedReport.status ?? 'PENDING') !== 'RESOLVED' && (
                     <button
-                      onClick={() => handleUpdateStatus(selectedReport!.id, 'RESOLVED')}
+                      onClick={() => handleUpdateStatus(selectedReport.id ?? 0, 'RESOLVED')}
                       className="flex-1 min-w-[120px] px-6 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 hover:-translate-y-0.5 active:scale-95"
+                      type="button"
                     >
                       <CheckCircle className="w-4 h-4" />
                       Selesai
                     </button>
                   )}
-                  {selectedReport!.status !== 'REJECTED' && (
+                  {(selectedReport.status ?? 'PENDING') !== 'REJECTED' && (
                     <button
-                      onClick={() => handleUpdateStatus(selectedReport!.id, 'REJECTED')}
+                      onClick={() => handleUpdateStatus(selectedReport.id ?? 0, 'REJECTED')}
                       className="flex-1 min-w-[120px] px-6 py-3.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-rose-600/20 flex items-center justify-center gap-2 hover:-translate-y-0.5 active:scale-95"
+                      type="button"
                     >
                       <XCircle className="w-4 h-4" />
                       Tolak
@@ -526,10 +574,10 @@ export default function LaporanWargaPage() {
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
-      {/* Delete Confirmation Modal */}
-      {isDeleteModalOpen && (
+      {/* Delete Confirmation Modal - Protected */}
+      {isDeleteModalOpen ? (
         <div className="fixed inset-0 bg-slate-900/40 z-50 flex items-center justify-center p-4 backdrop-blur-md animate-in fade-in duration-200">
           <div className="bg-white rounded-[2rem] max-w-sm w-full p-8 shadow-2xl scale-100 animate-in zoom-in-95 duration-200 border border-white/20">
             <div className="flex items-center justify-center w-16 h-16 bg-rose-50 text-rose-600 rounded-full mx-auto mb-6 shadow-sm ring-8 ring-rose-50/50">
@@ -544,6 +592,7 @@ export default function LaporanWargaPage() {
                 onClick={() => setIsDeleteModalOpen(false)}
                 className="flex-1 px-6 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors"
                 disabled={isDeleting}
+                type="button"
               >
                 Batal
               </button>
@@ -551,6 +600,7 @@ export default function LaporanWargaPage() {
                 onClick={handleDelete}
                 disabled={isDeleting}
                 className="flex-1 px-6 py-3 bg-rose-600 text-white font-bold rounded-xl hover:bg-rose-700 shadow-lg shadow-rose-600/20 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:-translate-y-0.5"
+                type="button"
               >
                 {isDeleting ? (
                   <>
@@ -564,7 +614,7 @@ export default function LaporanWargaPage() {
             </div>
           </div>
         </div>
-      )}
+      ) : null}
       </div>
     </ErrorBoundary>
   );
