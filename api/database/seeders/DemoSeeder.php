@@ -59,6 +59,11 @@ class DemoSeeder extends Seeder
             ['name' => 'Kas Tunai RT', 'balance' => 0]
         );
         
+        // Force save to ensure ID is generated
+        if (!$walletCash->id) {
+            $walletCash->save();
+        }
+        
         $walletBank = Wallet::firstOrCreate(
             ['rt_id' => $rtId, 'type' => 'BANK'],
             [
@@ -69,13 +74,31 @@ class DemoSeeder extends Seeder
             ]
         );
         
-        // CRITICAL: Reload wallet instances to ensure we have actual DB records with proper IDs
+        // Force save to ensure ID is generated
+        if (!$walletBank->id) {
+            $walletBank->save();
+        }
+        
+        // CRITICAL: Verify wallet IDs are present before proceeding
+        if (!$walletCash->id || !$walletBank->id) {
+            $this->command->error('Wallet creation failed - no IDs returned!');
+            return;
+        }
+        
+        // Log wallet IDs for debugging
+        $this->command->info("Created/Found Wallet Cash ID: {$walletCash->id}");
+        $this->command->info("Created/Found Wallet Bank ID: {$walletBank->id}");
+        
+        // Verify wallets actually exist in database
         $walletCash = Wallet::find($walletCash->id);
         $walletBank = Wallet::find($walletBank->id);
         
-        // Verify wallets exist before proceeding
-        if (!$walletCash || !$walletBank) {
-            $this->command->error('Failed to create wallet accounts!');
+        if (!$walletCash) {
+            $this->command->error("Wallet Cash with ID {$walletCash->id} not found in database!");
+            return;
+        }
+        if (!$walletBank) {
+            $this->command->error("Wallet Bank with ID {$walletBank->id} not found in database!");
             return;
         }
 
