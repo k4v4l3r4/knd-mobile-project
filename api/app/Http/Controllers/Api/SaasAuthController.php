@@ -291,8 +291,8 @@ class SaasAuthController extends Controller
             'email' => 'required|email|unique:users,email',
             'password' => 'required|min:6',
             'invite_code' => 'required|exists:wilayah_rt,invite_code',
-            'address_rt' => 'nullable|string|max:3',
-            'address_rw' => 'nullable|string|max:3',
+            'address_rt' => 'required|string|max:3',  // WAJIB - tidak boleh nullable
+            'address_rw' => 'required|string|max:3',  // WAJIB - tidak boleh nullable
             'marital_status' => 'nullable|in:Belum Kawin,Kawin,Cerai Hidup,Cerai Mati,Lajang,Menikah,BELUM_KAWIN,KAWIN,CERAI_HIDUP,CERAI_MATI',
         ]);
 

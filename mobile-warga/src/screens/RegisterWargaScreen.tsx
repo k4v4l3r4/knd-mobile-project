@@ -52,8 +52,9 @@ export default function RegisterWargaScreen({ onSuccess, onBack }: RegisterWarga
   ];
 
   const handleRegister = async () => {
-    if (!formData.name || !formData.phone || !formData.email || !formData.password || !formData.inviteCode) {
-      Alert.alert('Error', 'Mohon lengkapi data wajib (Nama, HP, Email, Password, Kode Undangan)');
+    // Validasi data wajib termasuk RT dan RW
+    if (!formData.name || !formData.phone || !formData.email || !formData.password || !formData.inviteCode || !formData.rt || !formData.rw) {
+      Alert.alert('Error', 'Mohon lengkapi semua data wajib (Nama, HP, Email, Password, Kode Undangan, RT, RW)');
       return;
     }
 
@@ -173,7 +174,7 @@ export default function RegisterWargaScreen({ onSuccess, onBack }: RegisterWarga
               <View style={[styles.inputGroup, { flex: 1 }]}>
                 <Text style={[styles.label, { color: colors.textSecondary }]}>
                   RT
-                  <Text style={{ fontSize: 12, fontWeight: 'normal' }}> (Opsional)</Text>
+                  <Text style={{ color: '#ef4444' }}> *</Text>
                 </Text>
                 <View style={[styles.inputContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
                   <MaterialIcons name="home" size={20} color={colors.textSecondary} style={{ marginRight: 10 }} />
@@ -192,7 +193,7 @@ export default function RegisterWargaScreen({ onSuccess, onBack }: RegisterWarga
               <View style={[styles.inputGroup, { flex: 1 }]}>
                 <Text style={[styles.label, { color: colors.textSecondary }]}>
                   RW
-                  <Text style={{ fontSize: 12, fontWeight: 'normal' }}> (Opsional)</Text>
+                  <Text style={{ color: '#ef4444' }}> *</Text>
                 </Text>
                 <View style={[styles.inputContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
                   <MaterialIcons name="home" size={20} color={colors.textSecondary} style={{ marginRight: 10 }} />
