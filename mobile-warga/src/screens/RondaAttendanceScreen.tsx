@@ -27,6 +27,12 @@ export default function RondaAttendanceScreen({ navigation }: any) {
   const [attendanceStatus, setAttendanceStatus] = useState<AttendanceStatus | null>(null);
   const [scheduleInfo, setScheduleInfo] = useState<any>(null);
   const [initError, setInitError] = useState<string | null>(null);
+  
+  // Kalibrasi Lokasi State
+  const [calibrating, setCalibrating] = useState(false);
+  const [calibrationProgress, setCalibrationProgress] = useState(0);
+  const [bestLocation, setBestLocation] = useState<Location.LocationObject | null>(null);
+  const [calibrationMessage, setCalibrationMessage] = useState('');
 
   // QR Scanner State
   const [permission, requestPermission] = useCameraPermissions();
@@ -99,6 +105,123 @@ export default function RondaAttendanceScreen({ navigation }: any) {
     }
   };
 
+  // FUNGSI KALIBRASI LOKASI OTOMATIS
+  const calibrateLocation = async (): Promise<Location.LocationObject | null> => {
+    try {
+      setCalibrating(true);
+      setCalibrationProgress(0);
+      setCalibrationMessage('Mengkalibrasi lokasi...');
+      
+      let bestAccuracy = Infinity;
+      let bestLoc: Location.LocationObject | null = null;
+      const maxAttempts = 5;
+      const timeout = 10000; // 10 detik timeout
+      const startTime = Date.now();
+      
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        // Check timeout
+        if (Date.now() - startTime > timeout) {
+          setCalibrationMessage('Timeout: akurasi belum optimal');
+          break;
+        }
+        
+        try {
+          // High accuracy mode dengan polling
+          const currentLoc = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Highest,
+          });
+          
+          const accuracy = currentLoc.coords.accuracy || 100;
+          
+          // Update progress
+          setCalibrationProgress(Math.round((attempt / maxAttempts) * 100));
+          setCalibrationMessage(`Akurasi: ${accuracy.toFixed(0)}m (Target: <20m)`);
+          
+          // Simpan lokasi terbaik (akurasi terkecil)
+          if (accuracy < bestAccuracy) {
+            bestAccuracy = accuracy;
+            bestLoc = currentLoc;
+            
+            // Jika akurasi sudah bagus (<20m), langsung stop
+            if (accuracy < 20) {
+              setCalibrationMessage('Akurasi optimal!');
+              break;
+            }
+          }
+          
+          // Delay 1 detik sebelum polling berikutnya
+          if (attempt < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        } catch (err: any) {
+          console.warn(`GPS polling attempt ${attempt} failed:`, err.message);
+          // Lanjut ke attempt berikutnya
+          if (attempt < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
+      }
+      
+      // Fallback: jika semua attempt gagal atau akurasi masih buruk
+      if (!bestLoc) {
+        setCalibrationMessage('Akurasi rendah, coba di ruang terbuka');
+        // Ambil satu kali lagi sebagai last resort
+        try {
+          bestLoc = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+          });
+        } catch (err) {
+          console.error('Last resort GPS failed:', err);
+          return null;
+        }
+      }
+      
+      setCalibrating(false);
+      setCalibrationMessage('');
+      return bestLoc;
+    } catch (error: any) {
+      console.error('calibrateLocation error:', error);
+      setCalibrating(false);
+      setCalibrationMessage('Gagal mengkalibrasi lokasi');
+      return null;
+    }
+  };
+
+  // Refresh lokasi manual untuk fallback
+  const handleRefreshLocation = async () => {
+    try {
+      setCalibrationMessage('Mencoba mendapatkan lokasi yang lebih baik...');
+      const refreshedLocation = await calibrateLocation();
+      
+      if (refreshedLocation) {
+        setLocation(refreshedLocation);
+        const accuracy = refreshedLocation.coords.accuracy || 100;
+        
+        if (accuracy > 50) {
+          Alert.alert(
+            'Akurasi Lokasi Rendah',
+            `Akurasi GPS saat ini: ${accuracy.toFixed(0)}m. Untuk hasil terbaik:\n\n` +
+            `• Keluar ke ruang terbuka\n` +
+            `• Hindari gedung tinggi\n` +
+            `• Pastikan GPS aktif\n\n` +
+            `Lanjutkan dengan akurasi ini?`,
+            [
+              { text: 'Batal', style: 'cancel' },
+              { text: 'Lanjutkan', onPress: () => handleManualCheckIn() }
+            ]
+          );
+        } else {
+          handleManualCheckIn();
+        }
+      } else {
+        Alert.alert('Error', 'Gagal mendapatkan lokasi. Silakan coba lagi.');
+      }
+    } catch (error: any) {
+      console.error('handleRefreshLocation error:', error);
+      Alert.alert('Error', 'Gagal refresh lokasi');
+    }
+  };
+
   // Called after successful check-in/out to refresh status
   const checkAttendanceStatus = async () => {
     try {
@@ -110,11 +233,19 @@ export default function RondaAttendanceScreen({ navigation }: any) {
   };
 
   const handleCheckIn = async () => {
-    if (!location) {
-      Alert.alert('Error', 'Lokasi GPS belum tersedia. Tunggu sebentar atau restart halaman.');
+    // PRE-CALIBRATION: Lakukan kalibrasi lokasi SEBELUM buka scanner
+    setCalibrationMessage('Mengkalibrasi lokasi untuk check-in...');
+    const calibratedLocation = await calibrateLocation();
+    
+    if (!calibratedLocation) {
+      Alert.alert('Error', 'Gagal mendapatkan lokasi GPS. Silakan coba lagi atau pastikan GPS aktif.');
       return;
     }
-
+    
+    // Simpan lokasi hasil kalibrasi untuk digunakan setelah scan
+    setLocation(calibratedLocation);
+    const accuracy = calibratedLocation.coords.accuracy || 100;
+    
     try {
       // Request camera permission if not yet granted
       if (!permission?.granted) {
@@ -131,7 +262,8 @@ export default function RondaAttendanceScreen({ navigation }: any) {
           return;
         }
       }
-      // Permission granted - open scanner
+      
+      // Permission granted - open scanner dengan lokasi yang sudah dikalibrasi
       setScannedToken(null);
       setShowScanner(true);
     } catch (error: any) {
@@ -141,19 +273,22 @@ export default function RondaAttendanceScreen({ navigation }: any) {
   };
 
   const handleManualCheckIn = async () => {
-    if (!location) {
-      Alert.alert('Error', 'Lokasi GPS belum tersedia');
+    // Gunakan kalibrasi lokasi setiap kali check-in
+    setCalibrationMessage('Menyiapkan kalibrasi lokasi...');
+    const calibratedLocation = await calibrateLocation();
+    
+    if (!calibratedLocation) {
+      Alert.alert('Error', 'Gagal mendapatkan lokasi GPS. Silakan coba lagi atau pastikan GPS aktif.');
       return;
     }
 
     try {
       setSubmitting(true);
-      setShowScanner(false);
 
       const response = await api.post('/ronda-schedules/scan-attendance', {
         qr_token: 'manual-checkin-gps',
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
+        latitude: calibratedLocation.coords.latitude,
+        longitude: calibratedLocation.coords.longitude,
       });
 
       if (response.data.success) {
@@ -176,7 +311,27 @@ export default function RondaAttendanceScreen({ navigation }: any) {
 
   const handleBarCodeScanned = async ({ type, data }: { type: string; data: string }) => {
     if (scannedToken) return; // Prevent double scan
-    if (!location) return;
+    
+    // Cek apakah lokasi hasil pre-calibration masih valid (akurasi < 30m)
+    const currentAccuracy = location?.coords.accuracy || 100;
+    const needsRecalibration = currentAccuracy > 30;
+    
+    let finalLocation = location;
+    
+    if (needsRecalibration || !location) {
+      // Re-kalibrasi jika akurasi buruk atau belum ada lokasi
+      setCalibrationMessage('Mengkalibrasi ulang lokasi untuk akurasi...');
+      finalLocation = await calibrateLocation();
+      
+      if (!finalLocation) {
+        Alert.alert('Error', 'Gagal mendapatkan lokasi GPS. Silakan coba lagi.');
+        setScannedToken(null);
+        return;
+      }
+    } else {
+      // Gunakan lokasi yang sudah dikalibrasi sebelumnya
+      console.log(`Using pre-calibrated location with accuracy: ${currentAccuracy.toFixed(0)}m`);
+    }
 
     setScannedToken(data);
     setShowScanner(false);
@@ -186,8 +341,8 @@ export default function RondaAttendanceScreen({ navigation }: any) {
 
       const response = await api.post('/ronda-schedules/scan-attendance', {
         qr_token: data,
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
+        latitude: finalLocation!.coords.latitude,
+        longitude: finalLocation!.coords.longitude,
       });
 
       if (response.data.success) {
@@ -211,8 +366,12 @@ export default function RondaAttendanceScreen({ navigation }: any) {
   };
 
   const handleCheckOut = async () => {
-    if (!location) {
-      Alert.alert('Error', 'Lokasi GPS belum tersedia');
+    // Gunakan kalibrasi lokasi setiap kali check-out
+    setCalibrationMessage('Menyiapkan kalibrasi lokasi...');
+    const calibratedLocation = await calibrateLocation();
+    
+    if (!calibratedLocation) {
+      Alert.alert('Error', 'Gagal mendapatkan lokasi GPS. Silakan coba lagi atau pastikan GPS aktif.');
       return;
     }
 
@@ -221,8 +380,8 @@ export default function RondaAttendanceScreen({ navigation }: any) {
 
       const response = await api.post('/ronda-schedules/scan-attendance', {
         qr_token: 'manual-checkout',
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
+        latitude: calibratedLocation.coords.latitude,
+        longitude: calibratedLocation.coords.longitude,
       });
 
       if (response.data.success) {
@@ -454,6 +613,66 @@ export default function RondaAttendanceScreen({ navigation }: any) {
           <Text style={styles.helperText}>• Check-out dilakukan setelah selesai bertugas</Text>
         </View>
       </ScrollView>
+
+      {/* Kalibrasi Lokasi Modal */}
+      <Modal
+        visible={calibrating || calibrationMessage !== ''}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {
+          if (!calibrating) setCalibrationMessage('');
+        }}
+      >
+        <View style={styles.calibrationOverlay}>
+          <View style={styles.calibrationCard}>
+            {calibrating ? (
+              <>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={styles.calibrationTitle}>Sedang mengkalibrasi lokasi...</Text>
+                <Text style={styles.calibrationMessage}>{calibrationMessage}</Text>
+                
+                {/* Progress Bar */}
+                <View style={styles.progressContainer}>
+                  <View style={styles.progressBarBg}>
+                    <View 
+                      style={[
+                        styles.progressBarFill, 
+                        { width: `${calibrationProgress}%` }
+                      ]} 
+                    />
+                  </View>
+                  <Text style={styles.progressText}>{calibrationProgress}%</Text>
+                </View>
+                
+                <Text style={styles.calibrationHint}>
+                  Mohon tunggu beberapa detik untuk akurasi terbaik
+                </Text>
+              </>
+            ) : (
+              <>
+                <Ionicons name="location" size={48} color="#f59e0b" />
+                <Text style={styles.calibrationTitle}>Akurasi Lokasi Rendah</Text>
+                <Text style={styles.calibrationMessage}>{calibrationMessage}</Text>
+                
+                <TouchableOpacity
+                  style={styles.refreshButton}
+                  onPress={handleRefreshLocation}
+                >
+                  <Ionicons name="refresh" size={20} color="#fff" />
+                  <Text style={styles.refreshButtonText}>Refresh Lokasi</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={styles.continueButton}
+                  onPress={() => setCalibrationMessage('')}
+                >
+                  <Text style={styles.continueButtonText}>Lanjutkan</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
 
       {/* QR Scanner Modal - transparent:false prevents blank/black screen */}
       <Modal
@@ -872,5 +1091,98 @@ const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  
+  // Kalibrasi Styles
+  calibrationOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  calibrationCard: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 30,
+    width: '100%',
+    maxWidth: 400,
+    alignItems: 'center',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+  },
+  calibrationTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginTop: 20,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  calibrationMessage: {
+    fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  progressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 15,
+  },
+  progressBarBg: {
+    flex: 1,
+    height: 8,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#10b981',
+    borderRadius: 4,
+  },
+  progressText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginLeft: 10,
+    width: 45,
+  },
+  calibrationHint: {
+    fontSize: 12,
+    color: '#9ca3af',
+    textAlign: 'center',
+    marginTop: 10,
+  },
+  refreshButton: {
+    backgroundColor: '#f59e0b',
+    paddingHorizontal: 30,
+    paddingVertical: 12,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 10,
+  },
+  refreshButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  continueButton: {
+    marginTop: 15,
+    paddingHorizontal: 30,
+    paddingVertical: 12,
+  },
+  continueButtonText: {
+    color: '#6b7280',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
