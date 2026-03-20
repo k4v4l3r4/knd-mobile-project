@@ -39,7 +39,7 @@ export default function SystemSettingsScreen({ onNavigate }: SystemSettingsScree
 
   const menuGroups = [
     {
-      title: t('home.menus.systemSettings'),
+      title: 'Pengaturan Umum',
       items: [
         { 
           title: t('home.menus.rtProfile'), 
@@ -47,6 +47,17 @@ export default function SystemSettingsScreen({ onNavigate }: SystemSettingsScree
           color: '#3b82f6',
           action: () => handleAction(() => onNavigate('RT_PROFILE'))
         },
+        { 
+          title: 'Notifikasi', 
+          icon: 'notifications-outline', 
+          color: '#f59e0b',
+          action: () => handleAction(() => onNavigate('NOTIFICATION_SETTINGS'))
+        },
+      ]
+    },
+    {
+      title: 'Pengaturan Fitur',
+      items: [
         { 
           title: t('home.menus.financeSettings'), 
           icon: 'wallet-outline', 
@@ -82,6 +93,12 @@ export default function SystemSettingsScreen({ onNavigate }: SystemSettingsScree
           icon: 'document-text-outline', 
           color: '#f97316',
           action: () => handleAction(() => onNavigate('LETTER_TYPE_SETTINGS'))
+        },
+        { 
+          title: 'Pengaturan CCTV', 
+          icon: 'videocam-outline', 
+          color: '#ef4444',
+          action: () => handleAction(() => onNavigate('CCTV'))
         },
       ]
     }

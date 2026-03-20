@@ -76,6 +76,7 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isAdminRT, setIsAdminRT] = useState(false);
+  const [screenError, setScreenError] = useState<string | null>(null);
 
   // Recipient Form State
   const [recipientModalVisible, setRecipientModalVisible] = useState(false);
@@ -220,18 +221,80 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
     }
   };
 
+  // HELPER: Ensure HTTPS URL for images (from Web Admin fix)
+  const ensureHttpsUrl = (url: string | null | undefined) => {
+    if (!url || typeof url !== 'string') return null;
+    
+    if (url.startsWith('https://')) {
+      return url;
+    }
+    
+    if (url.startsWith('http://')) {
+      return url.replace('http://', 'https://');
+    }
+    
+    return `https://${url}`;
+  };
+
+  // ULTRA-DEFENSIVE: Fetch data with error handling
   const fetchData = async () => {
     try {
       setLoading(true);
+      setScreenError(null);
+      
       if (activeTab === 'recipients') {
         const response = await api.get('/bansos-recipients');
-        setRecipients(response.data.data.data || []);
+        
+        // ULTRA-DEFENSIVE: Handle ANY payload structure
+        const extractedData = response?.data?.data?.data || response?.data?.data || response?.data || [];
+        const validatedData = Array.isArray(extractedData) ? extractedData : [];
+        
+        // Validate each recipient object
+        const safeRecipients = validatedData.map((item: any, idx: number) => {
+          if (!item || typeof item !== 'object') {
+            console.warn(`Invalid recipient at index ${idx}, replacing with placeholder`);
+            return { id: idx, user_id: 0, no_kk: '-', status: 'PENDING', notes: '', score: 0, user: null };
+          }
+          return {
+            ...item,
+            user: item.user || null,
+            no_kk: item.no_kk || '-',
+            status: item.status || 'PENDING',
+          };
+        });
+        
+        setRecipients(safeRecipients);
       } else {
         const response = await api.get('/bansos-histories');
-        setHistories(response.data.data.data || []);
+        
+        // ULTRA-DEFENSIVE: Handle ANY payload structure
+        const extractedData = response?.data?.data?.data || response?.data?.data || response?.data || [];
+        const validatedData = Array.isArray(extractedData) ? extractedData : [];
+        
+        // Validate each history object
+        const safeHistories = validatedData.map((item: any, idx: number) => {
+          if (!item || typeof item !== 'object') {
+            console.warn(`Invalid history at index ${idx}, replacing with placeholder`);
+            return { id: idx, bansos_recipient_id: 0, program_name: '-', date_received: '-', amount: 0, evidence_photo: null, recipient: null };
+          }
+          return {
+            ...item,
+            program_name: item.program_name || '-',
+            date_received: item.date_received || '-',
+            amount: item.amount || 0,
+            recipient: item.recipient || null,
+          };
+        });
+        
+        setHistories(safeHistories);
       }
-    } catch (error) {
-      console.log('Error fetching bansos data:', error);
+    } catch (error: any) {
+      console.error('CRITICAL ERROR fetching bansos data:', error);
+      setScreenError(error.response?.status === 500 
+        ? 'Terjadi kesalahan pada server. Silakan coba lagi nanti.'
+        : 'Gagal memuat data. Periksa koneksi internet Anda.');
+      setRecipients([]);
+      setHistories([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -374,86 +437,129 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
   };
 
   const renderRecipientItem = ({ item }: { item: BansosRecipient }) => {
-    if (!item) return null;
-    return (
-    <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <View style={styles.userInfo}>
-          <View style={[styles.avatar, { backgroundColor: colors.primaryLight }]}>
-            <Text style={{ color: colors.primary, fontWeight: 'bold' }}>
-              {item.user?.name?.charAt(0) || '?'}
-            </Text>
-          </View>
-          <View>
-            <Text style={styles.userName}>{item.user?.name || 'Unknown'}</Text>
-            <Text style={styles.userKk}>KK: {item.no_kk || '-'}</Text>
-          </View>
-        </View>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
-          <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
-            {item.status}
-          </Text>
-        </View>
-      </View>
-      
-      {item.notes && (
-        <Text style={styles.notes} numberOfLines={2}>
-          Catatan: {item.notes}
-        </Text>
-      )}
+    // CRITICAL NULL CHECK - prevent crash on invalid data
+    if (!item || typeof item !== 'object') {
+      console.warn('Invalid recipient item:', item);
+      return null;
+    }
 
-      {isAdminRT && (
-        <View style={styles.actionRow}>
-          {item.status === 'LAYAK' && (
-            <TouchableOpacity 
-                style={[styles.actionButton, styles.distributeButton]}
-                onPress={() => openDistributeModal(item)}
-            >
-                <Ionicons name="gift-outline" size={16} color="#fff" />
-                <Text style={styles.actionButtonText}>Salurkan</Text>
-            </TouchableOpacity>
+    try {
+      // ULTRA-DEFENSIVE: Protect ALL nested property access
+      const userAny = item.user as any;
+      const userName = userAny?.name ?? userAny?.nama ?? 'Unknown';
+      const userPhoto = ensureHttpsUrl(userAny?.photo_url ?? userAny?.avatar);
+      
+      // Type-safe string operations
+      const safeUserName = typeof userName === 'string' ? userName : 'Unknown';
+      const userInitial = (safeUserName && safeUserName.length > 0) ? safeUserName.charAt(0) : '?';
+      const noKk = typeof item.no_kk === 'string' ? item.no_kk : '-';
+      const notes = typeof item.notes === 'string' ? item.notes : '';
+      
+      return (
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={styles.userInfo}>
+              <View style={[styles.avatar, { backgroundColor: colors.primaryLight }]}>
+                <Text style={{ color: colors.primary, fontWeight: 'bold' }}>
+                  {userInitial}
+                </Text>
+              </View>
+              <View>
+                <Text style={styles.userName}>{safeUserName}</Text>
+                <Text style={styles.userKk}>KK: {noKk}</Text>
+              </View>
+            </View>
+            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
+              <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
+                {item.status || 'PENDING'}
+              </Text>
+            </View>
+          </View>
+          
+          {notes && notes.trim().length > 0 && (
+            <Text style={styles.notes} numberOfLines={2}>
+              Catatan: {notes}
+            </Text>
           )}
-          <TouchableOpacity 
-              style={[styles.iconButton, { backgroundColor: colors.background }]}
-              onPress={() => openEditModal(item)}
-          >
-              <Ionicons name="create-outline" size={20} color={colors.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity 
-              style={[styles.iconButton, { backgroundColor: '#fee2e2' }]}
-              onPress={() => handleDeleteRecipient(item.id)}
-          >
-              <Ionicons name="trash-outline" size={20} color="#ef4444" />
-          </TouchableOpacity>
+
+          {isAdminRT && (
+            <View style={styles.actionRow}>
+              {item.status === 'LAYAK' && (
+                <TouchableOpacity 
+                    style={[styles.actionButton, styles.distributeButton]}
+                    onPress={() => openDistributeModal(item)}
+                >
+                    <Ionicons name="gift-outline" size={16} color="#fff" />
+                    <Text style={styles.actionButtonText}>Salurkan</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity 
+                  style={[styles.iconButton, { backgroundColor: colors.background }]}
+                  onPress={() => openEditModal(item)}
+              >
+                  <Ionicons name="create-outline" size={20} color={colors.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                  style={[styles.iconButton, { backgroundColor: '#fee2e2' }]}
+                  onPress={() => handleDeleteRecipient(item.id)}
+              >
+                  <Ionicons name="trash-outline" size={20} color="#ef4444" />
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
-      )}
-    </View>
-  );
-};
+      );
+    } catch (error) {
+      console.error('CRITICAL ERROR rendering recipient item:', error, item);
+      return null;
+    }
+  };
 
   const renderHistoryItem = ({ item }: { item: BansosHistory }) => {
-    if (!item) return null;
-    return (
-    <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <View>
-          <Text style={styles.programName}>{item.program_name || 'Tidak ada nama program'}</Text>
-          <Text style={styles.date}>{item.date_received || '-'}</Text>
+    // CRITICAL NULL CHECK - prevent crash on invalid data
+    if (!item || typeof item !== 'object') {
+      console.warn('Invalid history item:', item);
+      return null;
+    }
+
+    try {
+      // ULTRA-DEFENSIVE: Protect ALL nested property access
+      const programName = typeof item.program_name === 'string' ? item.program_name : 'Tidak ada nama program';
+      const dateReceived = typeof item.date_received === 'string' ? item.date_received : '-';
+      const amount = typeof item.amount === 'number' ? item.amount : 0;
+      const evidencePhoto = ensureHttpsUrl(item.evidence_photo);
+      
+      // CRITICAL: Nested recipient -> user access with null safety
+      const recipientAny = item.recipient as any;
+      const recipientName = recipientAny?.user?.name ?? recipientAny?.nama ?? 'Tidak diketahui';
+      const safeRecipientName = typeof recipientName === 'string' ? recipientName : 'Tidak diketahui';
+      
+      return (
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View>
+              <Text style={styles.programName}>{programName}</Text>
+              <Text style={styles.date}>{dateReceived}</Text>
+            </View>
+            <Text style={styles.amount}>
+              {amount ? `Rp ${amount.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : 'Barang'}
+            </Text>
+          </View>
+          <Text style={styles.recipientName}>Penerima: {safeRecipientName}</Text>
+          {evidencePhoto && (
+            <Image 
+              source={{ uri: evidencePhoto }} 
+              style={styles.evidencePhoto}
+              resizeMode="cover"
+            />
+          )}
         </View>
-        <Text style={styles.amount}>
-           {item.amount ? `Rp ${item.amount.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : 'Barang'}
-        </Text>
-      </View>
-      <Text style={styles.recipientName}>Penerima: {item.recipient?.user?.name || 'Tidak diketahui'}</Text>
-      {item.evidence_photo && (
-          <Image 
-            source={{ uri: getStorageUrl(item.evidence_photo) || '' }} 
-            style={styles.evidencePhoto} 
-          />
-      )}
-    </View>
-  );
-};
+      );
+    } catch (error) {
+      console.error('CRITICAL ERROR rendering history item:', error, item);
+      return null;
+    }
+  };
 
   const filteredWarga = useMemo(() => {
     if (!wargaList || wargaList.length === 0) return [];
@@ -480,64 +586,87 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
         </SafeAreaView>
       </LinearGradient>
 
-      <View style={styles.tabContainer}>
-        <TouchableOpacity 
-          style={[styles.tab, activeTab === 'recipients' && styles.activeTab]}
-          onPress={() => setActiveTab('recipients')}
-        >
-          <Text style={[styles.tabText, activeTab === 'recipients' && styles.activeTabText]}>
-            Penerima
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.tab, activeTab === 'history' && styles.activeTab]}
-          onPress={() => setActiveTab('history')}
-        >
-          <Text style={[styles.tabText, activeTab === 'history' && styles.activeTabText]}>
-            Riwayat
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {loading && !refreshing ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
+      {/* ERROR BOUNDARY UI - Show error instead of white screen */}
+      {screenError && (
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={64} color="#ef4444" />
+          <Text style={styles.errorTitle}>Oops! Terjadi Kesalahan</Text>
+          <Text style={styles.errorMessage}>{screenError}</Text>
+          <TouchableOpacity 
+            style={styles.retryButton}
+            onPress={() => {
+              setScreenError(null);
+              fetchData();
+            }}
+          >
+            <Ionicons name="refresh" size={20} color="#fff" />
+            <Text style={styles.retryButtonText}>Coba Lagi</Text>
+          </TouchableOpacity>
         </View>
-      ) : activeTab === 'recipients' ? (
-        <FlatList
-          data={recipients || []}
-          renderItem={renderRecipientItem}
-          keyExtractor={(item) => item?.id?.toString() || 'unknown'}
-          contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>Belum ada data penerima</Text>
-              {isAdminRT && (
-                <TouchableOpacity style={styles.emptyButton} onPress={openAddModal}>
-                  <Text style={styles.emptyButtonText}>Tambah Penerima</Text>
-                </TouchableOpacity>
-              )}
+      )}
+
+      {!screenError && (
+        <>
+          <View style={styles.tabContainer}>
+            <TouchableOpacity 
+              style={[styles.tab, activeTab === 'recipients' && styles.activeTab]}
+              onPress={() => setActiveTab('recipients')}
+            >
+              <Text style={[styles.tabText, activeTab === 'recipients' && styles.activeTabText]}>
+                Penerima
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.tab, activeTab === 'history' && styles.activeTab]}
+              onPress={() => setActiveTab('history')}
+            >
+              <Text style={[styles.tabText, activeTab === 'history' && styles.activeTabText]}>
+                Riwayat
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {loading && !refreshing ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
             </View>
-          }
-        />
-      ) : (
-        <FlatList
-          data={histories || []}
-          renderItem={renderHistoryItem}
-          keyExtractor={(item) => item?.id?.toString() || 'unknown'}
-          contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>Belum ada riwayat</Text>
-            </View>
-          }
-        />
+          ) : activeTab === 'recipients' ? (
+            <FlatList
+              data={recipients || []}
+              renderItem={renderRecipientItem}
+              keyExtractor={(item) => item?.id?.toString() || 'unknown'}
+              contentContainerStyle={styles.listContent}
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+              }
+              ListEmptyComponent={
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyText}>Belum ada data penerima</Text>
+                  {isAdminRT && (
+                    <TouchableOpacity style={styles.emptyButton} onPress={openAddModal}>
+                      <Text style={styles.emptyButtonText}>Tambah Penerima</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              }
+            />
+          ) : (
+            <FlatList
+              data={histories || []}
+              renderItem={renderHistoryItem}
+              keyExtractor={(item) => item?.id?.toString() || 'unknown'}
+              contentContainerStyle={styles.listContent}
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+              }
+              ListEmptyComponent={
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyText}>Belum ada riwayat</Text>
+                </View>
+              }
+            />
+          )}
+        </>
       )}
 
       {/* Recipient Modal */}
@@ -1077,5 +1206,42 @@ const getStyles = (colors: any, isDarkMode: boolean) => StyleSheet.create({
     color: colors.textSecondary,
     fontSize: 12,
     marginLeft: 8,
-  }
+  },
+  // Error Boundary Styles
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 30,
+    backgroundColor: isDarkMode ? '#0f172a' : '#f8f9fa',
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#ef4444',
+    marginTop: 20,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  errorMessage: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 30,
+    lineHeight: 20,
+  },
+  retryButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 30,
+    paddingVertical: 15,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
 });
