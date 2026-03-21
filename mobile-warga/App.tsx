@@ -25,6 +25,7 @@ import ProductDetailScreen, { Product } from './src/screens/ProductDetailScreen'
 import AddProductScreen from './src/screens/AddProductScreen';
 import AnnouncementDetailScreen, { Announcement } from './src/screens/AnnouncementDetailScreen';
 import CctvScreen from './src/screens/CctvScreen';
+import CCTVSettingsScreen from './src/screens/CCTVSettingsScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import TermsConditionsScreen from './src/screens/TermsConditionsScreen';
 import ChangePasswordScreen from './src/screens/ChangePasswordScreen';
@@ -335,7 +336,7 @@ const AppContent = () => {
       )}
       {currentScreen === 'ADD_PRODUCT' && <AddProductScreen editingProduct={selectedProductToEdit || undefined} onSuccess={() => setCurrentScreen('MARKET')} />}
       {currentScreen === 'CHECKOUT' && <CheckoutScreen onNavigate={handleNavigate} />}
-      {currentScreen === 'CCTV' && <CctvScreen />}
+      {currentScreen === 'CCTV' && <CCTVSettingsScreen onNavigate={handleNavigate} />}
       {currentScreen === 'SETTINGS' && <SettingsScreen onLogout={handleLogout} onNavigate={handleNavigate} />}
       {currentScreen === 'WARGA_LIST' && <WargaListScreen />}
       {currentScreen === 'TERMS' && <TermsConditionsScreen />}
