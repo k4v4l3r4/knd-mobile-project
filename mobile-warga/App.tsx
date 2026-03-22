@@ -336,7 +336,7 @@ const AppContent = () => {
       )}
       {currentScreen === 'ADD_PRODUCT' && <AddProductScreen editingProduct={selectedProductToEdit || undefined} onSuccess={() => setCurrentScreen('MARKET')} />}
       {currentScreen === 'CHECKOUT' && <CheckoutScreen onNavigate={handleNavigate} />}
-      {currentScreen === 'CCTV' && <CCTVSettingsScreen onNavigate={handleNavigate} />}
+      {currentScreen === 'CCTV' && <CctvScreen />}
       {currentScreen === 'SETTINGS' && <SettingsScreen onLogout={handleLogout} onNavigate={handleNavigate} />}
       {currentScreen === 'WARGA_LIST' && <WargaListScreen />}
       {currentScreen === 'TERMS' && <TermsConditionsScreen />}

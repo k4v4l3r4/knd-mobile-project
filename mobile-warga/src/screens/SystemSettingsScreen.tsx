@@ -94,12 +94,6 @@ export default function SystemSettingsScreen({ onNavigate }: SystemSettingsScree
           color: '#f97316',
           action: () => handleAction(() => onNavigate('LETTER_TYPE_SETTINGS'))
         },
-        { 
-          title: 'Pengaturan CCTV', 
-          icon: 'videocam-outline', 
-          color: '#ef4444',
-          action: () => handleAction(() => onNavigate('CCTV'))
-        },
       ]
     }
   ];
