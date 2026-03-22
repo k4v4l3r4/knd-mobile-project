@@ -866,7 +866,8 @@ function HomeScreen({ onLogout, onNavigate }: HomeScreenProps) {
 
     // Filter announcement and voting for WARGA/WARGA_TETAP
           if (userRole === 'WARGA' || userRole === 'WARGA_TETAP' || userRole === 'WARGA TETAP') {
-            items = items.filter(item => item.id !== 'announcement' && item.id !== 'voting' && item.id !== 'system_settings' && item.id !== 'bansos' && item.id !== 'contribution_report');
+            items = items.filter(item => item.id !== 'announcement' && item.id !== 'voting' && item.id !== 'system_settings' && item.id !== 'contribution_report');
+            // Keep bansos menu visible for Warga (read-only access)
           }
 
           // Management Kost Menu Visibility

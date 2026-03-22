@@ -73,9 +73,9 @@ export default function BoardingScreen({ onNavigate }: BoardingScreenProps) {
 
   // Role-based capabilities
   const canCreateKost = useMemo(() => {
-    // RT/Admin, Juragan, and Anak Kost can create/edit
-    // Regular Warga (view-only) cannot create
-    const allowedRoles = ['RT', 'ADMIN_RT', 'WARGA_KOST', 'ANAK_KOST'];
+    // RT/Admin, Juragan, Anak Kost, AND Regular Warga can create/edit their own kost
+    // This enables warga to promote and manage their kost independently
+    const allowedRoles = ['RT', 'ADMIN_RT', 'WARGA_KOST', 'ANAK_KOST', 'WARGA', 'WARGA_TETAP'];
     return allowedRoles.includes(userRole);
   }, [userRole]);
   
@@ -221,6 +221,10 @@ export default function BoardingScreen({ onNavigate }: BoardingScreenProps) {
     total_rooms: '',
     total_floors: '',
     floor_config: [] as number[],
+    price: '',           // Harga per bulan
+    facilities: '',      // Fasilitas (multiline text)
+    owner_phone: '',     // No HP Pemilik
+    photo_url: '',       // URL Foto Kost
   });
   
   const formatDateLocal = (date: Date) => {
@@ -334,6 +338,8 @@ export default function BoardingScreen({ onNavigate }: BoardingScreenProps) {
     if (!address) missingFields.push(t('boarding.form.kostAddress') || 'Alamat Kost');
     if (floors < 1) missingFields.push(t('boarding.form.totalFloors') || 'Jumlah Lantai');
     if (rooms < 1) missingFields.push(t('boarding.form.totalRooms') || 'Total Kamar');
+    if (!kostFormData.price || Number(kostFormData.price) <= 0) missingFields.push('Harga Kost');
+    if (!kostFormData.owner_phone) missingFields.push('No HP Pemilik');
 
     if (missingFields.length > 0) {
       const msg = `Mohon lengkapi data kost: ${missingFields.join(', ')}`;
@@ -380,7 +386,7 @@ export default function BoardingScreen({ onNavigate }: BoardingScreenProps) {
       if (response.data.success) {
         Alert.alert(t('common.success'), isEditingKost ? t('boarding.alert.successEdit') : t('boarding.alert.successAdd'));
         setKostModalVisible(false);
-        setKostFormData({ name: '', address: '', total_rooms: '', total_floors: '', floor_config: [] });
+        setKostFormData({ name: '', address: '', total_rooms: '', total_floors: '', floor_config: [], price: '', facilities: '', owner_phone: '', photo_url: '' });
         setIsEditingKost(false);
         setEditingKostId(null);
         
@@ -427,7 +433,11 @@ export default function BoardingScreen({ onNavigate }: BoardingScreenProps) {
       address: kost.address,
       total_rooms: String(kost.total_rooms),
       total_floors: String(kost.total_floors || 1),
-      floor_config: config
+      floor_config: config,
+      price: String(kost.price_per_month || ''),
+      facilities: kost.facilities || '',
+      owner_phone: kost.contact_phone || '',
+      photo_url: kost.photo_url || '',
     });
     setEditingKostId(kost.id);
     setIsEditingKost(true);
@@ -1443,7 +1453,7 @@ export default function BoardingScreen({ onNavigate }: BoardingScreenProps) {
           style={styles.fab}
           onPress={() => {
             if (myBoardingHouses.length === 0) {
-              setKostFormData({ name: '', address: '', total_rooms: '', total_floors: '', floor_config: [] });
+              setKostFormData({ name: '', address: '', total_rooms: '', total_floors: '', floor_config: [], price: '', facilities: '', owner_phone: '', photo_url: '' });
               setIsEditingKost(false);
               setEditingKostId(null);
               setKostModalVisible(true);
@@ -1492,7 +1502,7 @@ export default function BoardingScreen({ onNavigate }: BoardingScreenProps) {
         onRequestClose={() => {
           setKostModalVisible(false);
           setIsEditingKost(false);
-          setKostFormData({ name: '', address: '', total_rooms: '', total_floors: '', floor_config: [] });
+          setKostFormData({ name: '', address: '', total_rooms: '', total_floors: '', floor_config: [], price: '', facilities: '', owner_phone: '', photo_url: '' });
         }}
       >
         <View style={styles.modalOverlay}>
@@ -1649,7 +1659,7 @@ export default function BoardingScreen({ onNavigate }: BoardingScreenProps) {
                 onPress={() => {
                   setKostModalVisible(false);
                   setIsEditingKost(false);
-                  setKostFormData({ name: '', address: '', total_rooms: '', total_floors: '', floor_config: [] });
+                  setKostFormData({ name: '', address: '', total_rooms: '', total_floors: '', floor_config: [], price: '', facilities: '', owner_phone: '', photo_url: '' });
                 }}
                 activeOpacity={0.7}
               >
