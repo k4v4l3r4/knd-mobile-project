@@ -65,10 +65,14 @@ interface User {
 }
 
 export default function BansosScreen({ navigation, onNavigate }: any) {
+  console.log('🔵 [BANSOS SCREEN] Component initializing...');
+  
   const { colors, isDarkMode } = useTheme();
   const { t } = useLanguage();
   const { isExpired } = useTenant();
   const styles = useMemo(() => getStyles(colors, isDarkMode), [colors, isDarkMode]);
+  
+  console.log('🔵 [BANSOS SCREEN] Hooks initialized, state setting up...');
   
   const [activeTab, setActiveTab] = useState<'recipients' | 'history'>('recipients');
   const [recipients, setRecipients] = useState<BansosRecipient[]>([]);
@@ -151,11 +155,14 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
 
   // EMERGENCY FIX: Wrap entire useEffect in try-catch
   useEffect(() => {
+    console.log('🔵 [BANSOS SCREEN] useEffect triggered');
     try {
+      console.log('🔵 [BANSOS SCREEN] About to call checkRole() and fetchData()');
       checkRole();
       fetchData();
+      console.log('🔵 [BANSOS SCREEN] Functions called successfully');
     } catch (error: any) {
-      console.error('CRITICAL ERROR in useEffect:', error);
+      console.error('❌ [BANSOS SCREEN] CRITICAL ERROR in useEffect:', error);
       setScreenError('Gagal memuat halaman. Silakan restart aplikasi.');
       setLoading(false);
     }
@@ -199,29 +206,36 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
 
   // EMERGENCY FIX: Wrap checkRole in try-catch
   const checkRole = async () => {
+    console.log('🔵 [CHECK ROLE] Starting...');
     try {
-      // Fetch fresh user data to ensure role is up to date
+      console.log('🔵 [CHECK ROLE] Fetching /me endpoint...');
       const response = await api.get('/me');
+      console.log('✅ [CHECK ROLE] Response received:', response.data?.success);
       const user = response.data.data;
+      console.log('🔵 [CHECK ROLE] User role:', user.role);
       setIsAdminRT(user.role === 'ADMIN_RT');
       if (user.role === 'ADMIN_RT') {
+        console.log('🔵 [CHECK ROLE] User is ADMIN_RT, fetching warga...');
         try {
           fetchWarga();
         } catch (error) {
-          console.log('Error fetching warga (non-critical):', error);
+          console.log('⚠️ [CHECK ROLE] Error fetching warga (non-critical):', error);
         }
+      } else {
+        console.log('🔵 [CHECK ROLE] User is WARGA, skipping warga fetch');
       }
     } catch (error: any) {
-      console.log('Error checking role (using fallback):', error);
+      console.log('⚠️ [CHECK ROLE] Error checking role (using fallback):', error.message);
       // Fallback to local storage
       try {
         const hasRole = await authService.hasRole('ADMIN_RT');
+        console.log('🔵 [CHECK ROLE] Fallback role check:', hasRole);
         setIsAdminRT(hasRole);
         if (hasRole) {
           fetchWarga();
         }
       } catch (authError) {
-        console.log('Auth service error:', authError);
+        console.log('❌ [CHECK ROLE] Auth service error:', authError);
         setIsAdminRT(false); // Default to Warga role for safety
       }
     }
@@ -229,15 +243,21 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
 
   // EMERGENCY FIX: Wrap fetchWarga in try-catch
   const fetchWarga = async () => {
+    console.log('🔵 [FETCH WARGA] Starting...');
     try {
+      console.log('🔵 [FETCH WARGA] Fetching /warga endpoint...');
       const response = await api.get('/warga');
+      console.log('✅ [FETCH WARGA] Response received:', response.data?.success);
       if (response.data.success) {
-        setWargaList(response.data.data.data || []);
+        const wargaData = response.data.data.data || [];
+        console.log('🔵 [FETCH WARGA] Loaded', wargaData.length, 'users');
+        setWargaList(wargaData);
       } else {
+        console.log('⚠️ [FETCH WARGA] Response not successful');
         setWargaList([]);
       }
     } catch (error: any) {
-      console.log('Error fetching warga (non-critical):', error);
+      console.log('❌ [FETCH WARGA] Error:', error.message);
       setWargaList([]); // Prevent crash, just use empty list
     }
   };
@@ -259,22 +279,32 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
 
   // EMERGENCY FIX: Wrap fetchData in comprehensive try-catch with null checks
   const fetchData = async () => {
+    console.log('🔵 [FETCH DATA] Starting... activeTab:', activeTab);
     try {
       setLoading(true);
       setScreenError(null);
       
       if (activeTab === 'recipients') {
+        console.log('🔵 [FETCH DATA] Fetching recipients...');
         const response = await api.get('/bansos-recipients');
+        console.log('✅ [FETCH DATA] Recipients response status:', response.status);
+        console.log('📦 [FETCH DATA] Response structure:', {
+          hasData: !!response.data,
+          hasSuccess: !!response.data?.success,
+          hasDataArray: Array.isArray(response.data?.data),
+          nestedDataLength: response.data?.data?.data?.length || 0
+        });
         
         // ULTRA-DEFENSIVE: Handle ANY payload structure
         const extractedData = response?.data?.data?.data || response?.data?.data || response?.data || [];
         const validatedData = Array.isArray(extractedData) ? extractedData : [];
+        console.log('🔵 [FETCH DATA] Validated data count:', validatedData.length);
         
         // Validate each recipient object
         const safeRecipients = validatedData.map((item: any, idx: number) => {
           try {
             if (!item || typeof item !== 'object') {
-              console.warn(`Invalid recipient at index ${idx}, replacing with placeholder`);
+              console.warn('⚠️ [FETCH DATA] Invalid recipient at index', idx);
               return { id: idx, user_id: 0, no_kk: '-', status: 'PENDING', notes: '', score: 0, user: null };
             }
             return {
@@ -284,14 +314,17 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
               status: item.status || 'PENDING',
             };
           } catch (err) {
-            console.warn(`Error validating recipient at index ${idx}:`, err);
+            console.warn('❌ [FETCH DATA] Error validating recipient at index', idx, err);
             return { id: idx, user_id: 0, no_kk: '-', status: 'PENDING', notes: '', score: 0, user: null };
           }
         });
         
+        console.log('✅ [FETCH DATA] Setting', safeRecipients.length, 'recipients');
         setRecipients(safeRecipients);
       } else {
+        console.log('🔵 [FETCH DATA] Fetching histories...');
         const response = await api.get('/bansos-histories');
+        console.log('✅ [FETCH DATA] Histories response status:', response.status);
         
         // ULTRA-DEFENSIVE: Handle ANY payload structure
         const extractedData = response?.data?.data?.data || response?.data?.data || response?.data || [];
@@ -301,7 +334,7 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
         const safeHistories = validatedData.map((item: any, idx: number) => {
           try {
             if (!item || typeof item !== 'object') {
-              console.warn(`Invalid history at index ${idx}, replacing with placeholder`);
+              console.warn('⚠️ [FETCH DATA] Invalid history at index', idx);
               return { id: idx, bansos_recipient_id: 0, program_name: '-', date_received: '-', amount: 0, evidence_photo: null, recipient: null };
             }
             return {
@@ -312,21 +345,32 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
               recipient: item.recipient || null,
             };
           } catch (err) {
-            console.warn(`Error validating history at index ${idx}:`, err);
+            console.warn('❌ [FETCH DATA] Error validating history at index', idx, err);
             return { id: idx, bansos_recipient_id: 0, program_name: '-', date_received: '-', amount: 0, evidence_photo: null, recipient: null };
           }
         });
         
+        console.log('✅ [FETCH DATA] Setting', safeHistories.length, 'histories');
         setHistories(safeHistories);
       }
     } catch (error: any) {
-      console.error('CRITICAL ERROR fetching bansos data:', error);
+      console.error('❌ [FETCH DATA] CRITICAL ERROR:', error.message);
+      console.error('🔍 [FETCH DATA] Error details:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        config: {
+          baseURL: error.config?.baseURL,
+          url: error.config?.url,
+          fullUrl: `${error.config?.baseURL}${error.config?.url}`
+        }
+      });
       setScreenError(error.response?.status === 500 
         ? 'Terjadi kesalahan pada server. Silakan coba lagi nanti.'
         : 'Gagal memuat data. Periksa koneksi internet Anda.');
       setRecipients([]);
       setHistories([]);
     } finally {
+      console.log('🔵 [FETCH DATA] Finally block - setting loading false');
       setLoading(false);
       setRefreshing(false);
     }
