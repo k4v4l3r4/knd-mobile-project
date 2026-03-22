@@ -240,6 +240,8 @@ const AppContent = () => {
   };
 
   const handleNavigate = (screen: string, data?: any) => {
+    console.log('🔵 [APP NAVIGATE] Called with screen:', screen);
+    
     if (screen === 'ANNOUNCEMENT_DETAIL' && data) {
       setSelectedAnnouncement(data);
     }
@@ -264,7 +266,10 @@ const AppContent = () => {
     if (screen === 'TENANT_LIST' && data) {
       setTenantListParams(data);
     }
+    
+    console.log('🔵 [APP NAVIGATE] About to set currentScreen from', currentScreen, 'to', screen);
     setCurrentScreen(screen as ScreenState);
+    console.log('✅ [APP NAVIGATE] Screen changed successfully, currentScreen is now:', screen);
   };
 
   if (loading || !fontsLoaded) {

@@ -65,7 +65,8 @@ interface User {
 }
 
 export default function BansosScreen({ navigation, onNavigate }: any) {
-  console.log('🔵 [BANSOS SCREEN] Component initializing...');
+  console.log('🔴 [BANSOS SCREEN] Component MOUNTING...');
+  console.log('🔴 [BANSOS SCREEN] Props received:', { hasNavigation: !!navigation, hasOnNavigate: !!onNavigate });
   
   const { colors, isDarkMode } = useTheme();
   const { t } = useLanguage();
@@ -153,19 +154,19 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
     );
   };
 
-  // EMERGENCY FIX: Wrap entire useEffect in try-catch
+  // CRITICAL FIX: BYPASS API CALLS - FORCE RENDER ONLY!
+  // TEMPORARILY DISABLED: checkRole() and fetchData() to test if screen renders
   useEffect(() => {
-    console.log('🔵 [BANSOS SCREEN] useEffect triggered');
-    try {
-      console.log('🔵 [BANSOS SCREEN] About to call checkRole() and fetchData()');
-      checkRole();
-      fetchData();
-      console.log('🔵 [BANSOS SCREEN] Functions called successfully');
-    } catch (error: any) {
-      console.error('❌ [BANSOS SCREEN] CRITICAL ERROR in useEffect:', error);
-      setScreenError('Gagal memuat halaman. Silakan restart aplikasi.');
-      setLoading(false);
-    }
+    console.log('🔵 [BANSOS SCREEN] useEffect triggered - FORCED RENDER MODE');
+    console.log('⚠️ API CALLS BYPASSED - Testing if screen renders without data');
+    
+    // BYPASS API CALLS - Just render immediately!
+    // checkRole();  // ← DISABLED
+    // fetchData();  // ← DISABLED
+    
+    // Set loading false immediately so screen shows
+    setLoading(false);
+    
   }, [activeTab]);
 
   // BackHandler for modals
@@ -752,23 +753,22 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
   const secondaryColor = '#064e3b'; // Emerald 900
   const textSecondary = '#6b7280'; // Gray 500
 
-  // SAFETY NET: Show loader during initial data fetch
-  if (loading) {
-    console.log('⚠️ [BANSOS] Still loading data, showing loader');
-    console.log('🔵 [DEBUG] Loading state is TRUE - will show spinner');
-    return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" color={primaryColor} />
-          <Text style={{ marginTop: 16, color: textSecondary, fontSize: 14 }}>Memuat data...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  // CRITICAL FIX: BYPASS ALL LOADING STATES - FORCE RENDER!
+  // REMOVED: if (loading) return <LoadingView />;
+  // This ensures screen ALWAYS renders something
 
+  // FORCED RENDER TEST: Show this text NO MATTER WHAT!
+  console.log('🔴 [FORCED RENDER] About to return main component...');
+  
   return (
     <SafeAreaView style={styles.container}>
+      {/* FORCED TEST TEXT - If you see this, screen is rendering! */}
+      <View style={{ position: 'absolute', top: 100, left: 0, right: 0, zIndex: 9999, backgroundColor: 'yellow', padding: 20, alignItems: 'center' }}>
+        <Text style={{ fontSize: 24, fontWeight: 'bold', color: 'red' }}>HALLO! SCREEN RENDERING!</Text>
+        <Text style={{ fontSize: 16, color: 'black' }}>Jika ini muncul = BUKAN masalah navigasi</Text>
+        <Text style={{ fontSize: 14, color: 'blue' }}>Loading: {String(loading)} | activeTab: {activeTab}</Text>
+      </View>
+      
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       <LinearGradient
         colors={[colors.primary, '#064e3b']} // Emerald 600 to 900
