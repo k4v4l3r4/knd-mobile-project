@@ -888,7 +888,11 @@ function HomeScreen({ onLogout, onNavigate }: HomeScreenProps) {
         title: t('home.menus.bansos'), 
         icon: 'gift-outline', 
         library: Ionicons, 
-        action: () => onNavigate('BANSOS') 
+        action: () => {
+          console.log('🔵 [HOME SCREEN] Bansos menu PRESSED!');
+          onNavigate('BANSOS');
+          console.log('✅ [HOME SCREEN] onNavigate called, should navigate to BANSOS');
+        }
       });
 
       items.push({ 
