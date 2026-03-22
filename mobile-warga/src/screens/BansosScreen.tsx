@@ -300,6 +300,7 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
       setScreenError(null);
       
       if (activeTab === 'recipients') {
+        console.log('🔵 [DEBUG] Calling Bansos API now...');
         console.log('🔵 [FETCH DATA] Fetching recipients...');
         const response = await api.get('/bansos-recipients');
         console.log('✅ [FETCH DATA] Recipients response status:', response.status);
@@ -743,26 +744,24 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
     );
   }
 
-  // SAFETY NET: Loading state while colors/theme is loading
-  if (!colors || !colors.primary) {
-    console.log('⚠️ [BANSOS] Colors not ready, showing loader');
-    return (
-      <View style={{ flex: 1, backgroundColor: '#ffffff', justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#10b981" />
-        <Text style={{ marginTop: 16, color: '#666', fontSize: 14 }}>Loading...</Text>
-      </View>
-    );
-  }
+  // REMOVED: Colors barrier - using hardcoded colors instead
+  // Old code: if (!colors || !colors.primary) return <LoadingView />;
+  
+  // HARDCODED COLORS (bypass theme context dependency)
+  const primaryColor = '#10b981'; // Emerald 500
+  const secondaryColor = '#064e3b'; // Emerald 900
+  const textSecondary = '#6b7280'; // Gray 500
 
   // SAFETY NET: Show loader during initial data fetch
   if (loading) {
     console.log('⚠️ [BANSOS] Still loading data, showing loader');
+    console.log('🔵 [DEBUG] Loading state is TRUE - will show spinner');
     return (
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={{ marginTop: 16, color: colors.textSecondary, fontSize: 14 }}>Memuat data...</Text>
+          <ActivityIndicator size="large" color={primaryColor} />
+          <Text style={{ marginTop: 16, color: textSecondary, fontSize: 14 }}>Memuat data...</Text>
         </View>
       </SafeAreaView>
     );
