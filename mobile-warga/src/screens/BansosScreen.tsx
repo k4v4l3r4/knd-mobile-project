@@ -204,25 +204,40 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
     }, [])
   );
 
-  // EMERGENCY FIX: Wrap checkRole in try-catch
+  // EMERGENCY FIX: Wrap checkRole in try-catch with null safety
   const checkRole = async () => {
     console.log('🔵 [CHECK ROLE] Starting...');
     try {
       console.log('🔵 [CHECK ROLE] Fetching /me endpoint...');
       const response = await api.get('/me');
       console.log('✅ [CHECK ROLE] Response received:', response.data?.success);
-      const user = response.data.data;
-      console.log('🔵 [CHECK ROLE] User role:', user.role);
-      setIsAdminRT(user.role === 'ADMIN_RT');
-      if (user.role === 'ADMIN_RT') {
-        console.log('🔵 [CHECK ROLE] User is ADMIN_RT, fetching warga...');
-        try {
-          fetchWarga();
-        } catch (error) {
-          console.log('⚠️ [CHECK ROLE] Error fetching warga (non-critical):', error);
+      
+      // CRITICAL FIX: Add null safety with optional chaining
+      const user = response?.data?.data;
+      
+      if (user && user.role) {
+        console.log('🔵 [CHECK ROLE] User role:', user.role);
+        setIsAdminRT(user.role === 'ADMIN_RT');
+        
+        if (user.role === 'ADMIN_RT') {
+          console.log('🔵 [CHECK ROLE] User is ADMIN_RT, fetching warga...');
+          try {
+            fetchWarga();
+          } catch (error) {
+            console.log('⚠️ [CHECK ROLE] Error fetching warga (non-critical):', error);
+          }
+        } else {
+          console.log('🔵 [CHECK ROLE] User is WARGA, skipping warga fetch');
         }
       } else {
-        console.log('🔵 [CHECK ROLE] User is WARGA, skipping warga fetch');
+        console.warn('⚠️ [CHECK ROLE] User data or role missing, using fallback');
+        // Fallback to local storage
+        const hasRole = await authService.hasRole('ADMIN_RT');
+        console.log('🔵 [CHECK ROLE] Fallback role check:', hasRole);
+        setIsAdminRT(hasRole);
+        if (hasRole) {
+          fetchWarga();
+        }
       }
     } catch (error: any) {
       console.log('⚠️ [CHECK ROLE] Error checking role (using fallback):', error.message);
@@ -723,6 +738,31 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
             <Ionicons name="refresh" size={20} color="#fff" />
             <Text style={styles.retryButtonText}>Coba Lagi</Text>
           </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // SAFETY NET: Loading state while colors/theme is loading
+  if (!colors || !colors.primary) {
+    console.log('⚠️ [BANSOS] Colors not ready, showing loader');
+    return (
+      <View style={{ flex: 1, backgroundColor: '#ffffff', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#10b981" />
+        <Text style={{ marginTop: 16, color: '#666', fontSize: 14 }}>Loading...</Text>
+      </View>
+    );
+  }
+
+  // SAFETY NET: Show loader during initial data fetch
+  if (loading) {
+    console.log('⚠️ [BANSOS] Still loading data, showing loader');
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={{ marginTop: 16, color: colors.textSecondary, fontSize: 14 }}>Memuat data...</Text>
         </View>
       </SafeAreaView>
     );
