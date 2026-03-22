@@ -149,9 +149,16 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
     );
   };
 
+  // EMERGENCY FIX: Wrap entire useEffect in try-catch
   useEffect(() => {
-    checkRole();
-    fetchData();
+    try {
+      checkRole();
+      fetchData();
+    } catch (error: any) {
+      console.error('CRITICAL ERROR in useEffect:', error);
+      setScreenError('Gagal memuat halaman. Silakan restart aplikasi.');
+      setLoading(false);
+    }
   }, [activeTab]);
 
   // BackHandler for modals
@@ -190,6 +197,7 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
     }, [])
   );
 
+  // EMERGENCY FIX: Wrap checkRole in try-catch
   const checkRole = async () => {
     try {
       // Fetch fresh user data to ensure role is up to date
@@ -197,27 +205,40 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
       const user = response.data.data;
       setIsAdminRT(user.role === 'ADMIN_RT');
       if (user.role === 'ADMIN_RT') {
-        fetchWarga();
+        try {
+          fetchWarga();
+        } catch (error) {
+          console.log('Error fetching warga (non-critical):', error);
+        }
       }
-    } catch (error) {
-      console.log('Error checking role:', error);
+    } catch (error: any) {
+      console.log('Error checking role (using fallback):', error);
       // Fallback to local storage
-      const hasRole = await authService.hasRole('ADMIN_RT');
-      setIsAdminRT(hasRole);
-      if (hasRole) {
-        fetchWarga();
+      try {
+        const hasRole = await authService.hasRole('ADMIN_RT');
+        setIsAdminRT(hasRole);
+        if (hasRole) {
+          fetchWarga();
+        }
+      } catch (authError) {
+        console.log('Auth service error:', authError);
+        setIsAdminRT(false); // Default to Warga role for safety
       }
     }
   };
 
+  // EMERGENCY FIX: Wrap fetchWarga in try-catch
   const fetchWarga = async () => {
     try {
       const response = await api.get('/warga');
       if (response.data.success) {
-        setWargaList(response.data.data.data);
+        setWargaList(response.data.data.data || []);
+      } else {
+        setWargaList([]);
       }
-    } catch (error) {
-      console.log('Error fetching warga:', error);
+    } catch (error: any) {
+      console.log('Error fetching warga (non-critical):', error);
+      setWargaList([]); // Prevent crash, just use empty list
     }
   };
 
@@ -236,7 +257,7 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
     return `https://${url}`;
   };
 
-  // ULTRA-DEFENSIVE: Fetch data with error handling
+  // EMERGENCY FIX: Wrap fetchData in comprehensive try-catch with null checks
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -251,16 +272,21 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
         
         // Validate each recipient object
         const safeRecipients = validatedData.map((item: any, idx: number) => {
-          if (!item || typeof item !== 'object') {
-            console.warn(`Invalid recipient at index ${idx}, replacing with placeholder`);
+          try {
+            if (!item || typeof item !== 'object') {
+              console.warn(`Invalid recipient at index ${idx}, replacing with placeholder`);
+              return { id: idx, user_id: 0, no_kk: '-', status: 'PENDING', notes: '', score: 0, user: null };
+            }
+            return {
+              ...item,
+              user: item.user || null,
+              no_kk: item.no_kk || '-',
+              status: item.status || 'PENDING',
+            };
+          } catch (err) {
+            console.warn(`Error validating recipient at index ${idx}:`, err);
             return { id: idx, user_id: 0, no_kk: '-', status: 'PENDING', notes: '', score: 0, user: null };
           }
-          return {
-            ...item,
-            user: item.user || null,
-            no_kk: item.no_kk || '-',
-            status: item.status || 'PENDING',
-          };
         });
         
         setRecipients(safeRecipients);
@@ -273,17 +299,22 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
         
         // Validate each history object
         const safeHistories = validatedData.map((item: any, idx: number) => {
-          if (!item || typeof item !== 'object') {
-            console.warn(`Invalid history at index ${idx}, replacing with placeholder`);
+          try {
+            if (!item || typeof item !== 'object') {
+              console.warn(`Invalid history at index ${idx}, replacing with placeholder`);
+              return { id: idx, bansos_recipient_id: 0, program_name: '-', date_received: '-', amount: 0, evidence_photo: null, recipient: null };
+            }
+            return {
+              ...item,
+              program_name: item.program_name || '-',
+              date_received: item.date_received || '-',
+              amount: item.amount || 0,
+              recipient: item.recipient || null,
+            };
+          } catch (err) {
+            console.warn(`Error validating history at index ${idx}:`, err);
             return { id: idx, bansos_recipient_id: 0, program_name: '-', date_received: '-', amount: 0, evidence_photo: null, recipient: null };
           }
-          return {
-            ...item,
-            program_name: item.program_name || '-',
-            date_received: item.date_received || '-',
-            amount: item.amount || 0,
-            recipient: item.recipient || null,
-          };
         });
         
         setHistories(safeHistories);
@@ -306,13 +337,14 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
     fetchData();
   };
 
+  // EMERGENCY FIX: Wrap all action handlers in try-catch
   const handleSaveRecipient = async () => {
-    if (!recipientForm.user_id || !recipientForm.no_kk) {
-      Alert.alert('Error', 'Mohon lengkapi data wajib (Warga & No KK)');
-      return;
-    }
-
     try {
+      if (!recipientForm.user_id || !recipientForm.no_kk) {
+        Alert.alert('Error', 'Mohon lengkapi data wajib (Warga & No KK)');
+        return;
+      }
+
       setLoading(true);
       if (isEditing && selectedRecipientId) {
         await api.put(`/bansos-recipients/${selectedRecipientId}`, recipientForm);
@@ -324,6 +356,7 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
       setRecipientModalVisible(false);
       fetchData();
     } catch (error: any) {
+      console.error('Error saving recipient:', error);
       Alert.alert('Error', error.response?.data?.message || 'Gagal menyimpan data');
     } finally {
       setLoading(false);
@@ -331,42 +364,53 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
   };
 
   const handleDeleteRecipient = (id: number) => {
-    Alert.alert(
-      'Konfirmasi',
-      'Hapus data penerima ini?',
-      [
-        { text: 'Batal', style: 'cancel' },
-        {
-          text: 'Hapus',
-          style: 'destructive',
-          onPress: async () => {
-            if (isExpired) {
-              Alert.alert(t('report.accessLimited'), t('report.trialExpiredAdmin'));
-              return;
-            }
-            try {
-              setLoading(true);
-              await api.delete(`/bansos-recipients/${id}`);
-              fetchData();
-            } catch (error: any) {
-              Alert.alert('Error', 'Gagal menghapus data');
-            } finally {
-              setLoading(false);
+    try {
+      Alert.alert(
+        'Konfirmasi',
+        'Hapus data penerima ini?',
+        [
+          { text: 'Batal', style: 'cancel' },
+          {
+            text: 'Hapus',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                if (isExpired) {
+                  Alert.alert(t('report.accessLimited'), t('report.trialExpiredAdmin'));
+                  return;
+                }
+                setLoading(true);
+                await api.delete(`/bansos-recipients/${id}`);
+                fetchData();
+              } catch (error: any) {
+                console.error('Error deleting recipient:', error);
+                Alert.alert('Error', 'Gagal menghapus data');
+              } finally {
+                setLoading(false);
+              }
             }
           }
-        }
-      ]
-    );
+        ]
+      );
+    } catch (error) {
+      console.error('Error in delete handler:', error);
+      Alert.alert('Error', 'Terjadi kesalahan saat menghapus');
+    }
   };
 
   const openDistributeModal = (recipient: BansosRecipient) => {
-    setDistributeForm({
-      program_name: '',
-      amount: '',
-      recipient_id: recipient.id,
-      evidence_photo: null
-    });
-    setDistributeModalVisible(true);
+    try {
+      setDistributeForm({
+        program_name: '',
+        amount: '',
+        recipient_id: recipient?.id || 0,
+        evidence_photo: null
+      });
+      setDistributeModalVisible(true);
+    } catch (error) {
+      console.error('Error opening distribute modal:', error);
+      Alert.alert('Error', 'Gagal membuka form penyaluran');
+    }
   };
 
   const handleDistribute = async () => {
@@ -393,38 +437,55 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
     }
   };
 
+  // EMERGENCY FIX: Wrap modal openers in try-catch with null checks
   const openEditModal = (recipient: BansosRecipient) => {
-    if (isExpired) {
-      Alert.alert(t('report.accessLimited'), t('report.trialExpiredAdmin'));
-      return;
+    try {
+      if (!recipient || typeof recipient !== 'object') {
+        console.error('Invalid recipient object for edit');
+        Alert.alert('Error', 'Data penerima tidak valid');
+        return;
+      }
+
+      if (isExpired) {
+        Alert.alert(t('report.accessLimited'), t('report.trialExpiredAdmin'));
+        return;
+      }
+      setIsEditing(true);
+      setSelectedRecipientId(recipient.id || 0);
+      setRecipientForm({
+        user_id: recipient.user_id?.toString() || '',
+        no_kk: recipient.no_kk || '',
+        status: recipient.status || 'PENDING',
+        notes: recipient.notes || ''
+      });
+      setWargaSearch(recipient.user?.name || '');
+      setRecipientModalVisible(true);
+    } catch (error) {
+      console.error('Error opening edit modal:', error);
+      Alert.alert('Error', 'Gagal membuka form edit');
     }
-    setIsEditing(true);
-    setSelectedRecipientId(recipient.id);
-    setRecipientForm({
-      user_id: recipient.user_id.toString(),
-      no_kk: recipient.no_kk,
-      status: recipient.status,
-      notes: recipient.notes || ''
-    });
-    setWargaSearch(recipient.user?.name || '');
-    setRecipientModalVisible(true);
   };
 
   const openAddModal = () => {
-    if (isExpired) {
-      Alert.alert(t('report.accessLimited'), t('report.trialExpiredAdmin'));
-      return;
+    try {
+      if (isExpired) {
+        Alert.alert(t('report.accessLimited'), t('report.trialExpiredAdmin'));
+        return;
+      }
+      setIsEditing(false);
+      setSelectedRecipientId(null);
+      setRecipientForm({
+        user_id: '',
+        no_kk: '',
+        status: 'PENDING',
+        notes: ''
+      });
+      setWargaSearch('');
+      setRecipientModalVisible(true);
+    } catch (error) {
+      console.error('Error opening add modal:', error);
+      Alert.alert('Error', 'Gagal membuka form tambah');
     }
-    setIsEditing(false);
-    setSelectedRecipientId(null);
-    setRecipientForm({
-      user_id: '',
-      no_kk: '',
-      status: 'PENDING',
-      notes: ''
-    });
-    setWargaSearch('');
-    setRecipientModalVisible(true);
   };
 
   const getStatusColor = (status: string) => {
@@ -436,14 +497,15 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
     }
   };
 
+  // EMERGENCY FIX: Ultra-defensive rendering with strict role checks
   const renderRecipientItem = ({ item }: { item: BansosRecipient }) => {
-    // CRITICAL NULL CHECK - prevent crash on invalid data
-    if (!item || typeof item !== 'object') {
-      console.warn('Invalid recipient item:', item);
-      return null;
-    }
-
     try {
+      // CRITICAL NULL CHECK - prevent crash on invalid data
+      if (!item || typeof item !== 'object') {
+        console.warn('Invalid recipient item:', item);
+        return null;
+      }
+
       // ULTRA-DEFENSIVE: Protect ALL nested property access
       const userAny = item.user as any;
       const userName = userAny?.name ?? userAny?.nama ?? 'Unknown';
@@ -454,6 +516,8 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
       const userInitial = (safeUserName && safeUserName.length > 0) ? safeUserName.charAt(0) : '?';
       const noKk = typeof item.no_kk === 'string' ? item.no_kk : '-';
       const notes = typeof item.notes === 'string' ? item.notes : '';
+      const itemId = typeof item.id === 'number' ? item.id : 0;
+      const itemStatus = typeof item.status === 'string' ? item.status : 'PENDING';
       
       return (
         <View style={styles.card}>
@@ -469,9 +533,9 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
                 <Text style={styles.userKk}>KK: {noKk}</Text>
               </View>
             </View>
-            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
-              <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
-                {item.status || 'PENDING'}
+            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(itemStatus) + '20' }]}>
+              <Text style={[styles.statusText, { color: getStatusColor(itemStatus) }]}>
+                {itemStatus}
               </Text>
             </View>
           </View>
@@ -482,12 +546,20 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
             </Text>
           )}
 
-          {isAdminRT && (
+          {/* EMERGENCY FIX: STRICT ROLE-BASED RENDERING - ONLY RT CAN SEE ADMIN BUTTONS */}
+          {isAdminRT === true && (
             <View style={styles.actionRow}>
-              {item.status === 'LAYAK' && (
+              {itemStatus === 'LAYAK' && (
                 <TouchableOpacity 
                     style={[styles.actionButton, styles.distributeButton]}
-                    onPress={() => openDistributeModal(item)}
+                    onPress={() => {
+                      try {
+                        openDistributeModal(item);
+                      } catch (error) {
+                        console.error('Error in distribute button:', error);
+                        Alert.alert('Error', 'Gagal membuka form penyaluran');
+                      }
+                    }}
                 >
                     <Ionicons name="gift-outline" size={16} color="#fff" />
                     <Text style={styles.actionButtonText}>Salurkan</Text>
@@ -495,13 +567,27 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
               )}
               <TouchableOpacity 
                   style={[styles.iconButton, { backgroundColor: colors.background }]}
-                  onPress={() => openEditModal(item)}
+                  onPress={() => {
+                    try {
+                      openEditModal(item);
+                    } catch (error) {
+                      console.error('Error in edit button:', error);
+                      Alert.alert('Error', 'Gagal membuka form edit');
+                    }
+                  }}
               >
                   <Ionicons name="create-outline" size={20} color={colors.primary} />
               </TouchableOpacity>
               <TouchableOpacity 
                   style={[styles.iconButton, { backgroundColor: '#fee2e2' }]}
-                  onPress={() => handleDeleteRecipient(item.id)}
+                  onPress={() => {
+                    try {
+                      handleDeleteRecipient(itemId);
+                    } catch (error) {
+                      console.error('Error in delete button:', error);
+                      Alert.alert('Error', 'Gagal menghapus data');
+                    }
+                  }}
               >
                   <Ionicons name="trash-outline" size={20} color="#ef4444" />
               </TouchableOpacity>
@@ -561,11 +647,17 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
     }
   };
 
+  // EMERGENCY FIX: Wrap filteredWarga in try-catch to prevent crashes
   const filteredWarga = useMemo(() => {
-    if (!wargaList || wargaList.length === 0) return [];
-    return wargaList.filter(w => 
-      w.name && w.name.toLowerCase().includes((wargaSearch || '').toLowerCase())
-    );
+    try {
+      if (!wargaList || wargaList.length === 0) return [];
+      return wargaList.filter(w => 
+        w.name && w.name.toLowerCase().includes((wargaSearch || '').toLowerCase())
+      );
+    } catch (error) {
+      console.error('Error filtering warga:', error);
+      return []; // Return empty list on error instead of crashing
+    }
   }, [wargaList, wargaSearch]);
 
   // CRITICAL: Early return for error state to prevent blank screen
@@ -645,8 +737,14 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
           }
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>Belum ada data penerima</Text>
-              {isAdminRT && (
+              <Ionicons name="help-circle-outline" size={64} color={colors.textSecondary} />
+              <Text style={styles.emptyText}>
+                {isAdminRT === true 
+                  ? 'Belum ada data penerima bantuan. Klik tombol + untuk menambah.'
+                  : 'Belum ada bantuan tersedia untuk Anda.'
+                }
+              </Text>
+              {isAdminRT === true && (
                 <TouchableOpacity style={styles.emptyButton} onPress={openAddModal}>
                   <Text style={styles.emptyButtonText}>Tambah Penerima</Text>
                 </TouchableOpacity>
@@ -665,7 +763,13 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
           }
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>Belum ada riwayat</Text>
+              <Ionicons name="document-text-outline" size={64} color={colors.textSecondary} />
+              <Text style={styles.emptyText}>
+                {isAdminRT === true
+                  ? 'Belum ada riwayat penyaluran bantuan.'
+                  : 'Belum ada riwayat bantuan yang Anda terima.'
+                }
+              </Text>
             </View>
           }
         />
