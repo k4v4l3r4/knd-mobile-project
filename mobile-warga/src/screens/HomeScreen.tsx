@@ -870,12 +870,14 @@ function HomeScreen({ onLogout, onNavigate }: HomeScreenProps) {
           }
 
           // Management Kost Menu Visibility
-          // Show only if: RT/Admin OR Owner (Juragan) OR Tenant (Anak Kost)
+          // Show for: RT/Admin, Owner (Juragan), Tenant (Anak Kost), AND Regular Warga (for viewing)
           const isJuragan = data?.is_juragan || false;
           const isAnakKost = data?.is_anak_kost || false;
           const isRT = userRole === 'RT' || userRole === 'ADMIN_RT';
-
-          if (!isJuragan && !isAnakKost && !isRT) {
+          
+          // Only hide boarding menu if user has NO relation to kost system at all
+          // For Warga role, show the menu but restrict write access via checkRestriction
+          if (!isJuragan && !isAnakKost && !isRT && !(userRole === 'WARGA' || userRole === 'WARGA_TETAP' || userRole === 'WARGA TETAP')) {
              items = items.filter(item => item.id !== 'boarding');
           }
 

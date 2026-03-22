@@ -73,10 +73,11 @@ export default function BoardingScreen({ onNavigate }: BoardingScreenProps) {
 
   // Role-based capabilities
   const canCreateKost = useMemo(() => {
-    // RT/Admin can only create if they want to be an owner. 
-    // Everyone can create a kost in this system context (becoming a Juragan).
-    return true;
-  }, []);
+    // RT/Admin, Juragan, and Anak Kost can create/edit
+    // Regular Warga (view-only) cannot create
+    const allowedRoles = ['RT', 'ADMIN_RT', 'WARGA_KOST', 'ANAK_KOST'];
+    return allowedRoles.includes(userRole);
+  }, [userRole]);
   
   
   const [showImagePickerModal, setShowImagePickerModal] = useState(false);
@@ -1437,7 +1438,7 @@ export default function BoardingScreen({ onNavigate }: BoardingScreenProps) {
       )}
 
       {/* Floating Action Button */}
-      {activeTab === 'MY_KOST' && (
+      {activeTab === 'MY_KOST' && canCreateKost && (
         <TouchableOpacity
           style={styles.fab}
           onPress={() => {
