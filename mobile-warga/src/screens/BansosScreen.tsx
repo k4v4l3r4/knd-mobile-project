@@ -568,8 +568,32 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
     );
   }, [wargaList, wargaSearch]);
 
+  // CRITICAL: Early return for error state to prevent blank screen
+  if (screenError) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={64} color="#ef4444" />
+          <Text style={styles.errorTitle}>Oops! Terjadi Kesalahan</Text>
+          <Text style={styles.errorMessage}>{screenError}</Text>
+          <TouchableOpacity 
+            style={styles.retryButton}
+            onPress={() => {
+              setScreenError(null);
+              fetchData();
+            }}
+          >
+            <Ionicons name="refresh" size={20} color="#fff" />
+            <Text style={styles.retryButtonText}>Coba Lagi</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       <LinearGradient
         colors={[colors.primary, '#064e3b']} // Emerald 600 to 900
@@ -586,87 +610,65 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
         </SafeAreaView>
       </LinearGradient>
 
-      {/* ERROR BOUNDARY UI - Show error instead of white screen */}
-      {screenError && (
-        <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={64} color="#ef4444" />
-          <Text style={styles.errorTitle}>Oops! Terjadi Kesalahan</Text>
-          <Text style={styles.errorMessage}>{screenError}</Text>
-          <TouchableOpacity 
-            style={styles.retryButton}
-            onPress={() => {
-              setScreenError(null);
-              fetchData();
-            }}
-          >
-            <Ionicons name="refresh" size={20} color="#fff" />
-            <Text style={styles.retryButtonText}>Coba Lagi</Text>
-          </TouchableOpacity>
+      {/* Main Content */}
+      <View style={styles.tabContainer}>
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === 'recipients' && styles.activeTab]}
+          onPress={() => setActiveTab('recipients')}
+        >
+          <Text style={[styles.tabText, activeTab === 'recipients' && styles.activeTabText]}>
+            Penerima
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === 'history' && styles.activeTab]}
+          onPress={() => setActiveTab('history')}
+        >
+          <Text style={[styles.tabText, activeTab === 'history' && styles.activeTabText]}>
+            Riwayat
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {loading && !refreshing ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
-      )}
-
-      {!screenError && (
-        <>
-          <View style={styles.tabContainer}>
-            <TouchableOpacity 
-              style={[styles.tab, activeTab === 'recipients' && styles.activeTab]}
-              onPress={() => setActiveTab('recipients')}
-            >
-              <Text style={[styles.tabText, activeTab === 'recipients' && styles.activeTabText]}>
-                Penerima
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.tab, activeTab === 'history' && styles.activeTab]}
-              onPress={() => setActiveTab('history')}
-            >
-              <Text style={[styles.tabText, activeTab === 'history' && styles.activeTabText]}>
-                Riwayat
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {loading && !refreshing ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.primary} />
+      ) : activeTab === 'recipients' ? (
+        <FlatList
+          data={recipients || []}
+          renderItem={renderRecipientItem}
+          keyExtractor={(item) => item?.id?.toString() || 'unknown'}
+          contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>Belum ada data penerima</Text>
+              {isAdminRT && (
+                <TouchableOpacity style={styles.emptyButton} onPress={openAddModal}>
+                  <Text style={styles.emptyButtonText}>Tambah Penerima</Text>
+                </TouchableOpacity>
+              )}
             </View>
-          ) : activeTab === 'recipients' ? (
-            <FlatList
-              data={recipients || []}
-              renderItem={renderRecipientItem}
-              keyExtractor={(item) => item?.id?.toString() || 'unknown'}
-              contentContainerStyle={styles.listContent}
-              refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
-              }
-              ListEmptyComponent={
-                <View style={styles.emptyState}>
-                  <Text style={styles.emptyText}>Belum ada data penerima</Text>
-                  {isAdminRT && (
-                    <TouchableOpacity style={styles.emptyButton} onPress={openAddModal}>
-                      <Text style={styles.emptyButtonText}>Tambah Penerima</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              }
-            />
-          ) : (
-            <FlatList
-              data={histories || []}
-              renderItem={renderHistoryItem}
-              keyExtractor={(item) => item?.id?.toString() || 'unknown'}
-              contentContainerStyle={styles.listContent}
-              refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
-              }
-              ListEmptyComponent={
-                <View style={styles.emptyState}>
-                  <Text style={styles.emptyText}>Belum ada riwayat</Text>
-                </View>
-              }
-            />
-          )}
-        </>
+          }
+        />
+      ) : (
+        <FlatList
+          data={histories || []}
+          renderItem={renderHistoryItem}
+          keyExtractor={(item) => item?.id?.toString() || 'unknown'}
+          contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>Belum ada riwayat</Text>
+            </View>
+          }
+        />
       )}
 
       {/* Recipient Modal */}
@@ -857,7 +859,7 @@ export default function BansosScreen({ navigation, onNavigate }: any) {
           </View>
         </KeyboardAvoidingView>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
