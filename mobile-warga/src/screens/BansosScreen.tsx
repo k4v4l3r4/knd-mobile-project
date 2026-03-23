@@ -161,11 +161,6 @@ const BansosScreen = ({ onNavigate }: any) => {
             style={[styles.tab, activeTab === 'dtks' && styles.activeTab]}
             onPress={() => { setActiveTab('dtks'); setSearchQuery(''); }}
           >
-            <Ionicons 
-              name={activeTab === 'dtks' ? 'people' : 'people-outline'} 
-              size={20} 
-              color={activeTab === 'dtks' ? '#fff' : '#666'} 
-            />
             <Text style={[styles.tabText, activeTab === 'dtks' && styles.activeTabText]}>
               Data DTKS
             </Text>
@@ -175,11 +170,6 @@ const BansosScreen = ({ onNavigate }: any) => {
             style={[styles.tab, activeTab === 'penyaluran' && styles.activeTab]}
             onPress={() => setActiveTab('penyaluran')}
           >
-            <Ionicons 
-              name={activeTab === 'penyaluran' ? 'gift' : 'gift-outline'} 
-              size={20} 
-              color={activeTab === 'penyaluran' ? '#fff' : '#666'} 
-            />
             <Text style={[styles.tabText, activeTab === 'penyaluran' && styles.activeTabText]}>
               Penyaluran
             </Text>
@@ -189,11 +179,6 @@ const BansosScreen = ({ onNavigate }: any) => {
             style={[styles.tab, activeTab === 'riwayat' && styles.activeTab]}
             onPress={() => { setActiveTab('riwayat'); setSearchQuery(''); }}
           >
-            <Ionicons 
-              name={activeTab === 'riwayat' ? 'time' : 'time-outline'} 
-              size={20} 
-              color={activeTab === 'riwayat' ? '#fff' : '#666'} 
-            />
             <Text style={[styles.tabText, activeTab === 'riwayat' && styles.activeTabText]}>
               Riwayat
             </Text>
@@ -472,65 +457,70 @@ const styles = StyleSheet.create({
   header: { 
     flexDirection: 'row', 
     alignItems: 'center', 
-    padding: 16, 
-    paddingTop: 40,
+    padding: 20, 
+    paddingTop: 45,
     backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderColor: '#e5e5e5'
+    borderBottomWidth: 0,
   },
   backButton: { padding: 8, marginRight: 12 },
   headerTitleContainer: { flex: 1 },
-  title: { fontSize: 20, fontWeight: 'bold', color: '#333' },
-  subtitle: { fontSize: 12, color: '#666', marginTop: 2 },
+  title: { fontSize: 22, fontWeight: 'bold', color: '#1a1a1a', marginBottom: 4 },
+  subtitle: { fontSize: 13, color: '#666', fontWeight: '400', marginTop: 0 },
   
-  // Tabs
-  tabScroll: { backgroundColor: '#fff', borderBottomWidth: 1, borderColor: '#e5e5e5' },
-  tabs: { flexDirection: 'row', paddingVertical: 8, paddingHorizontal: 12 },
+  // Tabs - Modern Underline Style
+  tabScroll: { backgroundColor: '#fff', borderBottomWidth: 1, borderColor: '#f0f0f0' },
+  tabs: { flexDirection: 'row', paddingVertical: 0, paddingHorizontal: 20 },
   tab: { 
-    flexDirection: 'row', 
+    flexDirection: 'column', 
     alignItems: 'center', 
-    paddingVertical: 10, 
-    paddingHorizontal: 16,
-    marginHorizontal: 4,
-    borderRadius: 20,
-    backgroundColor: '#f5f5f5',
-    gap: 8
+    paddingVertical: 14, 
+    paddingHorizontal: 8,
+    marginHorizontal: 8,
+    position: 'relative',
+    borderBottomWidth: 3,
+    borderBottomColor: 'transparent',
   },
-  activeTab: { backgroundColor: '#10b981' },
-  tabText: { fontSize: 13, fontWeight: '600', color: '#666' },
-  activeTabText: { color: '#fff' },
+  activeTab: { borderBottomColor: '#10b981' },
+  tabText: { fontSize: 13, fontWeight: '600', color: '#999' },
+  activeTabText: { color: '#10b981' },
   
   // Search
-  searchContainer: { padding: 16, backgroundColor: '#fff' },
+  searchContainer: { paddingVertical: 16, paddingHorizontal: 20, backgroundColor: '#fff' },
   searchBox: { 
     flexDirection: 'row', 
     alignItems: 'center', 
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fafafa',
     borderRadius: 12,
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderWidth: 1,
-    borderColor: '#e5e5e5'
+    borderColor: '#E0E0E0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
   searchInput: { 
     flex: 1, 
-    paddingVertical: 12, 
-    paddingHorizontal: 8,
+    paddingVertical: 0, 
+    paddingHorizontal: 12,
     fontSize: 14,
-    color: '#333'
+    color: '#333',
   },
   
-  // List
-  listContent: { padding: 16, paddingBottom: 100 },
+  // List - Anti Overlapping
+  listContent: { padding: 20, paddingBottom: 120 },
   card: { 
     backgroundColor: '#fff', 
     padding: 16, 
     borderRadius: 12, 
-    marginBottom: 12,
-    elevation: 2,
+    marginVertical: 6,
+    elevation: 1,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 3,
   },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   userInfo: { flexDirection: 'row', flex: 1, gap: 12 },
@@ -563,12 +553,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', 
     padding: 16, 
     borderRadius: 12, 
-    marginBottom: 12,
-    elevation: 2,
+    marginVertical: 6,
+    elevation: 1,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 3,
   },
   historyHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   historyInfo: { flexDirection: 'row', gap: 12, alignItems: 'center', flex: 1 },
@@ -579,26 +569,33 @@ const styles = StyleSheet.create({
   historyRecipient: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, paddingTop: 12, borderTopWidth: 1, borderColor: '#f0f0f0' },
   historyRecipientText: { fontSize: 13, color: '#666', flex: 1 },
   
-  // Empty State
-  emptyState: { alignItems: 'center', padding: 40 },
-  emptyText: { textAlign: 'center', marginTop: 16, color: '#999', fontSize: 14 },
+  // Empty State - Centered
+  emptyState: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+  },
+  emptyText: { textAlign: 'center', marginTop: 20, color: '#999', fontSize: 15, lineHeight: 22 },
   
-  // Floating Button
+  // Floating Button - Fixed Position (Above Bottom Nav)
   floatingButton: {
     position: 'absolute',
-    bottom: 24,
-    right: 24,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    bottom: 100,
+    right: 20,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: '#10b981',
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 6,
+    elevation: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    zIndex: 9999,
   },
   
   // Modal
@@ -609,8 +606,8 @@ const styles = StyleSheet.create({
   },
   modalContent: { 
     backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     maxHeight: '85%',
     paddingBottom: 20,
   },
@@ -618,63 +615,75 @@ const styles = StyleSheet.create({
     flexDirection: 'row', 
     justifyContent: 'space-between', 
     alignItems: 'center',
-    padding: 20,
+    paddingVertical: 20,
+    paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderColor: '#e5e5e5'
+    borderColor: '#f0f0f0'
   },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
-  formContainer: { padding: 20 },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#1a1a1a' },
+  formContainer: { paddingVertical: 20, paddingHorizontal: 20 },
   label: { fontSize: 14, fontWeight: '600', color: '#333', marginBottom: 8, marginTop: 16 },
   input: { 
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fafafa',
     borderRadius: 12,
-    padding: 12,
+    padding: 14,
     fontSize: 14,
     color: '#333',
     borderWidth: 1,
-    borderColor: '#e5e5e5',
+    borderColor: '#E0E0E0',
   },
   textArea: { height: 80, textAlignVertical: 'top' },
   
   // Status Options
-  statusOptions: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  statusOptions: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginVertical: 8 },
   statusOption: { 
-    paddingHorizontal: 16, 
-    paddingVertical: 10, 
+    paddingHorizontal: 20, 
+    paddingVertical: 12, 
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e5e5e5',
-    backgroundColor: '#f5f5f5',
+    borderColor: '#E0E0E0',
+    backgroundColor: '#fafafa',
   },
   statusOptionText: { fontSize: 13, fontWeight: '600', color: '#666' },
   
   // Save Button
   saveButton: { 
     backgroundColor: '#10b981',
-    padding: 16,
+    paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 8,
     marginTop: 24,
+    elevation: 3,
+    shadowColor: '#10b981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
-  saveButtonDisabled: { opacity: 0.6 },
+  saveButtonDisabled: { opacity: 0.5 },
   saveButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
   
   // Suggestions
   suggestionsContainer: { 
     backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#e5e5e5',
+    borderColor: '#f0f0f0',
     borderRadius: 12,
     marginTop: 8,
     overflow: 'hidden',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
   suggestionItem: { 
-    padding: 12, 
+    paddingVertical: 14, 
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: '#f5f5f5',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
