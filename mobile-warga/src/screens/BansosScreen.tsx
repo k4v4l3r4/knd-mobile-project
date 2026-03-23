@@ -254,43 +254,59 @@ const BansosScreen = ({ onNavigate }: any) => {
 
   return (
     <View style={styles.container}>
-      {/* HEADER */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => onNavigate ? onNavigate('HOME') : null} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#10b981" />
-        </TouchableOpacity>
-        <View style={styles.headerTitleContainer}>
-          <Text style={styles.title}>Bantuan Sosial (Bansos)</Text>
-          <Text style={styles.subtitle}>Kelola data penerima bantuan</Text>
+      {/* HEADER - Green Curved (Matching Voting Screen) */}
+      <View style={styles.headerBackgroundContainer}>
+        <View style={[styles.headerBackground, { backgroundColor: '#10b981' }]}>
+          <View style={styles.headerContent}>
+            <View style={styles.headerRow}>
+              <TouchableOpacity 
+                onPress={() => onNavigate ? onNavigate('HOME') : null} 
+                style={styles.backButtonGreen}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="arrow-back" size={24} color="#fff" />
+              </TouchableOpacity>
+              
+              <View style={styles.headerTitleContainer}>
+                <Text style={styles.headerTitle}>Bantuan Sosial (Bansos)</Text>
+                <Text style={styles.headerSubtitle}>Kelola data penerima bantuan</Text>
+              </View>
+              
+              <View style={{ width: 40 }} />
+            </View>
+          </View>
         </View>
       </View>
 
-      {/* TABS - Like Web Admin */}
+      {/* TABS - Modern Symmetrical Underline (Matching Voting Screen) */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabScroll}>
-        <View style={styles.tabs}>
+        <View style={styles.tabsContainer}>
           <TouchableOpacity 
-            style={[styles.tab, activeTab === 'dtks' && styles.activeTab]}
+            style={[styles.tabButton, activeTab === 'dtks' && styles.activeTab]}
             onPress={() => { setActiveTab('dtks'); setSearchQuery(''); }}
+            activeOpacity={0.7}
           >
-            <Text style={[styles.tabText, activeTab === 'dtks' && styles.activeTabText]}>
+            <Text style={[styles.tabButtonText, activeTab === 'dtks' && styles.activeTabButtonText]}>
               Data DTKS
             </Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={[styles.tab, activeTab === 'penyaluran' && styles.activeTab]}
+            style={[styles.tabButton, activeTab === 'penyaluran' && styles.activeTab]}
             onPress={() => setActiveTab('penyaluran')}
+            activeOpacity={0.7}
           >
-            <Text style={[styles.tabText, activeTab === 'penyaluran' && styles.activeTabText]}>
+            <Text style={[styles.tabButtonText, activeTab === 'penyaluran' && styles.activeTabButtonText]}>
               Penyaluran
             </Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={[styles.tab, activeTab === 'riwayat' && styles.activeTab]}
+            style={[styles.tabButton, activeTab === 'riwayat' && styles.activeTab]}
             onPress={() => { setActiveTab('riwayat'); setSearchQuery(''); }}
+            activeOpacity={0.7}
           >
-            <Text style={[styles.tabText, activeTab === 'riwayat' && styles.activeTabText]}>
+            <Text style={[styles.tabButtonText, activeTab === 'riwayat' && styles.activeTabButtonText]}>
               Riwayat
             </Text>
           </TouchableOpacity>
@@ -595,7 +611,49 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' },
   loadingText: { marginTop: 10, color: '#666', fontSize: 14 },
   
-  // Header
+  // Header - Green Curved (Matching Voting Screen)
+  headerBackgroundContainer: {
+    marginBottom: 20,
+  },
+  headerBackground: {
+    paddingBottom: 24,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  headerContent: {
+    paddingHorizontal: 20,  // Consistent 20px rule
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    height: 44,
+    marginTop: 10,
+  },
+  backButtonGreen: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 4,
+  },
+  
+  // Old header styles (keep for compatibility)
   header: { 
     flexDirection: 'row', 
     alignItems: 'center', 
@@ -609,8 +667,41 @@ const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: 'bold', color: '#1a1a1a', marginBottom: 4 },
   subtitle: { fontSize: 13, color: '#666', fontWeight: '400', marginTop: 0 },
   
-  // Tabs - Modern Underline Style
-  tabScroll: { backgroundColor: '#fff', borderBottomWidth: 1, borderColor: '#f0f0f0' },
+  // Tabs - Modern Symmetrical Underline (Matching Voting Screen)
+  tabScroll: { 
+    backgroundColor: '#FFFFFF',  // White background for contrast
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  tabsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,       // Consistent 20px rule
+  },
+  tabButton: {
+    flex: 1,                     // Perfect 50:50 symmetry
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    position: 'relative',
+    borderBottomWidth: 3,
+    borderBottomColor: 'transparent',
+  },
+  activeTab: {
+    borderBottomColor: '#10b981',
+  },
+  tabButtonText: {
+    fontSize: 14,
+    fontWeight: 'normal',        // Inactive: normal weight
+    color: '#999999',            // Soft gray
+  },
+  activeTabButtonText: {
+    color: '#10b981',
+    fontWeight: 'bold',          // Active: bold weight
+  },
+  
+  // Old tab styles (removed - using new names)
   tabs: { flexDirection: 'row', paddingVertical: 0, paddingHorizontal: 20 },
   tab: { 
     flexDirection: 'column', 
@@ -622,12 +713,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: 3,
     borderBottomColor: 'transparent',
   },
-  activeTab: { borderBottomColor: '#10b981' },
   tabText: { fontSize: 13, fontWeight: '600', color: '#999' },
   activeTabText: { color: '#10b981' },
   
-  // Search
-  searchContainer: { paddingVertical: 16, paddingHorizontal: 20, backgroundColor: '#fff' },
+  // Search - Enhanced with Shadow and Margin
+  searchContainer: { 
+    paddingVertical: 16, 
+    paddingHorizontal: 20, 
+    backgroundColor: '#fff',
+    marginTop: 8,              // Space from tabs
+  },
   searchBox: { 
     flexDirection: 'row', 
     alignItems: 'center', 
@@ -638,10 +733,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E0E0E0',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,        // Enhanced shadow
+    shadowRadius: 4,
+    elevation: 3,              // More prominent
   },
   searchInput: { 
     flex: 1, 

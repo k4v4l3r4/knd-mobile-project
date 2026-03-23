@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Platform, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -14,6 +14,7 @@ interface TermsConditionsScreenProps {
 const TermsConditionsScreen = ({ }: TermsConditionsScreenProps) => {
   const { colors, isDarkMode } = useTheme();
   const { t } = useLanguage();
+  const navigation = useNavigation();
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -24,12 +25,21 @@ const TermsConditionsScreen = ({ }: TermsConditionsScreenProps) => {
       >
         <View style={styles.headerContent}>
           <View style={styles.headerRow}>
-            <View style={{ width: 40 }} />
-            <View style={{ alignItems: 'center' }}>
+            {/* Back Button */}
+            <TouchableOpacity 
+              onPress={() => navigation.goBack()}
+              style={styles.backButton}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="arrow-back" size={24} color="#fff" />
+            </TouchableOpacity>
+            
+            <View style={{ alignItems: 'center', flex: 1 }}>
               <Text style={styles.headerTitle}>{t('terms.headerTitle')}</Text>
               <Text style={styles.headerSubtitle}>{t('terms.headerSubtitle')}</Text>
               <DemoLabel />
             </View>
+            
             <View style={{ width: 40 }} />
           </View>
         </View>
@@ -90,23 +100,31 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerBackground: {
-    paddingBottom: 20,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
+    paddingBottom: 24,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   headerContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,  // Consistent 20px rule
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     height: 44,
+    marginTop: 10,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 20,
@@ -122,11 +140,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   content: {
-    padding: 20,
-    paddingBottom: 120,
+    padding: 20,                 // Consistent 20px rule
+    paddingBottom: 120,          // Prevent overlap with bottom nav
   },
   title: {
-    fontSize: 22,
+    fontSize: 22,                // Reduced from oversized
     fontWeight: 'bold',
     marginBottom: 8,
   },
@@ -134,19 +152,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 24,
     fontStyle: 'italic',
+    color: '#999999',            // Softer gray
   },
   section: {
-    marginBottom: 20,
+    marginBottom: 24,            // More breathing room
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 18,                // Reduced from too large
     fontWeight: '700',
-    marginBottom: 8,
+    marginBottom: 10,
+    color: '#10b981',            // Green accent
   },
   sectionText: {
     fontSize: 14,
-    lineHeight: 22,
+    lineHeight: 26,              // More comfortable reading
     textAlign: 'justify',
+    color: '#444444',            // Softer black
   },
   footer: {
     marginTop: 20,
@@ -157,6 +178,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 12,
+    color: '#999999',
   }
 });
 

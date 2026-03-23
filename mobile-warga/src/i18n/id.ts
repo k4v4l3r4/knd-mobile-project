@@ -197,7 +197,7 @@ export const id = {
     headerTitle: 'Syarat & Ketentuan',
     headerSubtitle: 'Kebijakan Privasi & Aturan Penggunaan',
     title: 'Syarat dan Ketentuan Penggunaan Aplikasi RT Online',
-    lastUpdated: 'Terakhir diperbarui: 20 Mei 2024',
+    lastUpdated: 'Terakhir diperbarui: 20 Mei 2026',
     intro: {
       title: '1. Pendahuluan',
       content: 'Selamat datang di Aplikasi RT Online. Aplikasi ini dikelola oleh pengurus RT untuk memudahkan administrasi, komunikasi, dan pelayanan kepada warga. Dengan mengakses atau menggunakan aplikasi ini, Anda setuju untuk terikat dengan syarat dan ketentuan ini.'

@@ -126,7 +126,7 @@ export const en = {
     headerTitle: 'Terms & Conditions',
     headerSubtitle: 'Privacy Policy & Usage Rules',
     title: 'Terms and Conditions for RT Online Application',
-    lastUpdated: 'Last updated: May 20, 2024',
+    lastUpdated: 'Last updated: May 20, 2026',
     intro: {
       title: '1. Introduction',
       content: 'Welcome to the RT Online Application. This application is managed by the RT management to facilitate administration, communication, and services to residents. By accessing or using this application, you agree to be bound by these terms and conditions.'

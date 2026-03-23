@@ -474,13 +474,15 @@ const VotingScreen = () => {
         </View>
       )}
       
-      {/* Clean White Header with Accent */}
-      <View style={styles.headerWhite}>
-        <SafeAreaView edges={['top']} style={styles.headerWhiteContent}>
+      {/* RESTORED: Green Curved Header - App Identity */}
+      <View
+        style={[styles.headerBackground, { backgroundColor: colors.primary }]}
+      >
+        <SafeAreaView edges={['top']} style={styles.headerContent}>
           <View style={styles.headerRow}>
             <View style={{ width: 40 }} />
             <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
-              <Text style={styles.headerTitleWhite}>Voting Warga</Text>
+              <Text style={styles.headerTitle}>Voting Warga</Text>
               <DemoLabel />
             </View>
             <View style={{ width: 40 }} />
@@ -727,23 +729,6 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
   trialBannerClose: {
     padding: 4,
   },
-  headerWhite: {
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    paddingBottom: 16,
-    zIndex: 1,
-    elevation: 2,
-  },
-  headerWhiteContent: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-  },
-  headerTitleWhite: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#10b981',
-  },
   headerBackground: {
     paddingBottom: 24,
     borderBottomLeftRadius: 30,
@@ -781,9 +766,9 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     alignItems: 'center',
   },
   listContent: {
-    padding: 16,
-    paddingTop: 40,
-    paddingBottom: 120,
+    padding: 20,                 // Consistent 20px rule
+    paddingTop: 24,              // Extra space after tabs
+    paddingBottom: 120,          // Space for bottom nav
   },
   card: {
     backgroundColor: colors.card,
@@ -1172,23 +1157,25 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     fontSize: 16,
     fontWeight: '700',
   },
-  // Tab Styles - Modern Underline (matching Bansos screen)
+  // Tab Styles - Modern Symmetrical Underline
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',  // White background for contrast
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    paddingHorizontal: 20,
+    borderBottomColor: '#E0E0E0',
+    paddingHorizontal: 20,       // Consistent 20px rule
     paddingVertical: 0,
+    marginTop: 20,               // Prevent overlap with green header
     zIndex: 10,
     elevation: 2,
   },
   tabButton: {
+    flex: 1,                     // Perfect 50:50 symmetry
     flexDirection: 'column',
     alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 14,
     paddingHorizontal: 8,
-    marginHorizontal: 8,
     position: 'relative',
     borderBottomWidth: 3,
     borderBottomColor: 'transparent',
@@ -1197,12 +1184,13 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     borderBottomColor: '#10b981',
   },
   tabText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#999',
+    fontSize: 14,
+    fontWeight: 'normal',        // Inactive: normal weight
+    color: '#999999',            // Soft gray
   },
   activeTabText: {
     color: '#10b981',
+    fontWeight: 'bold',          // Active: bold weight
   },
   // Winner Card Styles
   winnerCard: {
