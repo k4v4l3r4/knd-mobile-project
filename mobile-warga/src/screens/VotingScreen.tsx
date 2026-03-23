@@ -56,6 +56,7 @@ const VotingScreen = () => {
   const [votingId, setVotingId] = useState<number | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userPermissions, setUserPermissions] = useState<string[]>([]);
+  const [showTrialBanner, setShowTrialBanner] = useState(true);
 
   // Create Poll State
   const [createModalVisible, setCreateModalVisible] = useState(false);
@@ -456,14 +457,30 @@ const VotingScreen = () => {
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
-      <View
-        style={[styles.headerBackground, { backgroundColor: colors.primary }]}
-      >
-        <SafeAreaView edges={['top']} style={styles.headerContent}>
+      
+      {/* Trial Banner - Dismissible */}
+      {showTrialBanner && isDemo && (
+        <View style={styles.trialBanner}>
+          <View style={styles.trialBannerContent}>
+            <Ionicons name="information-circle-outline" size={16} color="#fff" />
+            <Text style={styles.trialBannerText}>Masa trial tersedia - Fitur terbatas</Text>
+          </View>
+          <TouchableOpacity 
+            onPress={() => setShowTrialBanner(false)}
+            style={styles.trialBannerClose}
+          >
+            <Ionicons name="close" size={18} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      )}
+      
+      {/* Clean White Header with Accent */}
+      <View style={styles.headerWhite}>
+        <SafeAreaView edges={['top']} style={styles.headerWhiteContent}>
           <View style={styles.headerRow}>
             <View style={{ width: 40 }} />
             <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
-              <Text style={styles.headerTitle}>Voting Warga</Text>
+              <Text style={styles.headerTitleWhite}>Voting Warga</Text>
               <DemoLabel />
             </View>
             <View style={{ width: 40 }} />
@@ -518,22 +535,41 @@ const VotingScreen = () => {
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Ionicons 
-                name={activeTab === 'active' ? "stats-chart-outline" : "checkmark-circle-outline"} 
-                size={64} 
-                color={colors.textSecondary} 
-              />
-              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                {activeTab === 'active'
-                  ? 'Belum ada voting aktif saat ini'
-                  : 'Belum ada riwayat voting'}
+              {/* Modern Illustration */}
+              <View style={styles.illustrationContainer}>
+                <View style={styles.illustrationIcon}>
+                  <Ionicons name="people-outline" size={48} color="#10b981" />
+                  <Ionicons name="checkbox-outline" size={32} color="#f59e0b" style={styles.checkboxIcon} />
+                </View>
+              </View>
+              
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>
+                {activeTab === 'active' ? 'Belum ada voting aktif saat ini' : 'Belum ada riwayat voting'}
               </Text>
+              
+              <Text style={[styles.emptyDescription, { color: colors.textSecondary }]}>
+                {activeTab === 'active' 
+                  ? 'Mulai buat voting pertama Anda untuk mengumpulkan pendapat warga.'
+                  : 'Riwayat voting yang sudah selesai akan muncul di sini.'}
+              </Text>
+              
+              {isRtOrAdmin && activeTab === 'active' && (
+                <TouchableOpacity 
+                  style={styles.emptyCreateButton}
+                  onPress={() => setCreateModalVisible(true)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="add-circle-outline" size={24} color="#fff" />
+                  <Text style={styles.emptyCreateButtonText}>Buat Voting Pertama</Text>
+                </TouchableOpacity>
+              )}
             </View>
           }
         />
       )}
 
-      {isRtOrAdmin && (
+      {/* Context-aware FAB - Only show when there's content */}
+      {isRtOrAdmin && polls.length > 0 && activeTab === 'active' && (
         <TouchableOpacity
           style={styles.fab}
           onPress={() => setCreateModalVisible(true)}
@@ -666,6 +702,47 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  trialBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f59e0b',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 12,
+  },
+  trialBannerContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  trialBannerText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#fff',
+    flex: 1,
+  },
+  trialBannerClose: {
+    padding: 4,
+  },
+  headerWhite: {
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    paddingBottom: 16,
+    zIndex: 1,
+    elevation: 2,
+  },
+  headerWhiteContent: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+  },
+  headerTitleWhite: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#10b981',
   },
   headerBackground: {
     paddingBottom: 24,
@@ -897,6 +974,58 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     alignItems: 'center',
     justifyContent: 'center',
     padding: 40,
+    paddingTop: 60,
+    paddingBottom: 80,
+  },
+  illustrationContainer: {
+    marginBottom: 24,
+  },
+  illustrationIcon: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#ecfdf5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  checkboxIcon: {
+    position: 'absolute',
+    bottom: -10,
+    right: -10,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 8,
+    paddingHorizontal: 20,
+  },
+  emptyDescription: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+    paddingHorizontal: 40,
+  },
+  emptyCreateButton: {
+    backgroundColor: '#10b981',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    elevation: 3,
+    shadowColor: '#10b981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    gap: 8,
+  },
+  emptyCreateButtonText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 15,
   },
   emptyText: {
     marginTop: 16,
