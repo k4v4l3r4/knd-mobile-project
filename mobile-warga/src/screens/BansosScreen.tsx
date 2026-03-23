@@ -254,32 +254,35 @@ const BansosScreen = ({ onNavigate }: any) => {
 
   return (
     <View style={styles.container}>
-      {/* HEADER - Green Curved (Matching Voting Screen) */}
+      {/* HEADER - Green Curved with Centered Content & Back Button */}
       <View style={styles.headerBackgroundContainer}>
         <View style={[styles.headerBackground, { backgroundColor: '#10b981' }]}>
           <View style={styles.headerContent}>
             <View style={styles.headerRow}>
+              {/* Back Button - Absolute Position (doesn't affect centering) */}
               <TouchableOpacity 
                 onPress={() => onNavigate ? onNavigate('HOME') : null} 
-                style={styles.backButtonGreen}
+                style={styles.backButtonAbsolute}
                 activeOpacity={0.7}
               >
                 <Ionicons name="arrow-back" size={24} color="#fff" />
               </TouchableOpacity>
               
+              {/* Center Content - Perfectly Centered */}
               <View style={styles.headerTitleContainer}>
                 <Text style={styles.headerTitle}>Bantuan Sosial (Bansos)</Text>
                 <Text style={styles.headerSubtitle}>Kelola data penerima bantuan</Text>
               </View>
               
+              {/* Right Spacer - Visual Balance */}
               <View style={{ width: 40 }} />
             </View>
           </View>
         </View>
       </View>
 
-      {/* TABS - Perfect Symmetry with Flex 1 */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabScroll}>
+      {/* TABS - Perfect Symmetry with Flex 1 (NO SCROLL) */}
+      <View style={styles.tabScroll}>
         <View style={styles.tabsContainer}>
           <TouchableOpacity 
             style={[styles.tabButton, activeTab === 'dtks' && styles.activeTab]}
@@ -311,7 +314,7 @@ const BansosScreen = ({ onNavigate }: any) => {
             </Text>
           </TouchableOpacity>
         </View>
-      </ScrollView>
+      </View>
 
       {/* SEARCH BAR - Only for DTKS tab */}
       {activeTab === 'dtks' && (
@@ -634,6 +637,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     height: 44,
     marginTop: 10,
+    position: 'relative',  // For absolute positioning of back button
+  },
+  backButtonAbsolute: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
   },
   backButtonGreen: {
     width: 40,
