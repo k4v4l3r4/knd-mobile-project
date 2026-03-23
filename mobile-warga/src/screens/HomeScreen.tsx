@@ -857,6 +857,11 @@ function HomeScreen({ onLogout, onNavigate }: HomeScreenProps) {
     ];
 
     const userRole = data?.user?.role?.toUpperCase() || '';
+    console.log('🔵 [HOME SCREEN] User role check:', { 
+      rawRole: data?.user?.role, 
+      upperCaseRole: userRole,
+      isRT: userRole === 'ADMIN_RT' || userRole === 'RT'
+    });
 
     // CCTV Menu - Only for RT/Admin roles
     const isRTAdmin = userRole === 'ADMIN_RT' || userRole === 'RT' || userRole === 'admin_rt' || userRole === 'super_admin';
@@ -882,18 +887,27 @@ function HomeScreen({ onLogout, onNavigate }: HomeScreenProps) {
              items = items.filter(item => item.id !== 'boarding');
           }
 
+          // CRITICAL: Add Bansos menu for RT role with logging
+          console.log('🔵 [HOME SCREEN] Checking if should add Bansos menu...', {
+            userRole,
+            isAdminRT: userRole === 'ADMIN_RT',
+            isRT: userRole === 'RT',
+            shouldAdd: userRole === 'ADMIN_RT' || userRole === 'RT'
+          });
+          
           if (userRole === 'ADMIN_RT' || userRole === 'RT') {
-      items.push({ 
-        id: 'bansos',
-        title: t('home.menus.bansos'), 
-        icon: 'gift-outline', 
-        library: Ionicons, 
-        action: () => {
-          console.log('🔵 [HOME SCREEN] Bansos menu PRESSED!');
-          onNavigate('BANSOS');
-          console.log('✅ [HOME SCREEN] onNavigate called, should navigate to BANSOS');
-        }
-      });
+            console.log('✅ [HOME SCREEN] Adding Bansos menu item for RT admin!');
+            items.push({ 
+              id: 'bansos',
+              title: t('home.menus.bansos'), 
+              icon: 'gift-outline', 
+              library: Ionicons, 
+              action: () => {
+                console.log('🔵 [HOME SCREEN] Bansos menu PRESSED!');
+                onNavigate('BANSOS');
+                console.log('✅ [HOME SCREEN] onNavigate called, should navigate to BANSOS');
+              }
+            });
 
       items.push({ 
         id: 'system_settings',
