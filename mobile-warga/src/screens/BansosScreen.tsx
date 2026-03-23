@@ -30,6 +30,14 @@ interface BansosHistory {
   recipient: BansosRecipient;
 }
 
+interface DistributionRecord {
+  id: number;
+  program_name: string;
+  date: string;
+  recipients: number[]; // Array of recipient IDs
+  status: 'PENDING' | 'COMPLETED';
+}
+
 const BansosScreen = ({ onNavigate }: any) => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'dtks' | 'penyaluran' | 'riwayat'>('dtks');
@@ -42,6 +50,8 @@ const BansosScreen = ({ onNavigate }: any) => {
   
   // Modal states
   const [addModalVisible, setAddModalVisible] = useState(false);
+  const [updateStatusModalVisible, setUpdateStatusModalVisible] = useState(false);
+  const [selectedRecipient, setSelectedRecipient] = useState<BansosRecipient | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newRecipient, setNewRecipient] = useState({
     user_id: '',
@@ -50,7 +60,18 @@ const BansosScreen = ({ onNavigate }: any) => {
     notes: '',
     score: 0
   });
+  const [updateStatusForm, setUpdateStatusForm] = useState({
+    status: 'PENDING' as 'LAYAK' | 'TIDAK_LAYAK' | 'PENDING',
+    notes: '',
+    score: 0
+  });
   const [wargaSearch, setWargaSearch] = useState('');
+  
+  // Distribution tab states
+  const [distributionProgramName, setDistributionProgramName] = useState('');
+  const [distributionDate, setDistributionDate] = useState(new Date().toISOString().split('T')[0]);
+  const [distributionAmount, setDistributionAmount] = useState('');
+  const [selectedRecipientsForDist, setSelectedRecipientsForDist] = useState<number[]>([]);
 
   useEffect(() => {
     console.log('🔴 [BANSOS REBUILD] Component Mounted!');
@@ -126,6 +147,96 @@ const BansosScreen = ({ onNavigate }: any) => {
       setIsSubmitting(false);
     }
   };
+
+  // Handle update status (TAHAP 1: VERIFIKASI)
+  const handleUpdateStatus = async () => {
+    if (!selectedRecipient) return;
+
+    try {
+      setIsSubmitting(true);
+      await api.put(`/bansos-recipients/${selectedRecipient.id}`, updateStatusForm);
+      Alert.alert('Sukses', `Status berhasil diubah menjadi ${updateStatusForm.status}`);
+      setUpdateStatusModalVisible(false);
+      setSelectedRecipient(null);
+      setUpdateStatusForm({
+        status: 'PENDING',
+        notes: '',
+        score: 0
+      });
+      fetchData(); // Refresh data
+    } catch (error: any) {
+      console.error('Error updating status:', error);
+      Alert.alert('Error', error.response?.data?.message || 'Gagal memperbarui status');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Open update status modal
+  const openUpdateStatusModal = (recipient: BansosRecipient) => {
+    setSelectedRecipient(recipient);
+    setUpdateStatusForm({
+      status: recipient.status,
+      notes: recipient.notes || '',
+      score: recipient.score || 0
+    });
+    setUpdateStatusModalVisible(true);
+  };
+
+  // Handle distribution (TAHAP 2: PENYALURAN)
+  const handleDistribute = async () => {
+    if (!distributionProgramName || selectedRecipientsForDist.length === 0) {
+      Alert.alert('Error', 'Mohon lengkapi nama program dan pilih penerima');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      
+      // Distribute to each selected recipient
+      const distributePromises = selectedRecipientsForDist.map(async (recipientId) => {
+        const recipient = recipients.find(r => r.id === recipientId);
+        if (!recipient) return;
+
+        await api.post(`/bansos-recipients/${recipientId}/distribute`, {
+          program_name: distributionProgramName,
+          date_received: distributionDate,
+          amount: distributionAmount || 0,
+        });
+      });
+
+      await Promise.all(distributePromises);
+      
+      Alert.alert('Sukses', `Penyaluran ${distributionProgramName} berhasil dibagikan ke ${selectedRecipientsForDist.length} warga`);
+      
+      // Reset form
+      setDistributionProgramName('');
+      setDistributionDate(new Date().toISOString().split('T')[0]);
+      setDistributionAmount('');
+      setSelectedRecipientsForDist([]);
+      
+      // Switch to history tab
+      setActiveTab('riwayat');
+      fetchData(); // Refresh data
+    } catch (error: any) {
+      console.error('Error distributing aid:', error);
+      Alert.alert('Error', error.response?.data?.message || 'Gagal menyalurkan bantuan');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Toggle recipient selection for distribution
+  const toggleRecipientSelection = (recipientId: number) => {
+    setSelectedRecipientsForDist(prev => 
+      prev.includes(recipientId) 
+        ? prev.filter(id => id !== recipientId)
+        : [...prev, recipientId]
+    );
+  };
+
+  // Get eligible recipients for distribution (only LAYAK status)
+  const eligibleRecipients = recipients.filter(r => r.status === 'LAYAK');
 
   // Filter warga based on search
   const filteredWarga = wargaList.filter(w => 
@@ -214,26 +325,53 @@ const BansosScreen = ({ onNavigate }: any) => {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Ionicons 
-              name={activeTab === 'dtks' ? 'people-outline' : activeTab === 'riwayat' ? 'document-text-outline' : 'git-pull-request-outline'} 
-              size={64} 
-              color="#ccc" 
-            />
-            <Text style={styles.emptyText}>
-              {activeTab === 'dtks' 
-                ? 'Belum ada data DTKS.' 
-                : activeTab === 'riwayat'
-                ? 'Belum ada riwayat penyaluran.'
-                : 'Fitur penyaluran akan segera hadir.'}
-            </Text>
-          </View>
+          activeTab === 'penyaluran' ? (
+            <View style={styles.distributionContainer}>
+              <Ionicons name="gift-outline" size={64} color="#10b981" />
+              <Text style={styles.distributionTitle}>Penyaluran Bantuan</Text>
+              <Text style={styles.distributionSubtitle}>
+                Buat penyaluran bantuan baru untuk warga yang statusnya LAYAK
+              </Text>
+              
+              {eligibleRecipients.length > 0 ? (
+                <TouchableOpacity 
+                  style={styles.createDistributionButton}
+                  onPress={() => setDistributionProgramName('Sembako Bulan Ini')}
+                >
+                  <Ionicons name="add-circle-outline" size={24} color="#fff" />
+                  <Text style={styles.createDistributionText}>Buat Penyaluran Baru</Text>
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.noEligibleContainer}>
+                  <Ionicons name="alert-circle-outline" size={48} color="#f59e0b" />
+                  <Text style={styles.noEligibleText}>
+                    Belum ada warga dengan status LAYAK.{'\n'}
+                    Silakan verifikasi data di tab DTKS terlebih dahulu.
+                  </Text>
+                </View>
+              )}
+            </View>
+          ) : activeTab === 'dtks' ? (
+            <View style={styles.emptyState}>
+              <Ionicons name="people-outline" size={64} color="#ccc" />
+              <Text style={styles.emptyText}>Belum ada data DTKS.</Text>
+            </View>
+          ) : (
+            <View style={styles.emptyState}>
+              <Ionicons name="document-text-outline" size={64} color="#ccc" />
+              <Text style={styles.emptyText}>Belum ada riwayat penyaluran.</Text>
+            </View>
+          )
         }
         renderItem={({ item }: any) => {
           if (activeTab === 'dtks') {
             const recipientItem = item as BansosRecipient;
             return (
-              <View style={styles.card}>
+              <TouchableOpacity 
+                style={styles.card}
+                onPress={() => openUpdateStatusModal(recipientItem)}
+                activeOpacity={0.7}
+              >
                 <View style={styles.cardHeader}>
                   <View style={styles.userInfo}>
                     <View style={[styles.avatar, { backgroundColor: getStatusColor(recipientItem.status) }]}>
@@ -262,8 +400,12 @@ const BansosScreen = ({ onNavigate }: any) => {
                       {recipientItem.created_at ? new Date(recipientItem.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
                     </Text>
                   </View>
+                  <View style={styles.editHint}>
+                    <Ionicons name="create-outline" size={16} color="#10b981" />
+                    <Text style={styles.editHintText}>Ketuk untuk ubah status</Text>
+                  </View>
                 </View>
-              </View>
+              </TouchableOpacity>
             );
           } else if (activeTab === 'riwayat') {
             const historyItem = item as BansosHistory;
@@ -544,9 +686,11 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   badgeText: { color: '#fff', fontSize: 11, fontWeight: 'bold' },
-  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderColor: '#f0f0f0' },
+  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderColor: '#f0f0f0' },
   dateContainer: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   date: { color: '#888', fontSize: 12 },
+  editHint: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  editHintText: { color: '#10b981', fontSize: 11, fontWeight: '600' },
   
   // History Card
   historyCard: { 
@@ -691,6 +835,65 @@ const styles = StyleSheet.create({
   suggestionContent: { flex: 1 },
   suggestionText: { color: '#333', fontSize: 14, fontWeight: '600' },
   suggestionSubtext: { color: '#666', fontSize: 12, marginTop: 2 },
+  
+  // Distribution Tab Styles
+  distributionContainer: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    padding: 40,
+    backgroundColor: '#fafafa',
+    borderRadius: 16,
+    marginHorizontal: 20,
+    marginVertical: 40,
+  },
+  distributionTitle: { 
+    fontSize: 20, 
+    fontWeight: 'bold', 
+    color: '#1a1a1a', 
+    marginTop: 20,
+    marginBottom: 8,
+  },
+  distributionSubtitle: { 
+    fontSize: 14, 
+    color: '#666', 
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  createDistributionButton: { 
+    backgroundColor: '#10b981',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    elevation: 3,
+    shadowColor: '#10b981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  createDistributionText: { 
+    color: '#fff', 
+    fontWeight: 'bold', 
+    fontSize: 16,
+  },
+  noEligibleContainer: { 
+    alignItems: 'center', 
+    padding: 20,
+    backgroundColor: '#fff3cd',
+    borderRadius: 12,
+    width: '100%',
+  },
+  noEligibleText: { 
+    textAlign: 'center', 
+    color: '#856404', 
+    fontSize: 14, 
+    marginTop: 12,
+    lineHeight: 22,
+  },
 });
 
 export default BansosScreen;
