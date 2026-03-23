@@ -1157,31 +1157,28 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     fontSize: 16,
     fontWeight: '700',
   },
-  // Tab Styles - Modern Symmetrical Underline
+  // Tab Styles - Perfect Symmetry Formula (Flex 1)
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',  // White background for contrast
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
-    paddingHorizontal: 20,       // Consistent 20px rule
+    paddingHorizontal: 20,
     paddingVertical: 0,
-    marginTop: 20,               // Prevent overlap with green header
+    marginTop: 20,
     zIndex: 10,
     elevation: 2,
   },
   tabButton: {
-    flex: 1,                     // Perfect 50:50 symmetry
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 8,
+    flex: 1,                     // KEY: Automatic equal distribution
+    alignItems: 'center',        // Center horizontally
+    justifyContent: 'center',    // Center vertically
+    paddingVertical: 15,         // Perfect vertical spacing
     position: 'relative',
-    borderBottomWidth: 3,
-    borderBottomColor: 'transparent',
   },
   activeTab: {
-    borderBottomColor: '#10b981',
+    borderBottomWidth: 3,        // Attached indicator
+    borderBottomColor: '#10b981', // Green line appears HERE
   },
   tabText: {
     fontSize: 14,

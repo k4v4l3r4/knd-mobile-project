@@ -6,15 +6,13 @@ import { useLanguage } from '../context/LanguageContext';
 import { useTenant } from '../context/TenantContext';
 import { DemoLabel } from '../components/TenantStatusComponents';
 import { Ionicons, MaterialIcons, Feather } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
 
 interface TermsConditionsScreenProps {
 }
 
-const TermsConditionsScreen = ({ }: TermsConditionsScreenProps) => {
+const TermsConditionsScreen = ({ onNavigate }: any) => {
   const { colors, isDarkMode } = useTheme();
   const { t } = useLanguage();
-  const navigation = useNavigation();
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -27,7 +25,7 @@ const TermsConditionsScreen = ({ }: TermsConditionsScreenProps) => {
           <View style={styles.headerRow}>
             {/* Back Button */}
             <TouchableOpacity 
-              onPress={() => navigation.goBack()}
+              onPress={() => onNavigate && onNavigate('HOME')}
               style={styles.backButton}
               activeOpacity={0.7}
             >
@@ -165,9 +163,9 @@ const styles = StyleSheet.create({
   },
   sectionText: {
     fontSize: 14,
-    lineHeight: 26,              // More comfortable reading
+    lineHeight: 26,              // ← Professional readability (increased from 22)
     textAlign: 'justify',
-    color: '#444444',            // Softer black
+    color: '#444444',            // ← Softer black (changed from theme color)
   },
   footer: {
     marginTop: 20,

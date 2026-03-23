@@ -278,7 +278,7 @@ const BansosScreen = ({ onNavigate }: any) => {
         </View>
       </View>
 
-      {/* TABS - Modern Symmetrical Underline (Matching Voting Screen) */}
+      {/* TABS - Perfect Symmetry with Flex 1 */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabScroll}>
         <View style={styles.tabsContainer}>
           <TouchableOpacity 
@@ -667,29 +667,28 @@ const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: 'bold', color: '#1a1a1a', marginBottom: 4 },
   subtitle: { fontSize: 13, color: '#666', fontWeight: '400', marginTop: 0 },
   
-  // Tabs - Modern Symmetrical Underline (Matching Voting Screen)
+  // Tabs - Perfect Symmetry Formula (Flex 1)
   tabScroll: { 
-    backgroundColor: '#FFFFFF',  // White background for contrast
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
   },
   tabsContainer: {
-    flexDirection: 'row',
+    flexDirection: 'row',        // Row layout for horizontal tabs
+    width: '100%',               // Full width container
     paddingHorizontal: 20,       // Consistent 20px rule
   },
   tabButton: {
-    flex: 1,                     // Perfect 50:50 symmetry
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 8,
+    flex: 1,                     // KEY: Automatic equal distribution
+    alignItems: 'center',        // Center horizontally
+    justifyContent: 'center',    // Center vertically
+    paddingVertical: 15,         // Perfect vertical spacing
     position: 'relative',
-    borderBottomWidth: 3,
-    borderBottomColor: 'transparent',
+    // Indicator attached directly to button wrapper
   },
   activeTab: {
-    borderBottomColor: '#10b981',
+    borderBottomWidth: 3,        // Attached indicator
+    borderBottomColor: '#10b981', // Green line appears HERE (attached to text)
   },
   tabButtonText: {
     fontSize: 14,
@@ -818,10 +817,10 @@ const styles = StyleSheet.create({
   },
   emptyText: { textAlign: 'center', marginTop: 20, color: '#999', fontSize: 15, lineHeight: 22 },
   
-  // Floating Button - Fixed Position (Above Bottom Nav)
+  // Floating Button - Safe Position (Above Bottom Nav)
   floatingButton: {
     position: 'absolute',
-    bottom: 100,
+    bottom: 110,                 // ← Raised! Safe clearance above Darurat button
     right: 20,
     width: 64,
     height: 64,

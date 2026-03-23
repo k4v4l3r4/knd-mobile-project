@@ -344,7 +344,7 @@ const AppContent = () => {
       {currentScreen === 'CCTV' && <CctvScreen />}
       {currentScreen === 'SETTINGS' && <SettingsScreen onLogout={handleLogout} onNavigate={handleNavigate} />}
       {currentScreen === 'WARGA_LIST' && <WargaListScreen />}
-      {currentScreen === 'TERMS' && <TermsConditionsScreen />}
+      {currentScreen === 'TERMS' && <TermsConditionsScreen onNavigate={handleNavigate} />}
       {currentScreen === 'CHANGE_PASSWORD' && <ChangePasswordScreen onSuccess={() => setCurrentScreen('SETTINGS')} />}
       {currentScreen === 'PROFILE' && <ProfileScreen />}
       {currentScreen === 'HELP_SUPPORT' && <HelpSupportScreen onNavigate={handleNavigate} />}
