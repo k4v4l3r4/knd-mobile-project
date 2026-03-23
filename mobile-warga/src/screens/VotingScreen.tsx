@@ -471,53 +471,24 @@ const VotingScreen = () => {
         </SafeAreaView>
       </View>
 
-      {/* --- TABS SECTION --- */}
+      {/* --- TABS SECTION - Modern Underline Style --- */}
       <View style={styles.tabContainer}>
         <TouchableOpacity
-          style={[
-            styles.tabButton,
-            activeTab === 'active' && [
-              styles.tabButtonActive,
-              { backgroundColor: colors.primary }
-            ]
-          ]}
+          style={[styles.tabButton, activeTab === 'active' && styles.activeTab]}
           onPress={() => setActiveTab('active')}
           activeOpacity={0.7}
         >
-          <Ionicons 
-            name="bar-chart-outline" 
-            size={16} 
-            color={activeTab === 'active' ? '#fff' : colors.textSecondary} 
-            style={{ marginRight: 6 }} 
-          />
-          <Text style={[
-            styles.tabText,
-            activeTab === 'active' && styles.tabTextActive
-          ]}>
+          <Text style={[styles.tabText, activeTab === 'active' && styles.activeTabText]}>
             Voting Aktif
           </Text>
         </TouchableOpacity>
+        
         <TouchableOpacity
-          style={[
-            styles.tabButton,
-            activeTab === 'history' && [
-              styles.tabButtonActive,
-              { backgroundColor: '#E11D48' }
-            ]
-          ]}
+          style={[styles.tabButton, activeTab === 'history' && styles.activeTab]}
           onPress={() => setActiveTab('history')}
           activeOpacity={0.7}
         >
-          <Ionicons 
-            name="checkmark-circle-outline" 
-            size={16} 
-            color={activeTab === 'history' ? '#fff' : colors.textSecondary} 
-            style={{ marginRight: 6 }} 
-          />
-          <Text style={[
-            styles.tabText,
-            activeTab === 'history' && styles.tabTextActive
-          ]}>
+          <Text style={[styles.tabText, activeTab === 'history' && styles.activeTabText]}>
             Riwayat
           </Text>
         </TouchableOpacity>
@@ -700,7 +671,7 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     paddingBottom: 24,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
-    marginBottom: -24,
+    marginBottom: 0, // Removed negative margin to prevent overlap
     zIndex: 1,
     elevation: 8,
     shadowColor: '#000',
@@ -1072,41 +1043,37 @@ const getStyles = (colors: ThemeColors, isDarkMode: boolean) => StyleSheet.creat
     fontSize: 16,
     fontWeight: '700',
   },
-  // Tab Styles
+  // Tab Styles - Modern Underline (matching Bansos screen)
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: colors.card,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    gap: 8,
+    borderBottomColor: '#f0f0f0',
+    paddingHorizontal: 20,
+    paddingVertical: 0,
+    zIndex: 10,
+    elevation: 2,
   },
   tabButton: {
-    flex: 1,
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#F1F5F9',
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    marginHorizontal: 8,
+    position: 'relative',
+    borderBottomWidth: 3,
+    borderBottomColor: 'transparent',
   },
-  tabButtonActive: {
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+  activeTab: {
+    borderBottomColor: '#10b981',
   },
   tabText: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.textSecondary,
+    color: '#999',
   },
-  tabTextActive: {
-    color: '#fff',
-    fontWeight: '700',
+  activeTabText: {
+    color: '#10b981',
   },
   // Winner Card Styles
   winnerCard: {
