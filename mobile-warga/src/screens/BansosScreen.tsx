@@ -254,12 +254,12 @@ const BansosScreen = ({ onNavigate }: any) => {
 
   return (
     <View style={styles.container}>
-      {/* HEADER - Green Curved with Centered Content & Back Button */}
+      {/* HEADER - Green Curved with Centered Title & Back Button */}
       <View style={styles.headerBackgroundContainer}>
         <View style={[styles.headerBackground, { backgroundColor: '#10b981' }]}>
           <View style={styles.headerContent}>
             <View style={styles.headerRow}>
-              {/* Back Button - Absolute Position (doesn't affect centering) */}
+              {/* Back Button - Absolute Position (Layer Top) */}
               <TouchableOpacity 
                 onPress={() => onNavigate ? onNavigate('HOME') : null} 
                 style={styles.backButtonAbsolute}
@@ -268,7 +268,7 @@ const BansosScreen = ({ onNavigate }: any) => {
                 <Ionicons name="arrow-back" size={24} color="#fff" />
               </TouchableOpacity>
               
-              {/* Center Content - Perfectly Centered */}
+              {/* Center Content - Absolute Centered */}
               <View style={styles.headerTitleContainer}>
                 <Text style={styles.headerTitle}>Bantuan Sosial (Bansos)</Text>
                 <Text style={styles.headerSubtitle}>Kelola data penerima bantuan</Text>
@@ -637,50 +637,36 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     height: 44,
     marginTop: 10,
-    position: 'relative',  // For absolute positioning of back button
+    position: 'relative',  // For absolute positioning of back button & title
   },
   backButtonAbsolute: {
     position: 'absolute',
-    left: 0,
-    top: 0,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 999,
+    left: 10,              // Safe distance from edge
+    zIndex: 10,            // KEY: Top layer for clickability
+    padding: 10,           // Touch target enhancement
   },
-  backButtonGreen: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  headerTitleContainer: {
+    position: 'absolute',  // Floats above header row
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 60, // WAJIB: Safe distance from Back button
+    zIndex: 1,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#FFFFFF',
+    textAlign: 'center',   // Force text center in container
   },
   headerSubtitle: {
     fontSize: 14,
     color: 'rgba(255,255,255,0.8)',
     marginTop: 4,
   },
-  
-  // Old header styles (keep for compatibility)
-  header: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    padding: 20, 
-    paddingTop: 45,
-    backgroundColor: '#fff',
-    borderBottomWidth: 0,
-  },
-  backButton: { padding: 8, marginRight: 12 },
-  headerTitleContainer: { flex: 1 },
-  title: { fontSize: 22, fontWeight: 'bold', color: '#1a1a1a', marginBottom: 4 },
-  subtitle: { fontSize: 13, color: '#666', fontWeight: '400', marginTop: 0 },
   
   // Tabs - Perfect Symmetry Formula (Flex 1)
   tabScroll: { 
