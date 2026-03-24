@@ -16,9 +16,8 @@ const TermsConditionsScreen = ({ onNavigate }: any) => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View
+      {/* Header - Direct Attachment (No Gap) */}
+      <View
         style={[styles.headerBackground, { backgroundColor: colors.primary }]}
       >
         <View style={styles.headerContent}>
@@ -40,7 +39,6 @@ const TermsConditionsScreen = ({ onNavigate }: any) => {
             
             <View style={{ width: 40 }} />
           </View>
-        </View>
         </View>
       </View>
 
@@ -115,7 +113,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     height: 44,
-    marginTop: 10,
+    // marginTop: 10,  // REMOVED: Prevents gap at top
   },
   backButton: {
     width: 40,
@@ -133,9 +131,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'rgba(255,255,255,0.8)',
     marginTop: 4,
-  },
-  header: {
-    marginBottom: 20,
   },
   content: {
     padding: 20,                 // Consistent 20px rule

@@ -166,10 +166,39 @@ export default function LetterScreen() {
         }
         setActiveTab('history'); // Switch to history tab
         fetchLetters(); // Refresh list
+      } else {
+        // API returned but success is false
+        const message = response.data.message || 'Gagal mengajukan surat';
+        Alert.alert('Error', message);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Submit letter error:', error);
-      Alert.alert('Error', 'Gagal mengajukan surat');
+      
+      // Extract meaningful error message
+      let message = 'Gagal mengajukan surat';
+      
+      if (error?.response?.data?.message) {
+        // API error with message
+        message = error.response.data.message;
+      } else if (error?.response?.status === 401) {
+        // Unauthorized
+        message = 'Sesi login Anda telah berakhir. Silakan login kembali.';
+      } else if (error?.response?.status === 403) {
+        // Forbidden
+        message = 'Anda tidak memiliki izin untuk mengajukan surat ini.';
+      } else if (error?.response?.status === 422) {
+        // Validation error
+        const errors = error.response.data.errors;
+        if (errors) {
+          const errorMessages = Object.values(errors).flat().join('\n');
+          message = errorMessages;
+        }
+      } else if (error?.message) {
+        // Network or other error
+        message = error.message;
+      }
+      
+      Alert.alert('Error', message);
     } finally {
       setSubmitting(false);
     }

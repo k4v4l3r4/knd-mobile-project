@@ -246,7 +246,7 @@ const BansosScreen = ({ onNavigate }: any) => {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#10b981" />
+        <ActivityIndicator size="large" color="#059669" />
         <Text style={styles.loadingText}>Menarik Data dari Web-Admin...</Text>
       </View>
     );
@@ -256,7 +256,7 @@ const BansosScreen = ({ onNavigate }: any) => {
     <View style={styles.container}>
       {/* HEADER - Green Curved with Centered Title & Back Button */}
       <View style={styles.headerBackgroundContainer}>
-        <View style={[styles.headerBackground, { backgroundColor: '#10b981' }]}>
+        <View style={[styles.headerBackground, { backgroundColor: '#059669' }]}>
           <View style={styles.headerContent}>
             <View style={styles.headerRow}>
               {/* Back Button - Absolute Position (Layer Top) */}
@@ -346,7 +346,7 @@ const BansosScreen = ({ onNavigate }: any) => {
         ListEmptyComponent={
           activeTab === 'penyaluran' ? (
             <View style={styles.distributionContainer}>
-              <Ionicons name="gift-outline" size={64} color="#10b981" />
+              <Ionicons name="gift-outline" size={64} color="#059669" />
               <Text style={styles.distributionTitle}>Penyaluran Bantuan</Text>
               <Text style={styles.distributionSubtitle}>
                 Buat penyaluran bantuan baru untuk warga yang statusnya LAYAK
@@ -420,7 +420,7 @@ const BansosScreen = ({ onNavigate }: any) => {
                     </Text>
                   </View>
                   <View style={styles.editHint}>
-                    <Ionicons name="create-outline" size={16} color="#10b981" />
+                    <Ionicons name="create-outline" size={16} color="#059669" />
                     <Text style={styles.editHintText}>Ketuk untuk ubah status</Text>
                   </View>
                 </View>
@@ -432,7 +432,7 @@ const BansosScreen = ({ onNavigate }: any) => {
               <View style={styles.historyCard}>
                 <View style={styles.historyHeader}>
                   <View style={styles.historyInfo}>
-                    <Ionicons name="gift-outline" size={24} color="#10b981" />
+                    <Ionicons name="gift-outline" size={24} color="#059669" />
                     <View style={styles.historyTextContainer}>
                       <Text style={styles.historyProgram}>{historyItem.program_name || 'Tanpa Nama Program'}</Text>
                       <Text style={styles.historyDate}>
@@ -602,7 +602,7 @@ const BansosScreen = ({ onNavigate }: any) => {
 // Helper function for status colors
 const getStatusColor = (status: string) => {
   switch (status) {
-    case 'LAYAK': return '#10b981'; // Green
+    case 'LAYAK': return '#059669'; // Green - Same as VotingScreen
     case 'TIDAK_LAYAK': return '#ef4444'; // Red
     case 'PENDING': return '#f59e0b'; // Amber
     default: return '#999';
@@ -689,7 +689,7 @@ const styles = StyleSheet.create({
   },
   activeTab: {
     borderBottomWidth: 3,        // Attached indicator
-    borderBottomColor: '#10b981', // Green line appears HERE (attached to text)
+    borderBottomColor: '#059669', // Green line appears HERE (attached to text)
   },
   tabButtonText: {
     fontSize: 14,
@@ -697,7 +697,7 @@ const styles = StyleSheet.create({
     color: '#999999',            // Soft gray
   },
   activeTabButtonText: {
-    color: '#10b981',
+    color: '#059669',
     fontWeight: 'bold',          // Active: bold weight
   },
   
@@ -714,7 +714,7 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   tabText: { fontSize: 13, fontWeight: '600', color: '#999' },
-  activeTabText: { color: '#10b981' },
+  activeTabText: { color: '#059669' },
   
   // Search - Enhanced with Shadow and Margin
   searchContainer: { 
@@ -772,7 +772,7 @@ const styles = StyleSheet.create({
   avatarText: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
   name: { fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 4 },
   kk: { fontSize: 13, color: '#666', marginBottom: 4 },
-  notes: { fontSize: 12, color: '#10b981', fontStyle: 'italic', marginTop: 4 },
+  notes: { fontSize: 12, color: '#059669', fontStyle: 'italic', marginTop: 4 },
   badge: { 
     paddingHorizontal: 12, 
     paddingVertical: 6, 
@@ -785,7 +785,7 @@ const styles = StyleSheet.create({
   dateContainer: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   date: { color: '#888', fontSize: 12 },
   editHint: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  editHintText: { color: '#10b981', fontSize: 11, fontWeight: '600' },
+  editHintText: { color: '#059669', fontSize: 11, fontWeight: '600' },
   
   // History Card
   historyCard: { 
@@ -804,7 +804,7 @@ const styles = StyleSheet.create({
   historyTextContainer: { flex: 1 },
   historyProgram: { fontSize: 15, fontWeight: 'bold', color: '#333', marginBottom: 4 },
   historyDate: { fontSize: 13, color: '#666' },
-  historyAmount: { fontSize: 16, fontWeight: 'bold', color: '#10b981' },
+  historyAmount: { fontSize: 16, fontWeight: 'bold', color: '#059669' },
   historyRecipient: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, paddingTop: 12, borderTopWidth: 1, borderColor: '#f0f0f0' },
   historyRecipientText: { fontSize: 13, color: '#666', flex: 1 },
   
@@ -826,7 +826,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#10b981',
+    backgroundColor: '#059669',  // ← Same dark green as Voting
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 8,
@@ -887,7 +887,7 @@ const styles = StyleSheet.create({
   
   // Save Button
   saveButton: { 
-    backgroundColor: '#10b981',
+    backgroundColor: '#059669',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -896,7 +896,7 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 24,
     elevation: 3,
-    shadowColor: '#10b981',
+    shadowColor: '#059669',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -957,7 +957,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   createDistributionButton: { 
-    backgroundColor: '#10b981',
+    backgroundColor: '#059669',
     paddingVertical: 16,
     paddingHorizontal: 24,
     borderRadius: 12,
@@ -965,7 +965,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     elevation: 3,
-    shadowColor: '#10b981',
+    shadowColor: '#059669',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

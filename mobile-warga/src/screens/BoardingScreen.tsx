@@ -339,7 +339,7 @@ export default function BoardingScreen({ onNavigate }: BoardingScreenProps) {
     if (floors < 1) missingFields.push(t('boarding.form.totalFloors') || 'Jumlah Lantai');
     if (rooms < 1) missingFields.push(t('boarding.form.totalRooms') || 'Total Kamar');
     if (!kostFormData.price || Number(kostFormData.price) <= 0) missingFields.push('Harga Kost');
-    if (!kostFormData.owner_phone) missingFields.push('No HP Pemilik');
+    // Removed owner_phone validation - owner is the current user, phone will be set by backend
 
     if (missingFields.length > 0) {
       const msg = `Mohon lengkapi data kost: ${missingFields.join(', ')}`;
@@ -369,6 +369,10 @@ export default function BoardingScreen({ onNavigate }: BoardingScreenProps) {
       total_rooms: rooms,
       total_floors: floors,
       floor_config: floorConfig,
+      price: kostFormData.price,
+      facilities: kostFormData.facilities || '',
+      // Owner phone is auto-set by backend from authenticated user, but can be included for clarity
+      owner_phone: currentUser?.phone || '',
     };
 
     try {
