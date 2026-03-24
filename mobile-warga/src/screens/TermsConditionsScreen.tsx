@@ -15,10 +15,10 @@ const TermsConditionsScreen = ({ onNavigate }: any) => {
   const { t } = useLanguage();
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      {/* Header - Direct Attachment (No Gap) */}
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.primary }]} edges={['top']}>
+      {/* Header - Direct Attachment (No Gap, Green Background) */}
       <View
-        style={[styles.headerBackground, { backgroundColor: colors.primary }]}
+        style={[styles.headerBackground, { backgroundColor: colors.primary, marginTop: 0 }]}
       >
         <View style={styles.headerContent}>
           <View style={styles.headerRow}>
@@ -96,6 +96,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerBackground: {
+    paddingTop: 0,         // No top padding - prevents gap
+    marginTop: 0,          // No top margin - flush fit
     paddingBottom: 24,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
