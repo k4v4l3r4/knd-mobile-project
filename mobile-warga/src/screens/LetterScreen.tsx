@@ -97,17 +97,20 @@ export default function LetterScreen() {
         }));
         setLetterTypes(types);
         
-        // Set default type if current type is empty
-        if (!type && types.length > 0) {
+        // Set default type if current type is empty or invalid
+        if (!type || type.trim() === '') {
             setType(types[0].value);
         }
-      } else if (!type && letterTypes.length > 0) {
-          setType(letterTypes[0].value);
+      } else if (!type || type.trim() === '') {
+          // Fallback to first type if no type selected
+          if (letterTypes.length > 0) {
+              setType(letterTypes[0].value);
+          }
       }
     } catch (error) {
       console.error('Fetch letter types error:', error);
       // Fallback to default if fetch fails, ensure type is set
-      if (!type && letterTypes.length > 0) {
+      if (!type || type.trim() === '' && letterTypes.length > 0) {
         setType(letterTypes[0].value);
       }
     }
@@ -145,6 +148,13 @@ export default function LetterScreen() {
       return;
     }
 
+    // Validate letter type
+    if (!type || type.trim() === '') {
+      Alert.alert('Validasi', 'Silakan pilih jenis surat terlebih dahulu');
+      return;
+    }
+
+    // Validate purpose
     if (!purpose.trim()) {
       Alert.alert('Validasi', 'Keperluan surat wajib diisi');
       return;

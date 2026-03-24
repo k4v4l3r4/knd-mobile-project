@@ -338,7 +338,8 @@ export default function BoardingScreen({ onNavigate }: BoardingScreenProps) {
     if (!address) missingFields.push(t('boarding.form.kostAddress') || 'Alamat Kost');
     if (floors < 1) missingFields.push(t('boarding.form.totalFloors') || 'Jumlah Lantai');
     if (rooms < 1) missingFields.push(t('boarding.form.totalRooms') || 'Total Kamar');
-    if (!kostFormData.price || Number(kostFormData.price) <= 0) missingFields.push('Harga Kost');
+    // Removed price validation - price can be set later when adding rooms/tenants
+    
     // Removed owner_phone validation - owner is the current user, phone will be set by backend
 
     if (missingFields.length > 0) {
@@ -369,7 +370,9 @@ export default function BoardingScreen({ onNavigate }: BoardingScreenProps) {
       total_rooms: rooms,
       total_floors: floors,
       floor_config: floorConfig,
-      price: kostFormData.price,
+      // Price is optional - can be set later when configuring rooms/tenants
+      // Use 0 as default if not provided
+      price: kostFormData.price ? Number(kostFormData.price) : 0,
       facilities: kostFormData.facilities || '',
       // Owner phone is auto-set by backend from authenticated user, but can be included for clarity
       owner_phone: currentUser?.phone || '',
