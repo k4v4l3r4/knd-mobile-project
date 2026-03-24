@@ -16,9 +16,9 @@ const TermsConditionsScreen = ({ onNavigate }: any) => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.primary }]} edges={['top']}>
-      {/* Header - Direct Attachment (No Gap, Green Background) */}
+      {/* Header - Green Background Only (No Gap) */}
       <View
-        style={[styles.headerBackground, { backgroundColor: colors.primary, marginTop: 0 }]}
+        style={[styles.headerBackground, { backgroundColor: colors.primary, marginTop: 0, paddingTop: 0 }]}
       >
         <View style={styles.headerContent}>
           <View style={styles.headerRow}>
@@ -42,7 +42,8 @@ const TermsConditionsScreen = ({ onNavigate }: any) => {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      {/* Content - White Background for Readability */}
+      <ScrollView contentContainerStyle={[styles.content, { backgroundColor: '#FFFFFF' }]} showsVerticalScrollIndicator={false}>
         <Text style={[styles.title, { color: colors.text }]}>{t('terms.title')}</Text>
         <Text style={[styles.date, { color: colors.textSecondary }]}>{t('terms.lastUpdated')}</Text>
 
