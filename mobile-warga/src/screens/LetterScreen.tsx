@@ -53,6 +53,7 @@ export default function LetterScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [letterTypesLoading, setLetterTypesLoading] = useState(true);
 
   // Form State
   const [type, setType] = useState('');
@@ -86,6 +87,7 @@ export default function LetterScreen() {
   };
 
   const fetchLetterTypes = async () => {
+    setLetterTypesLoading(true);
     try {
       // @ts-ignore
       const response = await api.get('/letter-types');
@@ -113,6 +115,8 @@ export default function LetterScreen() {
       if (!type || type.trim() === '' && letterTypes.length > 0) {
         setType(letterTypes[0].value);
       }
+    } finally {
+      setLetterTypesLoading(false);
     }
   };
 
@@ -148,8 +152,21 @@ export default function LetterScreen() {
       return;
     }
 
-    // Validate letter type
-    if (!type || type.trim() === '') {
+    // Prevent submission while letter types are still loading
+    if (letterTypesLoading) {
+      Alert.alert('Validasi', 'Memuat data jenis surat, silakan tunggu sebentar...');
+      return;
+    }
+
+    // Debug: Log current type value
+    console.log('[handleSubmit] type:', type);
+    console.log('[handleSubmit] type typeof:', typeof type);
+    console.log('[handleSubmit] type trimmed:', type?.trim());
+
+    // Validate letter type - ensure it's not empty or undefined
+    const typeValue = String(type || '').trim();
+    if (!typeValue || typeValue === '' || typeValue === 'undefined') {
+      console.error('[Validation] Type is empty or invalid');
       Alert.alert('Validasi', 'Silakan pilih jenis surat terlebih dahulu');
       return;
     }
@@ -160,11 +177,13 @@ export default function LetterScreen() {
       return;
     }
 
+    console.log('[handleSubmit] Submitting with type:', typeValue, 'purpose:', purpose);
+
     setSubmitting(true);
     try {
       // @ts-ignore
       const response = await api.post('/letters', {
-        type,
+        type: typeValue,
         purpose
       });
 
@@ -183,6 +202,12 @@ export default function LetterScreen() {
       }
     } catch (error: any) {
       console.error('Submit letter error:', error);
+      
+      // Log full error response for debugging
+      if (error?.response) {
+        console.error('Error response status:', error.response.status);
+        console.error('Error response data:', error.response.data);
+      }
       
       // Extract meaningful error message
       let message = 'Gagal mengajukan surat';
