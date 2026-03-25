@@ -86,6 +86,28 @@ export default function LetterScreen() {
     }
   };
 
+  /**
+   * Sort letter types by priority for better UX
+   * Order: Pengantar KTP → Pengantar KK → Domisili → SKTM → Izin Keramaian → Lainnya
+   */
+  const sortLetterTypesByPriority = (types: Array<{ label: string; value: string }>) => {
+    // Priority order mapping (lower number = higher priority)
+    const priorityOrder: Record<string, number> = {
+      'PENGANTAR_KTP': 1,
+      'PENGANTAR_KK': 2,
+      'DOMISILI': 3,
+      'SKTM': 4,
+      'IZIN_KERAMAIAN': 5,
+      'LAINNYA': 6, // Always last
+    };
+
+    return [...types].sort((a, b) => {
+      const aPriority = priorityOrder[a.value] || 999; // Unknown types go to bottom
+      const bPriority = priorityOrder[b.value] || 999;
+      return aPriority - bPriority;
+    });
+  };
+
   const fetchLetterTypes = async () => {
     setLetterTypesLoading(true);
     try {
@@ -97,11 +119,15 @@ export default function LetterScreen() {
             label: t.name,
             value: t.code
         }));
-        setLetterTypes(types);
+        
+        // Sort letter types by priority for better UX
+        // Order: Pengantar KTP → Pengantar KK → Domisili → SKTM → Izin Keramaian → Lainnya
+        const sortedTypes = sortLetterTypesByPriority(types);
+        setLetterTypes(sortedTypes);
         
         // Set default type if current type is empty or invalid
         if (!type || type.trim() === '') {
-            setType(types[0].value);
+            setType(sortedTypes[0].value);
         }
       } else if (!type || type.trim() === '') {
           // Fallback to first type if no type selected
